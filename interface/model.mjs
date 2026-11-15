@@ -1,4 +1,5 @@
 // Pure presentation transforms. No prediction or recommendation model.
+import {validateET} from './et_view.mjs';
 export const names = {corn_corn:'Continuous corn',corn_sorghum:'Corn → grain sorghum',corn_wheat:'Corn → winter wheat'};
 export const cropNames = {corn:'Corn',grain_sorghum:'Grain sorghum',winter_wheat:'Winter wheat'};
 export const priorities = {
@@ -34,9 +35,10 @@ export function cropHistory(field) {
 export function safeURL(value) {
   try {const url=new URL(value);return ['https:','http:'].includes(url.protocol)?url.href:null;}catch{return null;}
 }
-export function validateBundle(b) {
+export function validateBundle(b,{allowSynthetic=false}={}) {
   if(b.schema_version!=='kimchi.demo.1'||!Array.isArray(b.fields)||b.fields.length!==3||!Array.isArray(b.candidates)||b.candidates.length!==3||!Array.isArray(b.sources)||!Array.isArray(b.rules)||!Array.isArray(b.regional_weather?.rows)) throw new Error('Unexpected research bundle');
   // This first interface is read-only and has no workflow for validating new results.
-  if(b.fields.some(f=>f.baseline!==null||f.et?.status!=='unavailable'||f.et.rows.length||f.feature?.properties.boundary_status!=='approximate')||b.candidates.some(c=>c.field_suitability!==null)) throw new Error('Evidence states have changed; review the interface before displaying this bundle');
-  return b;
+  if(b.fields.some(f=>f.baseline!==null||f.feature?.properties.boundary_status!=='approximate')||b.candidates.some(c=>c.field_suitability!==null)) throw new Error('Evidence states have changed; review the interface before displaying this bundle');
+  // ET may be unavailable or exactly compare.py's validated shape; allowSynthetic is for tests only.
+  return validateET(b,{allowSynthetic});
 }

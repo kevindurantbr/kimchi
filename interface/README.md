@@ -27,7 +27,7 @@ Open http://127.0.0.1:8765/ in a browser. Use HTTP rather than opening the HTML 
 ## Verify
 
 ```sh
-node --test interface/test_model.mjs interface/test_live_weather.mjs interface/test_scenario.mjs
+node --test interface/test_*.mjs
 node --check interface/app.js && node --check interface/scenario.mjs
 python3 interface/fixtures/make_scenario_fixtures.py --check
 python3 -m unittest discover -s prototype -v
@@ -44,14 +44,14 @@ Browser QA completed at 1440 × 1000 and 390 × 844: dropdown and keyboard map s
 - Live weather rows are **unreviewed and provisional**. Reviewed months are never replaced; if live values for overlapping months differ, the page says so and keeps the reviewed values. Live months are marked in the chart tooltip and table, and their request is listed as source `T3_NASA_POWER_LIVE`.
 - Soil storage retains **cm water**, profile depth, and valid coverage. `fld01` has 92.8% coverage. Categorical soil shares are labelled separately from numeric valid-data coverage. Soil storage is not current moisture.
 - Crop shares are classified pixel fractions, not probabilities of correctness. Histories always require confirmation; baseline remains unconfirmed.
-- Empty ET stays **Data unavailable**. ET is not pumping.
+- Empty ET stays **Data unavailable**. ET is not pumping. See [ET display](#et-display).
 - All candidate suitability remains unknown and conditional. Priorities change the questions surfaced, never candidate order or performance ranking. Benefits, risks, references, treatment differences, calendars and unresolved inputs come directly from the agronomy bundle.
 - Wheat sowing and harvest years are distinct. Calendar windows remain regional/historical examples, not local planting deadlines.
 - Yield, profit and pumping savings are not predicted. Entered baselines and constraints are labelled *Supplied by you · not verified* (see [scenario inputs](#scenario-inputs)).
 
 ## Files and publication
 
-`index.html`, `styles.css`, `app.js`, `model.mjs`, `live_weather.mjs`, `scenario.mjs` and `icon.svg` are the static application source. The model module contains presentation transforms only. Dynamic data text is escaped, source links accept only HTTP(S), and a bundle/schema failure shows an error instead of substitute evidence.
+`index.html`, `styles.css`, `app.js`, `model.mjs`, `live_weather.mjs`, `scenario.mjs`, `et_view.mjs` and `icon.svg` are the static application source. The model module contains presentation transforms only. Dynamic data text is escaped, source links accept only HTTP(S), and a bundle/schema failure shows an error instead of substitute evidence.
 
 `.openai/hosting.json` stores the existing Site ID and static output configuration. Reuse that ID for future publication. A separate temporary Site checkout holds a deployment snapshot of these assets and `dist/`; the canonical source and research remain in this GitHub repository. Sites credentials must stay in memory/stdin, never in tracked files. Preserve the Site's private audience unless the team explicitly changes it.
 
@@ -71,4 +71,8 @@ Browser QA completed at 1440 × 1000 and 390 × 844: dropdown and keyboard map s
 - **Privacy.** Entries are kept per field in page memory, with no storage and no network. *Clear all my entries* removes them, and so does reloading the page. Real farm inputs must never be added to tracked files; keep them in ignored `*.private.json` scenarios for `compare.py`.
 - **Limits.** Water, equipment and market availability are not constraint kinds in `compare.py`, so they stay as open questions on each card.
 
-Next interface work: reviewed calendars, plus water, market and equipment gates once `compare.py` defines them, then validated ET ingestion. See the [integration review](../research/integration_review.md) for the research prerequisites.
+## ET display
+
+`et_view.mjs` accepts a field's ET only as `unavailable` (the reviewed panel stays exactly as is) or in the exact `available` shape `prototype/compare.py` emits after validating real OpenET adapter output: monthly mm, OpenET sources present in the bundle, adapter row fields, `et_mm` finite and ≥ 0 or null, `missing` exactly when null, rows inside the recorded period, and coverage that matches the rows. Anything else, and any source whose text says SYNTHETIC, stops the page from loading the bundle. The bundle schema has no synthetic flag, so only tests can opt in. Available ET shows the coverage line (“N of M months”), units, period, source, a monthly table with null months as *No value*, and the OpenET MAD range when the bundle carries it. ET is never converted to pumping, irrigation or savings. `test_et.mjs` builds its bundle by running `compare.py` (needs `python3`) on the SYNTHETIC fixture in `prototype/fixtures/`.
+
+Next interface work: reviewed calendars, plus water, market and equipment gates once `compare.py` defines them, then a first reviewed real OpenET bundle (needs an API key run locally). See the [integration review](../research/integration_review.md) for the research prerequisites.
