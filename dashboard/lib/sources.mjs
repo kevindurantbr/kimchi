@@ -443,6 +443,23 @@ export function modisPixelCenters({ xllcorner, yllcorner, cellsize, nrows, ncols
   return out;
 }
 
+/**
+ * MOD13Q1 raw NDVI integer (+ optional pixel_reliability) → NDVI 0–1 or null.
+ * Null for fill (-3000), values outside -0.2..1, or reliability other than
+ * 0 (good) / 1 (marginal); 2 = snow/ice, 3 = cloudy, -1/255 = fill.
+ */
+export function ndviFromRaw(raw, reliability) {
+  const n = Number(raw);
+  if (raw === null || raw === undefined || !Number.isFinite(n) || n === -3000) return null;
+  const ndvi = n * 0.0001;
+  if (ndvi < -0.2 || ndvi > 1) return null;
+  if (reliability !== undefined && reliability !== null) {
+    const q = Number(reliability);
+    if (q !== 0 && q !== 1) return null;
+  }
+  return round(ndvi, 4);
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function ornlJson(url, timeoutMs, retries = 2) {
@@ -516,17 +533,7 @@ export async function fetchModisNdvi({
     const rel = relBand ? relBand.get(d.modis_date) : null;
     dates.push(d.calendar_date);
     modisDates.push(d.modis_date);
-    pixels.push(raw.map((v, k) => {
-      const n = Number(v);
-      if (!Number.isFinite(n) || n === -3000) return null;
-      const ndvi = n * 0.0001;
-      if (ndvi < -0.2 || ndvi > 1) return null;
-      if (rel) {
-        const q = Number(rel[k]);
-        if (q !== 0 && q !== 1) return null; // 0 good, 1 marginal; 2 snow/ice, 3 cloudy, -1 fill
-      }
-      return round(ndvi, 4);
-    }));
+    pixels.push(raw.map((v, k) => ndviFromRaw(v, rel ? rel[k] : undefined)));
   }
   return {
     lat, lon, ...grid,

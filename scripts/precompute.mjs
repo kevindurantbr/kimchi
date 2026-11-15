@@ -5,17 +5,20 @@
 //   node scripts/precompute.mjs fields    → dashboard/data/demo_fields.geojson
 //   node scripts/precompute.mjs ndvi      → dashboard/data/fields_ndvi.json
 //   node scripts/precompute.mjs grid      → dashboard/data/region_grid.json
+//   node scripts/precompute.mjs sources   → dashboard/data/sources.json
 //   node scripts/precompute.mjs all
 //
-// Options: --ndvi-start=YYYY-MM-DD (default 2001-01-01), --end=YYYY-MM-DD (default today, UTC)
+// Options: --ndvi-start=YYYY-MM-DD (default 2001-01-01), --end=YYYY-MM-DD (default today, UTC),
+//          --ndvi-source=auto|ornl|pc (default auto)
 // Node 18+, no npm dependencies. See scripts/README.md.
 
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import {
   fetchPowerDaily, fetchModisNdvi, fieldMeanSeries, polygonAreaHa, polygonCenter,
-  pointInPolygon, powerSiteId, lastValidDate,
+  pointInPolygon, powerSiteId, lastValidDate, ndviFromRaw, modisPixelPolygons, modisPixelCenters,
 } from '../dashboard/lib/sources.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -320,19 +323,243 @@ async function grid() {
 
 // ---------------------------------------------------------------------------
 // ndvi
+//   --ndvi-source=ornl  ORNL DAAC MODIS Web Service (fetchModisNdvi; the plan's default)
+//   --ndvi-source=pc    the same NASA MOD13Q1 v061 files, read as Cloud-Optimized
+//                       GeoTIFFs from Microsoft Planetary Computer (no login; Node only)
+//   --ndvi-source=auto  (default) ORNL, and Planetary Computer if ORNL is unreachable
 // ---------------------------------------------------------------------------
+const NDVI_WIN = 4; // ±4 pixels → 9 × 9 window, like ORNL kmAboveBelow=1/kmLeftRight=1
+const MODIS_R = 6371007.181;
+
+/** Minimal tiled-GeoTIFF reader: header + tiles via HTTP range requests (deflate / none). */
+async function rangeGet(url, from, to, label) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 90000);
+      const res = await fetch(url, { headers: { Range: `bytes=${from}-${to}` }, signal: ctrl.signal });
+      clearTimeout(t);
+      if (res.status !== 206 && res.status !== 200) throw new Error(`HTTP ${res.status}`);
+      return Buffer.from(await res.arrayBuffer());
+    } catch (err) {
+      if (attempt >= 3) throw new Error(`MODIS (Planetary Computer) unavailable: ${label}: ${err.message}`);
+      await sleep(2000 * (attempt + 1));
+    }
+  }
+}
+
+function parseTiffHeader(b) {
+  const le = b.toString('latin1', 0, 2) === 'II';
+  const u16 = (o) => (le ? b.readUInt16LE(o) : b.readUInt16BE(o));
+  const u32 = (o) => (le ? b.readUInt32LE(o) : b.readUInt32BE(o));
+  const f64 = (o) => (le ? b.readDoubleLE(o) : b.readDoubleBE(o));
+  if (u16(2) !== 42) throw new Error('not a classic TIFF');
+  const ifd = u32(4);
+  const n = u16(ifd);
+  const size = { 1: 1, 2: 1, 3: 2, 4: 4, 6: 1, 8: 2, 9: 4, 12: 8, 16: 8 };
+  const tags = {};
+  for (let i = 0; i < n; i++) {
+    const e = ifd + 2 + i * 12;
+    const tag = u16(e); const typ = u16(e + 2); const cnt = u32(e + 4);
+    const bytes = size[typ] * cnt;
+    const at = bytes <= 4 ? e + 8 : u32(e + 8);
+    if (at + bytes > b.length) { tags[tag] = { outOfRange: at + bytes }; continue; }
+    const read = (k) => (typ === 3 ? u16(at + 2 * k) : typ === 4 ? u32(at + 4 * k) : typ === 12 ? f64(at + 8 * k)
+      : typ === 1 || typ === 6 ? b[at + k] : null);
+    tags[tag] = typ === 2 ? b.toString('latin1', at, at + cnt) : Array.from({ length: cnt }, (_, k) => read(k));
+  }
+  const need = [256, 257, 258, 259, 322, 323, 324, 325, 33550, 33922];
+  for (const t of need) if (!tags[t] || tags[t].outOfRange) throw new Error(`TIFF tag ${t} not in header range`);
+  return {
+    le, width: tags[256][0], height: tags[257][0], bits: tags[258][0], compression: tags[259][0],
+    predictor: tags[317]?.[0] ?? 1, sampleFormat: tags[339]?.[0] ?? 1,
+    tileW: tags[322][0], tileH: tags[323][0], offsets: tags[324], counts: tags[325],
+    pixelX: tags[33550][0], pixelY: tags[33550][1], x0: tags[33922][3], y0: tags[33922][4],
+    nodata: typeof tags[42113] === 'string' ? Number(tags[42113].replace(/\0/g, '')) : null,
+  };
+}
+
+async function readCogWindow(url, row0, col0, nrows, ncols, label, hdrCache, tileCache = new Map()) {
+  let h = hdrCache.get(url);
+  if (!h) { h = parseTiffHeader(await rangeGet(url, 0, 65535, label)); hdrCache.set(url, h); }
+  if (h.predictor !== 1) throw new Error(`unsupported TIFF predictor ${h.predictor}`);
+  const tilesAcross = Math.ceil(h.width / h.tileW);
+  const out = new Array(nrows * ncols).fill(null);
+  const bpp = h.bits / 8;
+  const tiles = new Map();
+  for (let r = row0; r < row0 + nrows; r++) for (let c = col0; c < col0 + ncols; c++) {
+    tiles.set(`${Math.floor(r / h.tileH)},${Math.floor(c / h.tileW)}`, null);
+  }
+  for (const key of tiles.keys()) {
+    const [tr, tc] = key.split(',').map(Number);
+    const idx = tr * tilesAcross + tc;
+    const ck = `${url.split('?')[0]}#${idx}`;
+    if (!tileCache.has(ck)) {
+      const off = h.offsets[idx]; const cnt = h.counts[idx];
+      let raw = cnt ? await rangeGet(url, off, off + cnt - 1, label) : null;
+      if (raw && h.compression === 8) raw = zlib.inflateSync(raw);
+      else if (raw && h.compression !== 1) throw new Error(`unsupported TIFF compression ${h.compression}`);
+      tileCache.set(ck, raw);
+    }
+    tiles.set(key, tileCache.get(ck));
+  }
+  for (let r = 0; r < nrows; r++) for (let c = 0; c < ncols; c++) {
+    const R = row0 + r; const C = col0 + c;
+    const t = tiles.get(`${Math.floor(R / h.tileH)},${Math.floor(C / h.tileW)}`);
+    if (!t) continue;
+    const o = ((R % h.tileH) * h.tileW + (C % h.tileW)) * bpp;
+    let v;
+    if (bpp === 2) v = h.sampleFormat === 2 ? (h.le ? t.readInt16LE(o) : t.readInt16BE(o)) : (h.le ? t.readUInt16LE(o) : t.readUInt16BE(o));
+    else v = h.sampleFormat === 2 ? t.readInt8(o) : t.readUInt8(o);
+    out[r * ncols + c] = h.nodata !== null && v === h.nodata && bpp === 1 ? null : v;
+  }
+  return { header: h, values: out };
+}
+
+async function pcToken() {
+  const res = await fetch('https://planetarycomputer.microsoft.com/api/sas/v1/token/modiseuwest/modis-061-cogs');
+  if (!res.ok) throw new Error(`MODIS (Planetary Computer) unavailable: SAS token HTTP ${res.status}`);
+  const j = await res.json();
+  return { token: j.token, expiry: Date.parse(j['msft:expiry']) };
+}
+
+async function pcItems(lat, lon, start, end) {
+  const items = [];
+  let body = { collections: ['modis-13Q1-061'], intersects: { type: 'Point', coordinates: [lon, lat] },
+    datetime: `${start}T00:00:00Z/${end}T23:59:59Z`, limit: 500 };
+  let url = 'https://planetarycomputer.microsoft.com/api/stac/v1/search';
+  for (let page = 0; page < 50; page++) {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(`MODIS (Planetary Computer) unavailable: STAC HTTP ${res.status}`);
+    const j = await res.json();
+    items.push(...j.features);
+    const next = (j.links || []).find((l) => l.rel === 'next');
+    if (!next) break;
+    url = next.href; body = next.body || body;
+  }
+  // Terra MOD13Q1 only (ORNL's MOD13Q1); keep the latest processing per composite date + tile.
+  const byKey = new Map();
+  for (const it of items) {
+    const m = /^MOD13Q1\.A(\d{7})\.(h\d\dv\d\d)\.061\.(\d{13})$/.exec(it.id);
+    if (!m) continue;
+    const key = `${m[1]}.${m[2]}`;
+    if (!byKey.has(key) || byKey.get(key).proc < m[3]) byKey.set(key, { modis: `A${m[1]}`, tile: m[2], proc: m[3], item: it });
+  }
+  const startA = toModisDateLocal(start);
+  return [...byKey.values()].filter((x) => x.modis >= startA).sort((a, b) => a.modis.localeCompare(b.modis));
+}
+
+function toModisDateLocal(iso) {
+  const y = Number(iso.slice(0, 4));
+  const doy = Math.round((Date.UTC(y, Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) - Date.UTC(y, 0, 1)) / 86400000) + 1;
+  return `A${y}${String(doy).padStart(3, '0')}`;
+}
+
+function modisToIso(a) {
+  const y = Number(a.slice(1, 5)); const d = Number(a.slice(5));
+  return new Date(Date.UTC(y, 0, d)).toISOString().slice(0, 10);
+}
+
+/** NDVI 9×9 windows for several nearby points from Planetary Computer COGs. */
+async function fetchNdviPlanetary(points, start, end) {
+  const items = await pcItems(points[0].lat, points[0].lon, start, end);
+  if (!items.length) throw new Error('MODIS (Planetary Computer) unavailable: no MOD13Q1 items found');
+  const tiles = new Set(items.map((i) => i.tile));
+  if (tiles.size > 1) console.warn(`  note: composites span tiles ${[...tiles].join(', ')}`);
+  console.log(`  Planetary Computer: ${items.length} MOD13Q1 composites ${items[0].modis}..${items.at(-1).modis}`);
+  let sas = await pcToken();
+  const hdr = new Map();
+  const res = points.map((p) => ({ ...p, grid: null, dates: [], modis_dates: [], pixels: [], tiles: new Set() }));
+  let done = 0;
+  const queue = items.slice();
+  const worker = async () => {
+    for (let it = queue.shift(); it; it = queue.shift()) {
+      if (Date.now() > sas.expiry - 5 * 60000) sas = await pcToken();
+      const href = (band) => `${it.item.assets[band].href}?${sas.token}`;
+      // Grid for this file: compute each point's window, read NDVI + reliability for all points.
+      const ndviUrl = href('250m_16_days_NDVI');
+      const relUrl = href('250m_16_days_pixel_reliability');
+      const label = `${it.modis} ${it.tile}`;
+      let h = hdr.get(ndviUrl.split('?')[0]);
+      if (!h) { h = parseTiffHeader(await rangeGet(ndviUrl, 0, 65535, label)); hdr.set(ndviUrl.split('?')[0], h); }
+      const tileCache = new Map(); // tiles shared by nearby fields within this composite
+      const cache = new Map([[ndviUrl, h]]);
+      for (const p of res) {
+        const latR = (p.lat * Math.PI) / 180;
+        const x = MODIS_R * ((p.lon * Math.PI) / 180) * Math.cos(latR);
+        const y = MODIS_R * latR;
+        const col = Math.floor((x - h.x0) / h.pixelX); const row = Math.floor((h.y0 - y) / h.pixelY);
+        const r0 = row - NDVI_WIN; const c0 = col - NDVI_WIN; const n = 2 * NDVI_WIN + 1;
+        if (r0 < 0 || c0 < 0 || r0 + n > h.height || c0 + n > h.width) throw new Error(`window crosses tile edge for ${p.field_id}`);
+        const nd = await readCogWindow(ndviUrl, r0, c0, n, n, label, cache, tileCache);
+        let rel = null;
+        try { rel = (await readCogWindow(relUrl, r0, c0, n, n, label, cache, tileCache)).values; } catch (err) { console.warn(`  ${label} reliability: ${err.message}`); }
+        const grid = { xllcorner: h.x0 + c0 * h.pixelX, yllcorner: h.y0 - (r0 + n) * h.pixelY, cellsize: h.pixelX, nrows: n, ncols: n };
+        p.grid = p.grid || grid;
+        if (Math.abs(p.grid.xllcorner - grid.xllcorner) > 1 || Math.abs(p.grid.yllcorner - grid.yllcorner) > 1) {
+          throw new Error(`pixel grid moved for ${p.field_id} at ${it.modis}`);
+        }
+        p.tiles.add(it.tile);
+        p.rows = p.rows || new Map();
+        p.rows.set(it.modis, { values: nd.values.map((v, k) => ndviFromRaw(v, rel ? rel[k] : undefined)), rel: Boolean(rel) });
+      }
+      done++;
+      if (done % 10 === 0 || done === items.length) process.stdout.write(`\r  ${done}/${items.length} composites   `);
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  process.stdout.write('\n');
+  return res.map((p) => {
+    const keys = [...p.rows.keys()].sort();
+    const grid = p.grid;
+    return {
+      field_id: p.field_id, lat: p.lat, lon: p.lon, ...grid,
+      pixel_size_m: Math.round(grid.cellsize * 100) / 100,
+      pixel_polygons: modisPixelPolygons(grid),
+      pixel_centers: modisPixelCenters(grid).map((c) => c.map((v) => Math.round(v * 1e6) / 1e6)),
+      dates: keys.map(modisToIso), modis_dates: keys, pixels: keys.map((k) => p.rows.get(k).values),
+      reliability_applied: keys.every((k) => p.rows.get(k).rel),
+      modis_tiles: [...p.tiles],
+      retrieved_at: new Date().toISOString(),
+      source_ids: ['MODIS_MOD13Q1_PC'],
+    };
+  });
+}
+
+function ndviFieldRecord(f, n, sourceNote) {
+  return {
+    field_id: f.properties.field_id,
+    request: { lat: n.lat, lon: n.lon, window: '9 x 9 pixels centred on the field-centre pixel' },
+    source: sourceNote,
+    pixel_size_m: n.pixel_size_m, nrows: n.nrows, ncols: n.ncols,
+    xllcorner: n.xllcorner, yllcorner: n.yllcorner, cellsize: n.cellsize,
+    pixel_polygons: n.pixel_polygons,
+    pixel_centers: n.pixel_centers,
+    pixels_in_field: n.pixel_centers.map((c, k) => (pointInPolygon(c, f.geometry) ? k : -1)).filter((k) => k >= 0),
+    dates: n.dates,
+    modis_dates: n.modis_dates,
+    field_mean: fieldMeanSeries(n, f.geometry),
+    pixels: n.pixels,
+    reliability_applied: n.reliability_applied,
+    retrieved_at: n.retrieved_at,
+  };
+}
+
 async function ndvi() {
   const fc = fs.existsSync(path.join(DATA, 'demo_fields.geojson'))
     ? readJson(path.join(DATA, 'demo_fields.geojson')) : fields();
   const start = opt('ndvi-start', '2001-01-01');
+  const mode = opt('ndvi-source', 'auto');
   const outFile = path.join(DATA, 'fields_ndvi.json');
-  const prev = fs.existsSync(outFile) ? readJson(outFile) : null;
   const outFields = [];
   const failures = [];
+  const sourceIds = new Set();
+  let useOrnl = mode === 'ornl' || mode === 'auto';
   for (const f of fc.features) {
+    if (!useOrnl) break;
     const id = f.properties.field_id;
     const { lat, lon } = polygonCenter(f.geometry);
-    console.log(`ndvi: ${id} MOD13Q1 ${start}..${TODAY} at ${lat.toFixed(5)}, ${lon.toFixed(5)}`);
+    console.log(`ndvi: ${id} ORNL MOD13Q1 ${start}..${TODAY} at ${lat.toFixed(5)}, ${lon.toFixed(5)}`);
     try {
       const n = await fetchModisNdvi({
         lat: r2(lat, 5), lon: r2(lon, 5), startDate: start, endDate: TODAY, kmAboveBelow: 1, kmLeftRight: 1,
@@ -340,38 +567,44 @@ async function ndvi() {
         onProgress: ({ band, done, total }) => process.stdout.write(`\r  ${band} ${done}/${total}   `),
       });
       process.stdout.write('\n');
-      outFields.push({
-        field_id: id,
-        request: { lat: r2(lat, 5), lon: r2(lon, 5), kmAboveBelow: 1, kmLeftRight: 1 },
-        pixel_size_m: n.pixel_size_m, nrows: n.nrows, ncols: n.ncols,
-        xllcorner: n.xllcorner, yllcorner: n.yllcorner, cellsize: n.cellsize,
-        pixel_polygons: n.pixel_polygons,
-        pixel_centers: n.pixel_centers,
-        pixels_in_field: n.pixel_centers.map((c, k) => (pointInPolygon(c, f.geometry) ? k : -1)).filter((k) => k >= 0),
-        dates: n.dates,
-        modis_dates: n.modis_dates,
-        field_mean: fieldMeanSeries(n, f.geometry),
-        pixels: n.pixels,
-        reliability_applied: n.reliability_applied,
-        retrieved_at: n.retrieved_at,
-      });
+      outFields.push(ndviFieldRecord(f, n, 'ORNL DAAC MODIS Web Service, MOD13Q1 v061, kmAboveBelow=1, kmLeftRight=1'));
+      sourceIds.add('MODIS_MOD13Q1_ORNL');
     } catch (err) {
       process.stdout.write('\n');
-      console.warn(`  ${id} FAILED: ${err.message}`);
-      failures.push({ field_id: id, error: err.message });
-      const old = prev?.fields?.find((x) => x.field_id === id);
-      if (old) { console.warn(`  keeping previous ${id} data from ${old.retrieved_at}`); outFields.push(old); }
+      console.warn(`  ${id} ORNL FAILED: ${err.message}`);
+      failures.push({ field_id: id, source: 'MODIS_MOD13Q1_ORNL', error: err.message });
+      if (mode === 'auto') { useOrnl = false; outFields.length = 0; }
+    }
+  }
+  if (mode === 'pc' || (mode === 'auto' && !useOrnl)) {
+    console.log(`ndvi: Planetary Computer COGs for ${fc.features.length} fields ${start}..${TODAY}`);
+    const pts = fc.features.map((f) => {
+      const { lat, lon } = polygonCenter(f.geometry);
+      return { field_id: f.properties.field_id, lat: r2(lat, 5), lon: r2(lon, 5) };
+    });
+    try {
+      const res = await fetchNdviPlanetary(pts, start, TODAY);
+      for (const n of res) {
+        const f = fc.features.find((x) => x.properties.field_id === n.field_id);
+        outFields.push(ndviFieldRecord(f, n, 'NASA MOD13Q1 v061 Cloud-Optimized GeoTIFFs on Microsoft Planetary Computer (collection modis-13Q1-061), 9 x 9 pixel window'));
+      }
+      sourceIds.add('MODIS_MOD13Q1_PC');
+    } catch (err) {
+      console.warn(`  Planetary Computer FAILED: ${err.message}`);
+      failures.push({ field_id: '*', source: 'MODIS_MOD13Q1_PC', error: err.message });
     }
   }
   if (!outFields.length) {
-    console.error('ndvi: no field succeeded; fields_ndvi.json not written. Run from a machine that can reach modis.ornl.gov.');
+    console.error('ndvi: no field succeeded; fields_ndvi.json not written.');
     return false;
   }
   writeJson(outFile, {
     generated_at: new Date().toISOString(),
-    source_ids: ['MODIS_MOD13Q1_ORNL'],
+    source_ids: [...sourceIds],
+    product: 'MODIS Terra MOD13Q1 collection 061, 250 m 16-day composite NDVI (NASA LP DAAC)',
     notes: [
       'NDVI = raw x 0.0001. Null = fill (-3000), out of range (-0.2..1), or pixel_reliability not 0 (good) / 1 (marginal).',
+      'dates are composite start dates (16-day composites).',
       'pixel_polygons and pixels are row-major from the upper-left (north-west) pixel.',
       'field_mean = mean of valid pixels whose centre lies inside the field polygon (pixels_in_field indexes).',
       'NDVI shows greenness, not its cause.',
@@ -383,16 +616,123 @@ async function ndvi() {
 }
 
 // ---------------------------------------------------------------------------
-const cmds = { site, fields, grid, ndvi };
+// sources: dashboard/data/sources.json
+// ---------------------------------------------------------------------------
+function sourcesFile() {
+  const agro = readJson(path.join(ROOT, 'research', 'deliverables', 'agronomy', 'agronomy.json'));
+  const obs = readJson(path.join(RESEARCH, 'field_observations.json'));
+  const cdl = obs.sources.find((x) => x.source_id === 'T2_CDL');
+  const ssurgo = obs.sources.find((x) => x.source_id === 'T2_SSURGO');
+  const core = [
+    { id: 'NASA_POWER_DAILY', name: 'NASA POWER Daily API, Agroclimatology (AG) community',
+      provider: 'NASA Langley Research Center, Prediction Of Worldwide Energy Resources (POWER)',
+      url: 'https://power.larc.nasa.gov/api/temporal/daily/point',
+      resolution: 'Meteorology ~0.5° lat × 0.625° lon (MERRA-2 / GEOS-IT grid, about 50 km); solar ~1° (CERES / FLASHFlux)',
+      period: '1981-01-01 to present (daily solar radiation from 1984)',
+      latency: '~3 days for meteorology, longer for solar radiation (checked 2026-11-15: T2M through 2026-11-12, ALLSKY through 2026-11-10)',
+      license_or_terms: 'Free, no key. NASA data policy; cite "These data were obtained from the NASA Langley Research Center POWER Project funded through the NASA Earth Science Directorate Applied Science Program."',
+      notes: 'Parameters T2M_MAX, T2M_MIN, PRECTOTCORR, RH2M, WS2M, ALLSKY_SFC_SW_DWN, GWETROOT, GWETTOP. Fill -999 → null. Reanalysis-based: regional context, not a field measurement. GWETROOT/GWETTOP are model-based soil wetness. CORS allowed (browser calls work). API v2.10.3 on 2026-11-15.' },
+    { id: 'MODIS_MOD13Q1_ORNL', name: 'MODIS Terra MOD13Q1 v061 Vegetation Indices (NDVI), via the ORNL DAAC MODIS Web Service',
+      provider: 'NASA LP DAAC (product, Didan 2021, doi:10.5067/MODIS/MOD13Q1.061); ORNL DAAC (subset service)',
+      url: 'https://modis.ornl.gov/rst/api/v1/',
+      resolution: '250 m (231.66 m sinusoidal pixels), 16-day composites',
+      period: '2000-02-18 to present', latency: 'About 2–4 weeks after the composite period',
+      license_or_terms: 'Free, no key. NASA EOSDIS data use policy; cite the product DOI and the ORNL DAAC MODIS Web Service.',
+      notes: 'Band 250m_16_days_NDVI × 0.0001; -3000 fill → null; pixel_reliability 0/1 kept. Could not be reached from the cloud build environment on 2026-11-15 (upstream connection failure); MODIS_MOD13Q1_PC was used instead for fields_ndvi.json.' },
+    { id: 'MODIS_MOD13Q1_PC', name: 'MODIS Terra MOD13Q1 v061 NDVI Cloud-Optimized GeoTIFFs on Microsoft Planetary Computer (collection modis-13Q1-061)',
+      provider: 'NASA LP DAAC (product, doi:10.5067/MODIS/MOD13Q1.061); Microsoft Planetary Computer (hosting)',
+      url: 'https://planetarycomputer.microsoft.com/dataset/modis-13Q1-061',
+      resolution: '250 m (231.66 m sinusoidal pixels), 16-day composites',
+      period: '2000 to present (catalogue has gaps, e.g. no Terra composites Jul–Nov 2025 on 2026-11-15)',
+      latency: 'Mirror of LP DAAC; additional lag of weeks',
+      license_or_terms: 'Free; anonymous SAS token from the Planetary Computer API. NASA EOSDIS data policy for the product.',
+      notes: 'Same NASA product and band math as MODIS_MOD13Q1_ORNL. Read by scripts/precompute.mjs (Node only) with HTTP range requests; a 9 × 9 pixel window centred on the field-centre pixel.' },
+    { id: 'USDA_SSURGO_SDA', name: 'USDA NRCS SSURGO soil survey via Soil Data Access (SDA)',
+      provider: 'USDA Natural Resources Conservation Service',
+      url: 'https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest',
+      resolution: 'Soil map units at 1:12,000–1:24,000 survey scale',
+      period: 'Current live database (queried 2026-11-14 for demo fields; live for drawn fields)',
+      latency: 'Updated annually (October refresh)', license_or_terms: 'Public domain (US Government work), no key; CORS allowed.',
+      notes: `${ssurgo?.method ?? ''} muaggatt.aws0150wta (cm), drclassdcd, hydgrpdcd. Water-holding capacity estimate, not current soil moisture.` },
+    { id: 'USDA_CDL', name: cdl?.title ?? 'USDA NASS Cropland Data Layer',
+      provider: 'USDA National Agricultural Statistics Service (CropScape, George Mason University CSISS)',
+      url: cdl?.url ?? 'https://nassgeodata.gmu.edu/CropScape/',
+      resolution: '30 m', period: '2021–2025 used (CDL is annual, 2008+ nationwide)',
+      latency: 'Released early in the following year', license_or_terms: 'Public domain (USDA NASS), no key.',
+      notes: `${cdl?.method ?? ''} ${cdl?.limitations ?? ''} Dominant class per year used as crop_history; the farmer must confirm. Research record: T2_CDL, retrieved ${cdl?.retrieved_date ?? 'n/a'}.` },
+    { id: 'FAO56', name: 'Allen, Pereira, Raes & Smith (1998). Crop evapotranspiration: guidelines for computing crop water requirements. FAO Irrigation and Drainage Paper 56',
+      provider: 'Food and Agriculture Organization of the United Nations', url: 'https://www.fao.org/4/x0490e/x0490e00.htm',
+      resolution: 'Method reference', period: null, latency: null, license_or_terms: 'FAO copyright; method citation',
+      notes: 'Penman-Monteith reference ET (eq. 6), Hargreaves (eq. 52), extraterrestrial radiation (eq. 21), crop coefficients and depletion fraction p.' },
+    { id: 'SD6_LEMA_CONTEXT', name: 'Sheridan 6 Local Enhanced Management Area: boundary and order of designation',
+      provider: 'Kansas Biological Survey (boundary); Kansas Department of Agriculture, Division of Water Resources (order)',
+      url: 'https://gmd4.org/New/Sheridan%206%20LEMA%20Order%20of%20Designation.pdf', resolution: 'PLSS sections', period: '2018–2027 orders',
+      latency: null, license_or_terms: 'Public documents', notes: 'Research records T2_SD6_BOUNDARY and T2_SD6_ORDER. Allocation in demo_farm.json is illustrative only.' },
+  ];
+  const t1 = agro.sources.filter((x) => /^T1_/.test(x.source_id)).map((x) => ({
+    id: x.source_id, name: x.title, provider: 'See title (copied from research/deliverables/agronomy/agronomy.json)',
+    url: x.url, resolution: null, period: x.publication_year ? String(x.publication_year) : null, latency: null,
+    license_or_terms: 'Publication; cite as listed', notes: [x.locator, x.applicability_limit].filter(Boolean).join(' | '),
+    evidence_notes: x.evidence_notes ?? null, kind: 'agronomy_source',
+  }));
+  const rules = agro.rules.map((r) => ({
+    id: r.rule_id, name: `Agronomy rule ${r.rule_id}: ${r.condition_description}`, provider: 'Kimchi research team (agronomy.json)',
+    url: 'research/deliverables/agronomy/agronomy.json', resolution: null, period: null, latency: null,
+    license_or_terms: 'Project rule', notes: `${r.effect}: ${r.rationale} Based on ${r.source_ids.join(', ')}. ${r.validation_status ?? ''}`.trim(),
+    kind: 'agronomy_rule', based_on: r.source_ids,
+  }));
+  // KSU sources that P4 cites in crops.json extra_sources (copied so every id resolves here).
+  const ksu = [
+    { id: 'KSU_CORN_GDD_LATEPLANT', name: 'Late planting of corn: how location and hybrid maturity affect probability of success (K-State Agronomy eUpdate)',
+      url: 'https://eupdate.agronomy.ksu.edu/article/late-planting-of-corn-how-location-and-hybrid-maturity-affect-probability-of-success-634-1' },
+    { id: 'KSU_SORGHUM_GDD', name: 'Sorghum Growth and Development, MF3234 (K-State Research and Extension)', url: 'https://bookstore.ksre.ksu.edu/pubs/MF3234.pdf' },
+    { id: 'KSU_WHEAT_HEAT', name: 'Effects of High Temperatures on Wheat (K-State Agronomy eUpdate)', url: 'https://eupdate.agronomy.ksu.edu/article/effects-of-high-temperatures-on-wheat-494' },
+  ].map((x) => ({ ...x, provider: 'Kansas State University Research and Extension', resolution: null, period: null, latency: null,
+    license_or_terms: 'Extension publication', notes: 'Copied from dashboard/data/crops.json extra_sources (P4); see that file for the values used.', kind: 'agronomy_source' }));
+  const deferred = [
+    ['OpenET', 'Field-scale (30 m) actual ET would replace our ET₀ × Kc estimate, but the API needs a free account and key; the adapter exists in research/deliverables/weather-water/. Next step.'],
+    ['GRACE-FO', 'Groundwater/total water storage at ~300 km and monthly: regional aquifer context only, cannot resolve a field or the SD-6 LEMA.'],
+    ['SMAP', 'Satellite soil moisture (9–36 km) needs an Earthdata login for downloads; POWER GWETROOT covers the factor tonight (model-based).'],
+    ['GPM IMERG', '~10 km precipitation, finer than POWER, but needs Earthdata login and gridded HDF5/NetCDF processing; POWER PRECTOTCORR is used.'],
+    ['ECOSTRESS', '70 m ET and surface temperature, but irregular overpass times and gaps make a field time series unreliable; needs Earthdata login.'],
+    ['PRISM', '4 km US climate, better than POWER for rain; no simple CORS JSON point API, so it needs a server-side download; next step.'],
+    ['NLDAS', '~12 km hourly forcing and land-surface soil moisture; needs Earthdata login and NetCDF processing.'],
+    ['NAIP', 'Aerial imagery only used for a one-off visual check of pivot outlines (research/deliverables/fields-soils); a basemap at most.'],
+    ['SRTM', 'Elevation/slope is nearly flat at the demo fields; not needed for the four factors tonight.'],
+    ['USGS NWIS', 'Groundwater-level wells exist near SD-6, but linking a well record to a field needs local review; next step for aquifer context.'],
+    ['USDA AMS Market News', 'Prices would support an income view, but we make no profit predictions tonight (guardrail 8).'],
+    ['USDA NASS QuickStats', 'County yields could benchmark farmer records; needs an API key and is not needed for the four factors tonight.'],
+    ['FAO GAEZ', 'Global ~9 km crop suitability: too coarse and not specific to irrigated western Kansas.'],
+    ['CoCoRaHS', 'Volunteer rain gauges are point data with gaps; a good later check on POWER rainfall.'],
+    ['NLCD', 'Land cover every 2–3 years at 30 m; CDL already gives annual crop type.'],
+    ['LANDFIRE', 'Wildland fuel and vegetation layers; not relevant to irrigated cropland decisions.'],
+    ['GEDI', 'Lidar canopy structure in sparse footprints; not useful for annual crops at field scale.'],
+    ['Sentinel-2', '10 m NDVI would be sharper than MODIS 250 m, but it is not a NASA product, has only 2015+, and needs cloud masking and tiling work; HLS is the stretch goal.'],
+    ['ERA5', 'ECMWF reanalysis similar to POWER (31 km); not NASA and needs a Copernicus account; POWER covers the same need.'],
+  ].map(([name, why]) => ({ name, why }));
+  const out = {
+    generated_at: new Date().toISOString(),
+    source_ids: [],
+    notes: 'Every source_id used in dashboard/data/*.json should resolve to an entry in "sources". "deferred" lists resources from the team Resources tab not used tonight.',
+    sources: [...core, ...ksu, ...t1, ...rules],
+    deferred,
+  };
+  writeJson(path.join(DATA, 'sources.json'), out, { pretty: true });
+  console.log(`  ${out.sources.length} sources (${core.length} data, ${ksu.length + t1.length} agronomy, ${rules.length} rules), ${deferred.length} deferred`);
+}
+
+// ---------------------------------------------------------------------------
+const cmds = { site, fields, grid, ndvi, sources: sourcesFile };
 const cmd = args.find((a) => !a.startsWith('--')) || 'help';
 if (cmd === 'all') {
   await site();
   fields();
+  sourcesFile();
   await grid();
   await ndvi();
 } else if (cmds[cmd]) {
   await cmds[cmd]();
 } else {
-  console.log('usage: node scripts/precompute.mjs <site|fields|ndvi|grid|all> [--end=YYYY-MM-DD] [--ndvi-start=YYYY-MM-DD]');
+  console.log('usage: node scripts/precompute.mjs <site|fields|ndvi|grid|sources|all> [--end=YYYY-MM-DD] [--ndvi-start=YYYY-MM-DD]');
   process.exit(cmd === 'help' ? 0 : 1);
 }
