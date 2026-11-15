@@ -1,7 +1,8 @@
 // Right panel: top 3 actions (P4 recommend output), rotation comparison, what-if builder.
 import { esc, finite, num, factorName } from './util.mjs';
 
-const list = (k, items) => items?.length ? `<div class="k">${k}</div><ul>${items.map(i => `<li>${esc(typeof i === 'string' ? i : i.text ?? JSON.stringify(i))}</li>`).join('')}</ul>` : '';
+const list = (k, items) => items?.length ? `<div class="k">${k}</div><ul>${items.map(i => typeof i === 'string' ? `<li>${esc(i)}</li>`
+  : `<li>${esc(i.text ?? JSON.stringify(i))}${i.source_ids?.length ? ' ' + i.source_ids.map(s => `<span class="src">${esc(s)}</span>`).join(' ') : ''}</li>`).join('')}</ul>` : '';
 const srcChips = ids => (ids ?? []).map(s => `<span class="src">${esc(s)}</span>`).join(' ');
 
 export function renderActions(el, rec, { focus }) {
@@ -44,14 +45,16 @@ const toNum = v => { if (finite(v)) return v; const m = /^(\d+)\s*of\s*(\d+)/.ex
 export function renderRotations(el, rots) {
   if (!rots?.length) { el.innerHTML = '<p class="state">Rotation comparison unavailable.</p>'; return; }
   const max = Object.fromEntries(METRICS.map(([k]) => [k, Math.max(...rots.map(r => toNum(r.metrics?.[k]) ?? 0), 1e-9)]));
-  el.innerHTML = rots.map(r => `<article class="rot">
-    <h3>${esc(r.name ?? r.rotation_id)} ${r.is_current ? '<span class="tag cur">Current</span>' : '<span class="tag">Alternative</span>'}</h3>
-    <div class="seq">${esc((r.sequence ?? []).join(' → '))}</div>
-    ${metricRows(r.metrics, max)}
-    <details><summary>Benefits, risks, gaps and evidence</summary>${list('Benefits', r.benefits)}${list('Risks', r.risks)}${list('Information gaps', r.gaps)}
+  el.innerHTML = rots.map(r => { const cur = r.is_current ?? r.role === 'current'; return `<article class="rot">
+    <h3>${esc(r.name ?? r.rotation_id)} ${cur ? `<span class="tag cur">Current${r.confirmed === false ? ' · unconfirmed' : ''}</span>` : '<span class="tag">Alternative</span>'}${r.evidence_status ? `<span class="tag">${esc(String(r.evidence_status).replace(/_/g, ' '))}</span>` : ''}</h3>
+    <div class="seq">${esc((r.sequence ?? []).map(s => String(s).replace('_', ' ')).join(' → ') || 'sequence not known')}</div>
+    ${r.why_suggested ? `<p class="cap">${esc(r.why_suggested)}</p>` : ''}
+    ${r.metrics ? metricRows(r.metrics, max) : `<div class="unavail">Fit metrics need the analysis engine (P2 rotationFit); not shown until then.</div>`}
+    ${r.comparison_to_current?.length ? `<ul class="cap">${r.comparison_to_current.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+    <details><summary>Benefits, risks, gaps and evidence</summary>${r.note ? `<p class="cap">${esc(r.note)}</p>` : ''}${list('Benefits', r.benefits)}${list('Risks', r.risks)}${list('Information gaps', r.gaps)}${list('Prerequisites', r.prerequisites)}${list('Residue', r.residue)}
       ${r.evidence?.length ? `<div class="k">Evidence</div>${r.evidence.map(e => `<div class="ev"><span>${esc(e.text)}</span>${srcChips(e.source_ids)}</div>`).join('')}` : ''}</details>
     <div class="expert">${esc(r.expert_check ?? 'Check with your agronomist / K-State Extension before acting.')}</div>
-  </article>`).join('');
+  </article>`; }).join('');
 }
 
 function metricRows(m, max) {

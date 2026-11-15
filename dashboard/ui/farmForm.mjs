@@ -15,7 +15,7 @@ export function openRecords({ ctx, getFarm, setFarm, fieldId, analysis }) {
     if (!farm) { $('records-body').innerHTML = `<p class="state">No farm saved in this browser yet.</p><div class="form-actions"><button type="button" class="btn primary" id="fr-demo">Load demo farm (synthetic)</button><button type="button" class="btn" id="fr-import-btn">Import JSON</button><input type="file" accept="application/json,.json" id="fr-import" hidden></div>`; wireIO(); return; }
     if (!farm.fields.some(f => f.field_id === fid)) fid = farm.fields[0]?.field_id;
     const ff = farm.fields.find(f => f.field_id === fid);
-    const memory = (ctx.farmStore.storage ?? 'localStorage') === 'memory';
+    const memory = (ctx.farmStore.storageMode?.() ?? ctx.farmStore.storage ?? 'localStorage') === 'memory';
     $('records-body').innerHTML = `
       <div class="privacy">${memory ? '<b>Not saved: private window.</b> Records last until you close this tab. Export to keep a copy.' : '<b>Stored only in this browser.</b> Nothing is sent to a server or to GitHub. Export to keep a copy.'}
         ${farm.synthetic ? ' This is the <b>synthetic demo farm</b>: invented values for demonstration.' : ''}</div>

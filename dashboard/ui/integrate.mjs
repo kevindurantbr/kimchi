@@ -86,14 +86,14 @@ export function runRotationFit(ctx, { rotation, field, farmField, farm }) {
 }
 
 /** Run P4's recommend if available; else the sample, flagged. */
-export function runRecommend(ctx, { analysis, farm, field_id, focus, rotationsFit }) {
-  if (ctx.libRecommend?.recommend && ctx.actions && !analysis.sample) {
+export function runRecommend(ctx, { analysis, farm, field_id, field, focus, rotationsFit }) {
+  if (ctx.libRecommend?.recommend && ctx.actions) {
     try {
-      const r = ctx.libRecommend.recommend({ analysis, farm, field_id, crops: ctx.crops, actions: ctx.actions, rotationsFit, focus: focus || null, today: new Date() });
-      mark('recommend', true, 'P4 recommend');
-      return r;
+      const r = ctx.libRecommend.recommend({ analysis, farm, field_id, field, crops: ctx.crops, actions: ctx.actions, rotationsFit, focus: focus || null, today: new Date() });
+      mark('recommend', !analysis.sample, analysis.sample ? 'P4 recommend, run on SAMPLE analysis: cards follow the real rules but cite sample values' : 'P4 recommend');
+      return analysis.sample ? { ...r, sample: true } : r;
     } catch (e) { console.error(e); mark('recommend', false, `recommend failed: ${e.message}. Showing sample.`); }
-  } else mark('recommend', false, ctx.libRecommend ? 'Recommend ready, waiting for real analysis: sample cards' : 'P4 recommend not pushed yet: sample cards');
+  } else mark('recommend', false, ctx.libRecommend ? 'Action library missing: sample cards' : 'P4 recommend not pushed yet: sample cards');
   const s = ctx.recFixture;
   if (!focus) return { ...s, sample: true };
   const f = s.all.filter(c => c.factor === focus);

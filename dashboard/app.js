@@ -76,8 +76,15 @@ async function selectField(id, { fit = false } = {}) {
 function recompute() {
   const field = fieldById(state.field), ff = farmField(state.field);
   state.analysis = runAnalysis(ctx, { field, farmField: ff, liveDaily: state.live?.daily ?? null });
-  const rotationsFit = state.analysis.rotation_fit?.length ? state.analysis.rotation_fit : null;
-  state.rec = runRecommend(ctx, { analysis: state.analysis, farm, field_id: state.field, focus: state.focus, rotationsFit });
+  let rotationsFit = state.analysis.rotation_fit?.length ? state.analysis.rotation_fit : null;
+  // With the real engine: evaluate the rotations P4 asks for (current + candidates) with P2's rotationFit.
+  if (!rotationsFit && !state.analysis.sample && ctx.libRecommend?.rotationsToEvaluate) {
+    const list = ctx.libRecommend.rotationsToEvaluate({ farm, field_id: state.field, field, actions: ctx.actions });
+    const fits = list.map(rotation => runRotationFit(ctx, { rotation, field, farmField: ff, farm })).filter(Boolean);
+    if (fits.length) rotationsFit = fits;
+  }
+  state.rotationsFit = rotationsFit;
+  state.rec = runRecommend(ctx, { analysis: state.analysis, farm, field_id: state.field, field, focus: state.focus, rotationsFit });
   render();
 }
 
@@ -250,7 +257,7 @@ function wireChrome() {
   document.querySelectorAll('.chips [data-focus]').forEach(b => b.addEventListener('click', () => {
     state.focus = b.dataset.focus;
     document.querySelectorAll('.chips [data-focus]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    state.rec = runRecommend(ctx, { analysis: state.analysis, farm, field_id: state.field, focus: state.focus, rotationsFit: state.analysis.rotation_fit });
+    state.rec = runRecommend(ctx, { analysis: state.analysis, farm, field_id: state.field, field: fieldById(state.field), focus: state.focus, rotationsFit: state.rotationsFit });
     renderActions($('actions'), state.rec, { focus: state.focus });
   }));
   const togglePanel = (btn, cls) => { const on = document.body.classList.toggle(cls); $(btn).setAttribute('aria-pressed', String(!on)); setTimeout(() => map.invalidate(), 50); };
