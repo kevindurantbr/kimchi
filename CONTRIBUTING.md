@@ -2,6 +2,8 @@
 
 Keep `main` as the integrated, reviewable version. Each person works on a separate branch and opens a pull request. This is the team workflow; remote branch protection has not yet been configured.
 
+Read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first. It contains the current scope, exact data contracts, known corrections, active PR dependencies, run/test commands, and acceptance criteria. The numbered research briefs describe the initial assignments; they are not the current backlog. Update the guide when a change alters those shared facts.
+
 ## First checkout
 
 Clone the shared repository:
@@ -9,10 +11,10 @@ Clone the shared repository:
 ```sh
 git clone https://github.com/kevindurantbr/kimchi.git
 cd kimchi
-git switch -c codex/agronomy
+git switch -c codex/your-specific-task
 ```
 
-Use `codex/fields-soils` or `codex/weather-water` for the other workstreams. Each teammate should configure their own commit name and email if Git requests them; do not copy someone else's identity.
+Choose a fresh descriptive `codex/` branch name. The original agronomy, fields/soils, and weather/water branches already contain initial deliveries. Check whether your task depends on an open PR before selecting its base. Each teammate should configure their own commit name and email if Git requests them; do not copy someone else's identity.
 
 ## Deliver work
 
@@ -29,7 +31,7 @@ git status
 git diff
 git add research/deliverables/agronomy/
 git commit -m "Add cited crop rotation candidates"
-git push -u origin codex/agronomy
+git push -u origin codex/your-specific-task
 ```
 
 Replace the path and branch with your workstream. Open a pull request into `main` on the repository host and explain what is ready, how it was checked, and what is still unknown. The integration lead reviews and merges. Do not force-push `main`.
@@ -41,7 +43,7 @@ Start with a clean working tree: commit or stash your own changes first.
 ```sh
 git switch main
 git pull --ff-only
-git switch codex/agronomy
+git switch codex/your-specific-task
 git merge main
 ```
 
