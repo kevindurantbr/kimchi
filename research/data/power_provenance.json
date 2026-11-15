@@ -1,0 +1,49 @@
+{
+  "url": "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR%2CT2M%2CT2M_MAX%2CT2M_MIN&community=AG&longitude=-100.64&latitude=39.36&start=20210101&end=20251231&format=JSON",
+  "scope": "Regional weather access proof; coordinate is not a verified field or LEMA boundary",
+  "requested_lon_lat": [
+    -100.64,
+    39.36
+  ],
+  "response_geometry": {
+    "type": "Point",
+    "coordinates": [
+      -100.64,
+      39.36,
+      866.83
+    ]
+  },
+  "period": "2021-01-01 through 2025-12-31; not a climatological normal",
+  "parameter_metadata": {
+    "PRECTOTCORR": {
+      "units": "mm/day",
+      "longname": "Precipitation Corrected"
+    },
+    "T2M": {
+      "units": "C",
+      "longname": "Temperature at 2 Meters"
+    },
+    "T2M_MAX": {
+      "units": "C",
+      "longname": "Temperature at 2 Meters Maximum"
+    },
+    "T2M_MIN": {
+      "units": "C",
+      "longname": "Temperature at 2 Meters Minimum"
+    }
+  },
+  "daily_record_counts": {
+    "PRECTOTCORR": 1826,
+    "T2M": 1826,
+    "T2M_MAX": 1826,
+    "T2M_MIN": 1826
+  },
+  "missing_counts": {
+    "PRECTOTCORR": 0,
+    "T2M": 0,
+    "T2M_MAX": 0,
+    "T2M_MIN": 0
+  },
+  "fill_value": -999.0,
+  "downloaded_at_utc": "2026-11-15T00:34:33.776224+00:00"
+}
