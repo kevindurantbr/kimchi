@@ -2,6 +2,54 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as a from './analysis.mjs';
 
+test('farm sensitivity pairs years and requires five comparable yields before reporting correlations', () => {
+  const records=Array.from({length:5},(_,i)=>({year:2000+i,crop:'corn',yield:100-i*10,yield_unit:'bu/ac',period:'season'}));
+  const indicators=records.map((r,i)=>({year:r.year,hot_days:i,season_deficit_mm:i*10}));
+  const r=a.farmSensitivity(records,indicators);
+  near(r.rho.hot_days,-1);
+  assert.equal(r.note,'pattern, not proof');
+  assert.equal(a.farmSensitivity(records.slice(1),indicators).pattern,'too few years to judge');
+  assert.equal(a.farmSensitivity([...records.slice(1),{...records[0],yield_unit:'t/ha'}],indicators).rho.hot_days,null);
+});
+
+test('stage heat counts only the GDD-sensitive window and compares equivalent stage progress', () => {
+  const dates=[],max=[],min=[];
+  for(let y=1991;y<=2026;y++) for(let day=1;day<=5;day++){dates.push(`${y}-05-0${day}`);max.push(y===2026?36:30);min.push(10);}
+  const crop={gdd_base_c:10,gdd_cap_c:30,heat_threshold_c:35,sensitive_window:{name:'flowering',gdd_from:20,gdd_to:40},season:{harvest:'05-05'}};
+  const r=a.stageHeat(daily(dates,{t2m_max:max,t2m_min:min}),crop,'2026-05-01',2026);
+  assert.equal(r.start,'2026-05-02');
+  assert.equal(r.end,'2026-05-04');
+  assert.equal(r.hot_days,3);
+  assert.equal(r.heat_degree_days,18);
+  assert.equal(r.status.normal_median,0);
+  max[dates.indexOf('2026-05-02')]=null;
+  assert.equal(a.stageHeat(daily(dates,{t2m_max:max,t2m_min:min}),crop,'2026-05-01',2026).hot_days,null);
+});
+
+test('compound calendar counts hot dry and deficit together and never turns missing months into zero stress', () => {
+  const dates=[],t=[],rain=[],soil=[],ev=[];
+  for(let y=1991;y<=2021;y++) for(let day=1;day<=31;day++) {
+    dates.push(`${y}-07-${String(day).padStart(2,'0')}`);t.push(y===2021?36:25);rain.push(y===2021?0:4);soil.push(y===2021?0.1:0.5);ev.push(5);
+  }
+  const d=daily(dates,{t2m_max:t,prectotcorr:rain,gwetroot:soil});
+  const r=a.compoundCalendar(d,ev,{years:[2021]});
+  assert.equal(r.counts[0][6],3);
+  assert.equal(r.counts[0][0],null);
+  rain[rain.length-1]=null;
+  assert.equal(a.compoundCalendar(d,ev,{years:[2021]}).counts[0][6],null);
+});
+
+test('cause check covers water, heat, other scouting, normal greenness and unknown evidence', () => {
+  const normal={direction:'normal',severity:0}, bad={direction:'adverse',severity:0.8};
+  const input={ndviStatus:bad,soilStatus:normal,waterStatus:normal,heatStatus:normal};
+  assert.equal(a.causeCheck({...input,waterStatus:bad}).code,'water');
+  assert.equal(a.causeCheck({...input,soilStatus:bad}).code,'water');
+  assert.equal(a.causeCheck({...input,heatStatus:bad}).code,'heat');
+  assert.equal(a.causeCheck(input).code,'not_weather');
+  assert.equal(a.causeCheck({...input,ndviStatus:normal}).code,'none');
+  assert.equal(a.causeCheck({...input,waterStatus:null}).code,'unavailable');
+});
+
 test('NDVI compares the same 16-day period and labels low greenness without claiming bare soil', () => {
   const ndvi={dates:[...Array.from({length:25},(_,i)=>`${2001+i}-07-12`),'2026-07-12'],field_mean:[...Array(25).fill(0.7),0.2]};
   const s=a.ndviStatus(ndvi,'2026-07-15');

@@ -338,3 +338,82 @@ export function greenCoverCalendar(fieldNdvi, threshold=0.3) {
     return v===null||!finite(threshold)?null:v<threshold;
   }))};
 }
+
+/** Co-occurrence scouting clue, never proof of cause. Missing evidence has its own code. */
+export function causeCheck({ndviStatus,soilStatus,heatStatus,waterStatus} = {}) {
+  const known=s=>s&&s.direction!==null&&finite(s.severity), adverse=s=>known(s)&&s.direction==='adverse';
+  if(!known(ndviStatus)) return {code:'unavailable',text:'Greenness evidence is unavailable'};
+  if(!adverse(ndviStatus)) return {code:'none',text:'Greenness is not in the adverse historical tail'};
+  if(adverse(waterStatus)||adverse(soilStatus)) return {code:'water',text:'Low greenness coincides with adverse water or soil conditions; this is a scouting clue, not proof of cause.'};
+  if(adverse(heatStatus)) return {code:'heat',text:'Low greenness coincides with heat; this is a scouting clue, not proof of cause.'};
+  if(![soilStatus,waterStatus,heatStatus].every(known)) return {code:'unavailable',text:'Weather evidence is incomplete; the cause of low greenness is unknown'};
+  return {code:'not_weather',text:"Weather doesn't explain this; scout for pests, nutrients, hail, or equipment issues"};
+}
+
+/** Monthly 0–3 stressor count against 1991–2020 monthly distributions; incomplete cells are null. */
+export function compoundCalendar(daily, etValues, {years} = {}) {
+  const groups=monthGroups({...daily,et_values:Array.isArray(etValues)?etValues:etValues?.values??[]}).map(g=>{
+    const full=complete(g.daily,...monthBounds(g.year,g.month));
+    const hot=full?hotDays(g.daily.t2m_max):null, wet=full?mean(g.daily.gwetroot):null;
+    const rain=full?sum(g.daily.prectotcorr):null, demand=full?sum(g.daily.et_values):null;
+    return {...g,hot,wet,deficit:finite(rain)&&finite(demand)?rain-demand:null};
+  });
+  const normals=months.map(m=>{const g=groups.filter(g=>g.month===m&&g.year>=1991&&g.year<=2020);return {soil:distribution(g.map(g=>g.wet)).p25,water:distribution(g.map(g=>g.deficit)).p25};});
+  years=years??[...new Set(groups.map(g=>g.year))].sort((a,b)=>a-b);
+  const detail=years.map(y=>months.map(m=>{
+    const g=groups.find(g=>g.year===y&&g.month===m), n=normals[m-1];
+    const hot=finite(g?.hot)?g.hot>=3:null, dry_soil=finite(g?.wet)&&finite(n.soil)?g.wet<n.soil:null, water_deficit=finite(g?.deficit)&&finite(n.water)?g.deficit<n.water:null;
+    return {year:y,month:m,hot,dry_soil,water_deficit};
+  }));
+  return {years,months:[...months],counts:detail.map(row=>row.map(d=>[d.hot,d.dry_soil,d.water_deficit].some(v=>v===null)?null:Number(d.hot)+Number(d.dry_soil)+Number(d.water_deficit))),detail};
+}
+
+const POWER=['NASA_POWER_DAILY'], WATER=['NASA_POWER_DAILY','FAO56'];
+function stageWindow(daily,crop,plantDate,upper=crop?.sensitive_window?.gdd_to) {
+  const w=crop?.sensitive_window;
+  const empty={name:w?.name??null,start:null,end:null,hot_days:null,heat_degree_days:null,complete:false,progress:null};
+  if(!plantDate||![w?.gdd_from,w?.gdd_to,upper,crop?.gdd_base_c,crop?.gdd_cap_c,crop?.heat_threshold_c].every(finite)||w.gdd_to<w.gdd_from) return empty;
+  const py=yearOf(plantDate), harvest=crop.season?.harvest??'12-31', end=`${py+(harvest<plantDate.slice(5)?1:0)}-${harvest}`;
+  const d=between(daily,plantDate,end), gd=cumulativeGdd(d,plantDate,crop.gdd_base_c,crop.gdd_cap_c)??[];
+  const endIndex=gd.findIndex(v=>finite(v)&&v>=upper);
+  const last=endIndex>=0?endIndex:gd.length-1;
+  if(last<0||!finite(gd[last])) return empty;
+  const indices=gd.flatMap((v,i)=>i<=last&&finite(v)&&v>=w.gdd_from&&v<=upper?[i]:[]);
+  if(!indices.length) return {...empty,progress:gd[last]};
+  const tx=indices.map(i=>d.t2m_max[i]);
+  return {name:w.name,start:d.date[indices[0]],end:endIndex>=0?d.date[indices.at(-1)]:null,hot_days:hotDays(tx,crop.heat_threshold_c),heat_degree_days:heatDegreeDays(tx),complete:endIndex>=0,progress:Math.min(gd[last],upper)};
+}
+
+/** Heat within crop GDD window versus 1991–2020 at equivalent GDD progress. */
+export function stageHeat(daily,crop,plantDate,year) {
+  const current=stageWindow(daily,crop,plantDate), historical=[];
+  if(finite(current.progress)&&current.start) for(let y=1991;y<=2020;y++) {
+    if(y===year)continue;
+    const pd=`${y-(year-yearOf(plantDate))}-${plantDate.slice(5)}`;
+    const h=stageWindow(daily,crop,pd,current.progress);
+    if(h.complete)historical.push({year:y,...h});
+  }
+  return {...current,status:status(current.hot_days,historical.map(h=>h.hot_days),{adverseWhen:'high',unit:'days',label:'More hot days',source_ids:POWER}),normal_heat_degree_days:median(historical.map(h=>h.heat_degree_days)),historical};
+}
+
+function spearman(points,key) {
+  const pairs=points.filter(p=>finite(p[key])&&finite(p.yield));
+  if(new Set(pairs.map(p=>p.year)).size<5) return null;
+  const rank=v=>v.map(x=>v.filter(t=>t<x).length+(v.filter(t=>t===x).length+1)/2);
+  const x=rank(pairs.map(p=>p[key])),y=rank(pairs.map(p=>p.yield)), mx=mean(x),my=mean(y);
+  const cov=x.reduce((s,v,i)=>s+(v-mx)*(y[i]-my),0), vx=sum(x.map(v=>(v-mx)**2)),vy=sum(y.map(v=>(v-my)**2));
+  return vx>0&&vy>0?cov/Math.sqrt(vx*vy):null;
+}
+
+/** Match farmer season yields to weather indicators; Spearman associations are pattern, not proof. */
+export function farmSensitivity(records,annualIndicators) {
+  const indicators=Array.isArray(annualIndicators)?annualIndicators:[];
+  const points=(records??[]).filter(r=>finite(r.yield)&&(r.period??'season')==='season').flatMap(r=>{
+    const indicator=indicators.find(v=>v.year===r.year);
+    return indicator?[{year:r.year,crop:r.crop??null,yield:r.yield,yield_unit:r.yield_unit??null,hot_days:indicator.hot_days??null,season_deficit_mm:indicator.season_deficit_mm??null}]:[];
+  });
+  const note='pattern, not proof';
+  if(new Set(points.map(p=>p.year)).size<5) return {pattern:'too few years to judge',points,note};
+  const comparable=new Set(points.map(p=>`${p.crop}|${p.yield_unit}`)).size===1&&points.every(p=>p.crop&&p.yield_unit)&&new Set(points.map(p=>p.year)).size===points.length;
+  return {pattern:comparable?'association only':'incomparable crops, yield units, or duplicate years',points,rho:{hot_days:comparable?spearman(points,'hot_days'):null,season_deficit_mm:comparable?spearman(points,'season_deficit_mm'):null},note};
+}
