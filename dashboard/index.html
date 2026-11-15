@@ -78,7 +78,7 @@
         <div id="map-title" class="hud-title"></div>
         <div id="map-note" class="hud-note"></div>
       </div>
-      <div class="hud hud-br mono" id="cursor-readout" aria-hidden="true">LAT —  LON —</div>
+      <div class="hud hud-br mono" id="cursor-readout" aria-hidden="true">LAT --.-----  LON ---.-----</div>
       <div id="legend" class="legend" aria-live="polite"></div>
       <div class="slider" id="slider">
         <button type="button" class="btn icon" id="sl-prev" aria-label="Previous step">◀</button>
@@ -136,7 +136,7 @@
       <div class="dlg-head"><span class="code">N-01</span><h2 id="name-title">Name this field</h2></div>
       <label class="form-row"><span>Field name</span><input id="name-input" required maxlength="60" autocomplete="off"></label>
       <p class="fine">The boundary stays in this browser only. Live NASA POWER and USDA soil data are fetched for its centre.</p>
-      <div class="form-actions"><button type="submit" value="cancel" class="btn" formnovalidate>Cancel</button><button type="submit" value="ok" class="btn primary">Save field</button></div>
+      <div class="form-actions"><button type="button" class="btn dlg-close">Cancel</button><button type="submit" value="ok" class="btn primary">Save field</button></div>
     </form>
   </dialog>
 

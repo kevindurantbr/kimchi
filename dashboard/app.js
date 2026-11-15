@@ -20,7 +20,7 @@ async function boot() {
   mergeUserFields();
 
   map = createMap($('map'), {
-    onCursor: ll => { $('cursor-readout').textContent = ll ? `LAT ${ll.lat.toFixed(5)}  LON ${ll.lng.toFixed(5)}` : 'LAT —  LON —'; },
+    onCursor: ll => { $('cursor-readout').textContent = ll ? `LAT ${ll.lat.toFixed(5)}  LON ${ll.lng.toFixed(5)}` : 'LAT --.-----  LON ---.-----'; },
     onFieldClick: id => selectField(id),
     onDrawn: geometry => nameAndAddField(geometry),
   });
@@ -203,12 +203,17 @@ function showBanner(msg) { const b = $('banner'); b.textContent = msg; b.hidden 
 /* ---------- draw a field ---------- */
 function nameAndAddField(geometry) {
   const dlg = $('dlg-name'), input = $('name-input');
+  showBanner('');
   input.value = ''; dlg.returnValue = '';
   dlg.showModal(); input.focus();
   dlg.addEventListener('close', async () => {
     if (dlg.returnValue !== 'ok' || !input.value.trim()) return;
     if (!farm) farm = { schema: 'kimchi.farm.1', farm_name: 'My farm', synthetic: false, priorities: { water: .4, soil: .3, income: .3 }, constraints: {}, fields: [] };
-    const ff = ctx.farmStore.addField(farm, { name: input.value.trim(), geometry });
+    // P1's store returns a new farm (immutable); the temporary stand-in returns the field. Handle both.
+    const before = new Set(farm.fields.map(f => f.field_id));
+    const res = ctx.farmStore.addField(farm, { name: input.value.trim(), geometry });
+    if (res?.fields) farm = res;
+    const ff = farm.fields.find(f => !before.has(f.field_id)) ?? res;
     ctx.farmStore.saveFarm(farm);
     ctx.fields.features.push({ type: 'Feature', geometry, properties: { field_id: ff.field_id, label: ff.name, label_short: ff.name.slice(0, 18).toUpperCase(), area_ha: ff.area_ha, boundary_status: 'drawn by farmer', soil: null, user: true } });
     fillFieldSelect();
@@ -223,7 +228,7 @@ async function loadUserFieldData(id) {
     const [live, soil] = await Promise.all([fetchLive(ctx, { lat, lon }), fetchSoil(ctx, f.geometry).catch(() => null)]);
     f.properties.soil = soil ?? f.properties.soil;
     const last = lastNonNull(live.daily.date, live.daily.t2m_max);
-    showBanner(`${f.properties.label}: live NASA POWER through ${fmtDate(last)} loaded${soil ? ', USDA soil loaded' : ', soil data not available yet'}.${ctx.libAnalysis ? '' : ' Factor analysis for drawn fields needs the analysis engine (not connected yet); panels show the sample.'} Crop condition is unavailable for new fields tonight.`);
+    showBanner(`${f.properties.label}: live NASA POWER through ${fmtDate(last)} loaded${soil ? ', USDA soil loaded' : ', soil data not available yet'}.${ctx.libAnalysis?.analyzeField ? '' : ' Factor analysis for drawn fields needs the analysis engine (not connected yet); panels show the sample.'} Crop condition is unavailable for new fields tonight.`);
   } catch (e) { showBanner(`Could not load live data for this field: ${e.message}`); }
 }
 

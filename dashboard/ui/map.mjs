@@ -29,6 +29,10 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
   map.on('mouseout', () => onCursor?.(null));
 
   // Drawing (Leaflet.draw): polygon only. Triggered from the "Draw field" button.
+  // Leaflet.draw 1.0.4 with Leaflet >= 1.8 on browsers that report touch support handles each click twice
+  // and never adds a vertex. Disabling its separate touch handler lets the normal mouse/pointer path work
+  // (verified in this app: vertices are added and the polygon closes).
+  if (L.Draw?.Polyline) L.Draw.Polyline.prototype._onTouch = L.Util.falseFn;
   let drawer = null;
   map.on(L.Draw.Event.CREATED, e => {
     const gj = e.layer.toGeoJSON();

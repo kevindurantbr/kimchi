@@ -17,7 +17,7 @@ export const get = (obj, path) => path.split('.').reduce((o, k) => (o == null ? 
 export function num(v, digits = 0) {
   return finite(v) ? v.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits }) : 'unavailable';
 }
-export const pct = v => (finite(v) ? `p${Math.round(v)}` : 'p—');
+export const pct = v => (finite(v) ? `p${Math.round(v)}` : 'percentile unavailable');
 
 /** Severity 0..1 to a 3-step class. Text always accompanies the colour. */
 export function sevClass(s) {

@@ -156,7 +156,7 @@ function heatStrip(raw) {
 }
 
 function frost(fr) {
-  const row = (lab, d, n, r) => `<tr><th scope="row">${lab}</th><td class="num">${esc(fmtDate(d))}</td><td class="num">${esc(fmtDate(n))}</td><td class="num">${r ? `${esc(fmtDate(r[0]).replace(/, \d{4}$/, ''))} to ${esc(fmtDate(r[1]).replace(/, \d{4}$/, ''))}` : '—'}</td></tr>`;
+  const row = (lab, d, n, r) => `<tr><th scope="row">${lab}</th><td class="num">${esc(fmtDate(d))}</td><td class="num">${esc(fmtDate(n))}</td><td class="num">${r ? `${esc(fmtDate(r[0]).replace(/, \d{4}$/, ''))} to ${esc(fmtDate(r[1]).replace(/, \d{4}$/, ''))}` : 'unavailable'}</td></tr>`;
   return `<div class="tablewrap"><table class="rtable"><thead><tr><th></th><th>This year</th><th>Normal</th><th>Normal range</th></tr></thead><tbody>
     ${row('Last spring frost', fr.last_spring, fr.normal_last_spring, fr.normal_range_spring)}${row('First fall frost', fr.first_fall, fr.normal_first_fall, fr.normal_range_fall)}</tbody></table></div>`;
 }

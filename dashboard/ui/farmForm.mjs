@@ -73,9 +73,9 @@ export function openRecords({ ctx, getFarm, setFarm, fieldId, analysis }) {
     $('fr-pane').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
       const [y, p] = b.dataset.del.split('|');
       if (!confirm(`Delete the ${p} ${y} record?`)) return;
+      // P1's store functions return a new farm; use the return value (falls back to the mutated input).
       const f = getFarm();
-      if (ctx.farmStore.deleteRecord) ctx.farmStore.deleteRecord(f, ff.field_id, +y, p); else ff.records = ff.records.filter(r => !(r.year === +y && r.period === p));
-      setFarm(f); draw();
+      setFarm(ctx.farmStore.deleteRecord(f, ff.field_id, +y, p) ?? f); draw();
     }));
     $('fr-form').addEventListener('submit', e => {
       e.preventDefault();
@@ -88,9 +88,9 @@ export function openRecords({ ctx, getFarm, setFarm, fieldId, analysis }) {
         irrigation_mm: irr == null ? null : +(fd.get('irr_unit') === 'in' ? irr * IN_TO_MM : irr).toFixed(1),
         nitrogen_kg_ha: nit == null ? null : +(fd.get('n_unit') === 'lbac' ? nit * LBAC_TO_KGHA : nit).toFixed(1),
         yield: yld, yield_unit: fd.get('yield_unit'), notes: fd.get('notes') || '' };
-      const f = getFarm();
-      if (editKey) { const [y, p] = editKey.split('|'); if (+y !== rec.year || p !== rec.period) ctx.farmStore.deleteRecord?.(f, ff.field_id, +y, p); }
-      ctx.farmStore.upsertRecord(f, ff.field_id, rec); editKey = null; setFarm(f); draw();
+      let f = getFarm();
+      if (editKey) { const [y, p] = editKey.split('|'); if (+y !== rec.year || p !== rec.period) f = ctx.farmStore.deleteRecord(f, ff.field_id, +y, p) ?? f; }
+      f = ctx.farmStore.upsertRecord(f, ff.field_id, rec) ?? f; editKey = null; setFarm(f); draw();
       $('fr-msg').textContent = `Saved ${rec.period} ${rec.year}. Analysis and recommendations were re-run.`;
     });
   }
