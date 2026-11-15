@@ -269,20 +269,26 @@ a { color: var(--acc); }
 /* ---------- mobile: panels become bottom sheets ---------- */
 @media (max-width: 799px) {
   body { overflow: hidden; }
-  .strip-src { display: none; }
-  .brand-sub, .bar-div, #btn-left, #btn-right { display: none; }
-  .bar { gap: 8px; padding: 6px 8px; }
+  .strip { overflow: hidden; gap: 6px; padding: 0 8px; }
+  .strip-src, #utc-clock, .strip-gap { display: none; }
+  .strip .chip { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 1.2; }
+  .brand-sub, .bar-div, #btn-left, #btn-right, .field-pick .lbl { display: none; }
+  .bar { gap: 6px; padding: 6px 8px; }
+  .brand-name { font-size: 15px; letter-spacing: .1em; }
+  .field-pick { flex: 1; min-width: 0; }
+  .field-pick select { width: 100%; }
   .tabs { order: 5; width: 100%; overflow-x: auto; }
-  .tabs button { flex: 1 0 auto; padding: 7px 8px; }
-  .seg { order: 6; }
-  .bar-actions { margin-left: 0; order: 7; flex: 1; justify-content: flex-end; flex-wrap: wrap; }
-  .bar-actions .btn:not(.icon) { padding: 6px 8px; }
+  .tabs button { flex: 1 0 auto; padding: 7px 7px; font-size: 13.5px; }
+  .seg { order: 6; width: 100%; }
+  .seg button { flex: 1; padding: 7px 8px; font-size: 13.5px; }
+  .bar-actions { margin-left: 0; order: 7; width: 100%; flex-wrap: nowrap; gap: 4px; }
+  .bar-actions .btn:not(.icon) { flex: 1; padding: 6px 4px; font-size: 13px; }
   .console, body.hide-left .console, body.hide-right .console { grid-template-columns: 1fr; grid-template-rows: 1fr; position: relative; }
   .mapwrap { grid-row: 1; grid-column: 1; }
-  .panel { position: absolute; left: 0; right: 0; bottom: 48px; height: 62%; z-index: 900; border: 0; border-top: 1px solid var(--line-strong); display: none !important; }
+  .panel { position: absolute; left: 0; right: 0; bottom: 48px; height: 62%; z-index: 1100; border: 0; border-top: 1px solid var(--line-strong); display: none !important; }
   body[data-sheet="left"] .left, body[data-sheet="right"] .right { display: block !important; }
   .sheet-grip { display: block; width: 40px; height: 4px; background: var(--line-strong); margin: 8px auto 0; }
-  .sheet-tabs { display: flex; position: absolute; left: 0; right: 0; bottom: 0; height: 48px; z-index: 950; background: var(--panel); border-top: 1px solid var(--line); }
+  .sheet-tabs { display: flex; position: absolute; left: 0; right: 0; bottom: 0; height: 48px; z-index: 1150; background: var(--panel); border-top: 1px solid var(--line); }
   .sheet-tabs button { flex: 1; background: transparent; border: 0; color: var(--muted); font-weight: 600; min-height: 44px; }
   .sheet-tabs button[aria-pressed="true"] { color: var(--acc); box-shadow: inset 0 2px 0 var(--acc); }
   #map { bottom: 104px; }
