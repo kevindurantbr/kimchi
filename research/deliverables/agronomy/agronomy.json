@@ -1,0 +1,452 @@
+{
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "source_id": "T1_TRIBUNE_SUMMARY",
+      "title": "K-State SWREC Tribune: Irrigation",
+      "url": "https://www.wkrec.com/about/locations/swrc-tribune/irrigation.html",
+      "publication_year": null,
+      "locator": "Alternative Cropping Systems with Limited Irrigation; Working with Less Water for Corn Production",
+      "applicability_limit": "Institutional summaries of western Kansas irrigated experiments, including 2020 results; undated webpage. Not Sheridan 6 field validation. Linked New Prairie Press downloads redirect after a platform migration.",
+      "evidence_notes": "The rotation summary reports no corn-yield differences in 2020, but greater corn yield after wheat than corn over eight years. The separate 2018-2020 corn experiment found differing responses at Colby and Tribune; timing, hybrid and seeding treatments matter."
+    },
+    {
+      "source_id": "T1_ROTATION_2016",
+      "title": "Limited Irrigation of Corn-Based No-Till Crop Rotations in West Central Great Plains",
+      "url": "https://acsess.onlinelibrary.wiley.com/doi/full/10.2134/agronj2015.0536",
+      "publication_year": 2016,
+      "locator": "Material and Methods, Figure 1, Table 1; Economic Analysis, Table 4; Discussion",
+      "applicability_limit": "Tribune deep Ulysses silt loam; no-till, linear-move sprinkler; analyzed 2003-2010 after establishment. Includes continuous corn and corn-wheat, but NOT two-year corn-sorghum. Rotated corn received more irrigation.",
+      "evidence_notes": "Targets: continuous corn 254 mm/year; corn-wheat 381 mm corn and 127 mm wheat, averaging 254 mm/year across the cycle; weekly maximum 38 mm. Historical mean sow/harvest: corn May 3/September 29; wheat October 1/July 5. Continuous corn had higher whole-rotation returns despite higher corn-phase yield in rotations. These are treatment results, not farm forecasts."
+    },
+    {
+      "source_id": "T1_ROTATION_2021",
+      "title": "Alternative Cropping Systems with Limited Irrigation — Schlegel and Bond, 2021",
+      "url": "https://www.academia.edu/68865633/Alternative_Cropping_Systems_with_Limited_Irrigation",
+      "publication_year": 2021,
+      "locator": "Reproduced original report: Experimental Procedures, printed p. 1; Tables 1-4, printed pp. 2-4; DOI 10.4148/2378-5977.8107",
+      "applicability_limit": "Read the reproduced report text, methods and tables, not an AI summary. Original publisher route https://newprairiepress.org/kaesrr/vol7/iss7/8/ redirected. Tribune trial, not Sheridan 6; eight-year aggregate, no local response function.",
+      "evidence_notes": "All phases present annually, four replicates, no-till sprinkler; approximately 10 inches per crop-year, maximum 1.5 inches/week. Crop-specific fertility differed. Table 2 corn yields: continuous 175 b, after sorghum 187 ab, after wheat 199 a bu/acre; shared letters mean no significant difference. Sorghum rotation effect was nonsignificant. Table 4: corn planting water lower after sorghum; within-crop water use did not differ by rotation. Wheat's 2019 sowing/2020 harvest explicitly crosses calendar years."
+    },
+    {
+      "source_id": "T1_ROTATION_2020_ARS",
+      "title": "Productivity and profitability of four crop rotations under limited irrigation — USDA ARS publication record",
+      "url": "https://www.ars.usda.gov/research/publications/publication/?seqNo115=405022",
+      "publication_year": 2020,
+      "locator": "Interpretive Summary and Technical Abstract; DOI 10.13031/aea.13416, Applied Engineering in Agriculture 36(1):1-9",
+      "applicability_limit": "Original institutional abstract read; full article unavailable through retrieved ASABE routes. ARS dates it 2019; journal volume and K-State bibliography date it 2020. Tribune 2012-2017, 10-inch limit; economic assumptions not fully recovered.",
+      "evidence_notes": "Corn-sorghum ranked highest economically; corn-wheat lowest. Corn and sorghum yields were similar in monoculture and in their two-year rotation. This supports comparison, not a current profit claim."
+    },
+    {
+      "source_id": "T1_ROTATION_2018",
+      "title": "Alternative Cropping Systems with Limited Irrigation — Schlegel, 2018",
+      "url": "https://newprairiepress.org/kaesrr/vol4/iss8/8/",
+      "publication_year": 2018,
+      "locator": "Original publisher Abstract; DOI 10.4148/2378-5977.7628",
+      "applicability_limit": "2017 annual outcome from the Tribune experiment; abstract accessible, full download redirected. Do not infer disease incidence probabilities or add this as an independent trial.",
+      "evidence_notes": "In 2017 sorghum after sorghum outyielded sorghum after corn; wheat was not harvested after severe wheat streak mosaic. This contrasts with the later nonsignificant multi-year sorghum comparison."
+    },
+    {
+      "source_id": "T1_WATER",
+      "title": "Efficient Crop Water Use in Kansas, MF3066",
+      "url": "https://bookstore.ksre.ksu.edu/pubs/efficient-crop-water-use-in-kansas_MF3066.pdf",
+      "publication_year": 2012,
+      "locator": "Printed p. 8 Table 6; pp. 9-11 Irrigation Requirement/Capacity; p. 22 Table 10; p. 21 Figure 29",
+      "applicability_limit": "General Central Plains ET ranges are not irrigation allocations. Chapters mix irrigated, dryland, western and eastern Kansas evidence; those treatments cannot be pooled.",
+      "evidence_notes": "Table 6 seasonal ET: corn 22-30 inches; wheat and sorghum 16-22. Table 10 gives different ranges (18-25, 15-24, 13-21 respectively): context matters. All three are high-residue grasses. Gross daily delivery = gpm × operating hours/day ÷ (450 × acres); multiply by efficiency for net delivery. Soil storage buffers peak demand."
+    },
+    {
+      "source_id": "T1_CWA",
+      "title": "K-State Crop Water Allocator",
+      "url": "https://cwa2.engg.ksu.edu/",
+      "publication_year": null,
+      "locator": "Help: Background; Field and Irrigation Input Tab; Crops, Prices, Yields Tab; Calculating Results",
+      "applicability_limit": "Model documentation, not validation of these chronological sequences. Yield-response graphs and model description were readable; numerical coefficients, executable response implementation and local calibration were not recovered. Documentation contains legacy assumptions.",
+      "evidence_notes": "Ranks crop/land-split/irrigation combinations using yield × price minus production and irrigation costs, excluding fixed land/equipment investment. Rainfall, soil, efficiency, maximum yield, prices, discharge, pumping lift and operating costs are inputs. Allocation optimization does not itself establish calendar or pest compatibility."
+    },
+    {
+      "source_id": "T1_BUDGET_INDEX",
+      "title": "2026 Farm Management Guides for Irrigated Crops",
+      "url": "https://agmanager.info/farm-budgets/2025-farm-management-guides-irrigated-crops",
+      "publication_year": null,
+      "locator": "Page title and crop/region download table",
+      "applicability_limit": "Supplied URL contains 2025 but retrieved page serves 2026 budgets dated November 1, 2025. Preserve actual version; not live bids or validated limited-water yields."
+    },
+    {
+      "source_id": "T1_BUDGET_CORN",
+      "title": "2026 Irrigated Corn (center-pivot) Cost-Return Budget — Northwest Kansas",
+      "url": "https://agmanager.info/sites/default/files/wysiwyg/Irrigated%20Corn%20(center-pivot)%20Cost-Return%20Budget_Northwest%20Kansas%20_Nov-01-2025.pdf",
+      "publication_year": 2025,
+      "locator": "PDF p. 1: date, irrigation levels, Tables 1-2; p. 2 middle-yield budget",
+      "applicability_limit": "2026 planning budget, not a 2025 crop result; center-pivot assumptions. Three yield scenarios also change irrigation, so they are not a controlled response curve.",
+      "evidence_notes": "Low/middle/high irrigation assumptions are 12/14/16 inches. Do not import budget yields into a more restrictive scenario without a defensible response model."
+    },
+    {
+      "source_id": "T1_BUDGET_SORGHUM",
+      "title": "2026 Irrigated Grain Sorghum (center-pivot) Cost-Return Budget — Northwest KS",
+      "url": "https://agmanager.info/sites/default/files/wysiwyg/Irrigated%20Grain%20Sorghum%20(center-pivot)%20Cost-Return%20Budget_Northwest%20KS_Nov-01-2025.pdf",
+      "publication_year": 2025,
+      "locator": "PDF p. 1: date, irrigation levels, Tables 1-2; p. 2 middle-yield budget",
+      "applicability_limit": "2026 planning assumptions; no verified local buyer, basis or hauling cost. Scenario yield/irrigation pairs are not experimental response points.",
+      "evidence_notes": "Low/middle/high irrigation assumptions are 10.5/12/13.5 inches. Economic feasibility needs local receipts and costs."
+    },
+    {
+      "source_id": "T1_BUDGET_WHEAT",
+      "title": "2026 Irrigated Wheat Cost-Return Budget in Western KS — Limited irrigation",
+      "url": "https://agmanager.info/sites/default/files/wysiwyg/Irrigated%20Wheat%20Cost-Return%20Budget%20in%20Western%20KS_Limited%20irrigation_Nov-01-2025.pdf",
+      "publication_year": 2025,
+      "locator": "PDF p. 1: date, irrigation levels, Tables 1-2; p. 2 middle-yield budget",
+      "applicability_limit": "Western Kansas, not specifically northwest or wheat after corn; 2026 planning budget. Does not price the farm's added equipment or prove rotation profitability.",
+      "evidence_notes": "Low/middle/high irrigation assumptions are 4/6/8 inches. Direct-cost and total-cost returns differ; retain the cost definition in comparisons."
+    },
+    {
+      "source_id": "T1_WATER_CONUNDRUM",
+      "title": "The water conundrum of planting cover crops in the Great Plains",
+      "url": "https://www.ars.usda.gov/ARSUserFiles/30100500/Publications%202010-2019/22PDF%20Water%20Conundrum.pdf",
+      "publication_year": 2015,
+      "locator": "Crops & Soils, printed pp. 25-30, especially Scottsbluff/Akron discussion on pp. 29-30",
+      "applicability_limit": "USDA-hosted authored synthesis, heavily dryland and broader Great Plains. Does not quantify irrigated Sheridan 6 impacts or compare the three requested sequences.",
+      "evidence_notes": "Retained dead residue and a living cover crop have different water costs. Semiarid cover-crop transpiration can leave less water for the next cash crop; do not automatically fill the wheat-to-corn gap or award a soil-health benefit. No additional crop is proposed here."
+    },
+    {
+      "source_id": "T1_NW_CORN_CALENDAR",
+      "title": "Sunflower Extension District: Best Management Practices for Planting Corn",
+      "url": "https://www.sunflower.k-state.edu/agronomy/corn/",
+      "publication_year": null,
+      "locator": "Best Management Practices for Planting Corn, item 4: Plant into optimal planting conditions",
+      "applicability_limit": "Cheyenne, Sherman and Wallace district guidance; adjacent western Kansas, not a Sheridan 6 prescription. Page mixes dryland discussion and general corn practice; no irrigated-only date comparison.",
+      "evidence_notes": "Regional planting reference: April 25-May 15, conditional on seedbed and weather."
+    },
+    {
+      "source_id": "T1_NW_WHEAT_CALENDAR",
+      "title": "Use location, production goals to determine winter wheat planting dates",
+      "url": "https://extension.k-state.edu/news-and-publications/news/stories/2024/09/agriculture-wheat-planting-considerations.html",
+      "publication_year": 2024,
+      "locator": "September 19, 2024 article: northwest Kansas September 25 target and following explanation",
+      "applicability_limit": "Regional target, not a field-specific window or irrigation treatment. Article contains an apparent early/late wording error in its penalty paragraph; that numerical penalty is not used.",
+      "evidence_notes": "Northwest target is around September 25. Earlier cold makes delayed establishment consequential; excessively early planting also raises disease and moisture-use concerns."
+    },
+    {
+      "source_id": "T1_NASS_CALENDAR",
+      "title": "Field Crops Usual Planting and Harvesting Dates",
+      "url": "https://www.nass.usda.gov/Publications/Todays_Reports/reports/fcdate10.pdf",
+      "publication_year": 2010,
+      "locator": "Printed p. 39, Usual Planting and Harvesting Dates by Crop — Kansas; p. 4 Introduction",
+      "applicability_limit": "Historical statewide observations combine eastern/western and irrigated/nonirrigated acreage. Most-active windows describe roughly 15-85% progress, not biological, insurance or legal cutoffs; local windows remain unvalidated.",
+      "evidence_notes": "Most-active harvest: corn September 10-October 25; grain sorghum September 25-November 10; winter wheat June 20-July 5. Most-active sowing: sorghum May 15-June 20; wheat September 15-October 20."
+    },
+    {
+      "source_id": "T1_CORN_GUIDE",
+      "title": "Corn Production Handbook, C560",
+      "url": "https://bookstore.ksre.k-state.edu/pubs/corn-production-handbook_C560.pdf",
+      "publication_year": 2007,
+      "locator": "Insect Management: rootworm discussion; Major Corn Diseases: charcoal rot; Irrigation: Reproductive Stage and Irrigation Management, printed pp. 33-34",
+      "applicability_limit": "Older Kansas extension guidance; use crop physiology and risk mechanisms, not historic pesticide practices, hybrid performance or current pest susceptibility claims.",
+      "evidence_notes": "Corn is especially sensitive around tasseling/pollination and still needs water for grain filling. Corn-after-corn warrants rootworm review. Charcoal rot is listed for corn as well as sorghum; rotation benefits must be pest-specific."
+    },
+    {
+      "source_id": "T1_SORGHUM_GUIDE",
+      "title": "Grain Sorghum Production Handbook, C687",
+      "url": "https://bookstore.ksre.ksu.edu/pubs/grain-sorghum-production-handbook_C687.pdf",
+      "publication_year": 1998,
+      "locator": "Printed pp. 15-16 Irrigation, Table 9; p. 18 Major Sorghum Diseases; pp. 24-27 Harvesting, Drying and Storage; back cover revision date",
+      "applicability_limit": "Historical Kansas handbook. Garden City water-use observations include unlimited soil moisture; limited-irrigation examples largely deep silt loams. No old chemical or economic recommendations are carried forward.",
+      "evidence_notes": "Boot/heading is a high-demand period. Drought tolerance does not remove peak delivery needs; stress can delay maturity and increase frost exposure. Combine setup and grain drying/airflow require sorghum-specific checks. Drought-associated charcoal rot and lodging remain risks."
+    },
+    {
+      "source_id": "T1_ROTATION_GUIDE",
+      "title": "No-Till in Kansas: Rotations and Cultural Practices, MF2908",
+      "url": "https://bookstore.ksre.ksu.edu/pubs/rotations-and-cultural-practices_MF2908.pdf",
+      "publication_year": 2009,
+      "locator": "Important Factors When Planning Crop Rotations: markets; herbicide carryover; residue characteristics; equipment needs",
+      "applicability_limit": "General no-till guidance mixes regions and dryland experiments. Manhattan/Hesston yield charts are not transferred to irrigated Sheridan 6. Tribune versus Garden City stubble responses also differed.",
+      "evidence_notes": "Evaluate buyer access, storage, transport and machinery. Residue distribution affects establishment; cover can conserve water but cool spring seedbeds. Herbicide carryover depends on product history and soil/environment. Later sorghum planting can alter weed-management opportunities; species change alone proves no weed benefit."
+    },
+    {
+      "source_id": "T1_WHEAT_AFTER_CORN",
+      "title": "Management Considerations for No-Till Wheat Following a Summer Row Crop",
+      "url": "https://www.agronomy.k-state.edu/eupdates/2026/issue-1121-september-17/no-till-wheat-after-summer-row-crop.html",
+      "publication_year": 2026,
+      "locator": "Variety Selection; Planting Date; Harvest Considerations; Seeding Equipment; Nutrient Management; Herbicide History",
+      "applicability_limit": "Explicitly draws on eastern Kansas MF2641 and Belleville results. Mechanisms are screening concerns, not western irrigated yield penalties or fertilizer-rate prescriptions.",
+      "evidence_notes": "Wheat after corn warrants Fusarium head blight review. Heavy or uneven residue can impair seed placement and immobilize nitrogen. Late sowing reduces fall tillering. Review actual prior herbicide labels for wheat compatibility."
+    },
+    {
+      "source_id": "T1_WHEAT_CURL_MITE",
+      "title": "K-State Entomology: Wheat Curl Mite",
+      "url": "https://entomology.k-state.edu/extension/crop-protection/wheat/curlmite.html",
+      "publication_year": 2024,
+      "locator": "Life-cycle discussion and Management; content last-updated June 6, 2024",
+      "applicability_limit": "Kansas biological mechanism, not a diagnosis of the target field. More recent regional wheat-free-window guidance exists.",
+      "evidence_notes": "Corn and volunteer wheat can support the mite between wheat crops; wind dispersal makes surrounding hosts relevant. Thus corn-wheat is not automatically a wheat-virus break."
+    },
+    {
+      "source_id": "T1_WHEAT_FREE_WINDOW",
+      "title": "Wheat Streak Mosaic Management: Pay Attention to Wheat-Free Windows",
+      "url": "https://www.agronomy.k-state.edu/eupdates/2026/issue-1112-july-16/wheat-streak-wheat-free-windows-2026.html",
+      "publication_year": 2026,
+      "locator": "Volunteer Control Will Be Essential in 2026; Figure 2 and Important considerations",
+      "applicability_limit": "Current extension guidance, not a legal restriction. Regional timing needs local verification; no chemical directions reproduced.",
+      "evidence_notes": "Updated guidance describes regional wheat-free windows before optimal planting. Do not silently hard-code the older two-week guidance as the current regional standard."
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "corn_corn",
+      "sequence": [
+        {
+          "crop": "corn",
+          "relative_harvest_year": 1,
+          "sowing_window": {"relative_calendar_year": 1, "start_month_day": "04-25", "end_month_day": "05-15"},
+          "harvest_window": {"relative_calendar_year": 1, "start_month_day": "09-10", "end_month_day": "10-25"},
+          "calendar_basis": "Sowing: T1_NW_CORN_CALENDAR regional reference. Harvest: T1_NASS_CALENDAR historical statewide most-active range, not validated locally."
+        },
+        {
+          "crop": "corn",
+          "relative_harvest_year": 2,
+          "sowing_window": {"relative_calendar_year": 2, "start_month_day": "04-25", "end_month_day": "05-15"},
+          "harvest_window": {"relative_calendar_year": 2, "start_month_day": "09-10", "end_month_day": "10-25"},
+          "calendar_basis": "Same regional/historical references as year 1. Two years shown for comparison; monoculture repeats annually. Farm-specific dates remain null."
+        }
+      ],
+      "evidence_status": "supported_candidate",
+      "status_meaning": "Supported as a comparison baseline, not confirmed as the farmer's existing rotation or preferred choice.",
+      "field_suitability": null,
+      "locally_validated_calendar": null,
+      "benefits": [
+        {"topic": "trial evidence", "finding": "A credible limited-irrigation baseline with competitive historical whole-sequence economics.", "source_ids": ["T1_ROTATION_2016", "T1_ROTATION_2021"]},
+        {"topic": "operations", "finding": "If corn equipment and a buyer already exist, retaining this sequence avoids adding a second crop's operational requirements; this is a conditional inference.", "source_ids": ["T1_ROTATION_GUIDE"]}
+      ],
+      "risks": [
+        {"topic": "water-demand timing", "finding": "Every year concentrates demand in summer, especially tasseling/pollination and grain fill. Insufficient peak delivery plus stored water can make it unsuitable even when annual volume appears adequate.", "source_ids": ["T1_CORN_GUIDE", "T1_WATER"]},
+        {"topic": "pests and disease", "finding": "Repeated corn requires field-specific rootworm and residue-borne disease review; no automatic pest-control or nitrogen credit applies.", "source_ids": ["T1_CORN_GUIDE"]}
+      ],
+      "unknowns": ["Actual existing sequence and baseline irrigation", "Soil profile, rooting restrictions, initial water and nutrient tests", "Well output, usable operating hours, efficiency and seasonal budget", "Hybrid maturity, pest history, buyer terms and costs"],
+      "gaps_and_calendar_conflicts": [
+        {"finding": "Autumn harvest to next spring sowing leaves an overwinter gap; no same-autumn replant requirement. Wet/cold residue-covered seedbeds or delayed harvest still need checking. Exact gap duration is unresolved.", "source_ids": ["T1_NASS_CALENDAR", "T1_NW_CORN_CALENDAR", "T1_ROTATION_GUIDE"]}
+      ],
+      "residue_implications": [{"finding": "Retained corn stover can protect soil; actual cover, removal, distribution and tillage determine the effect. High residue can complicate spring establishment.", "source_ids": ["T1_WATER", "T1_ROTATION_GUIDE"]}],
+      "herbicide_carryover": {"finding": "Review the actual product and crop-trait history even when repeating corn; compatibility is unresolved, not presumed.", "source_ids": ["T1_ROTATION_GUIDE"]},
+      "market_equipment_prerequisites": ["Corn-compatible planter and harvest equipment or timely custom service", "Drying/storage/hauling capacity and an accepting corn buyer", "Budget using farm yields and costs rather than assuming the published corn budget fits the water constraint"],
+      "treatment_basis": "No-till limited-irrigation experimental baseline; retain T1_ROTATION_2016 and T1_ROTATION_2021 treatment distinctions. Conventional tillage is not an equivalent tested treatment.",
+      "source_ids": ["T1_ROTATION_2016", "T1_ROTATION_2021", "T1_WATER", "T1_CORN_GUIDE", "T1_ROTATION_GUIDE", "T1_NW_CORN_CALENDAR", "T1_NASS_CALENDAR", "T1_BUDGET_CORN"]
+    },
+    {
+      "candidate_id": "corn_sorghum",
+      "sequence": [
+        {
+          "crop": "corn",
+          "relative_harvest_year": 1,
+          "sowing_window": {"relative_calendar_year": 1, "start_month_day": "04-25", "end_month_day": "05-15"},
+          "harvest_window": {"relative_calendar_year": 1, "start_month_day": "09-10", "end_month_day": "10-25"},
+          "calendar_basis": "Sowing: T1_NW_CORN_CALENDAR. Harvest: T1_NASS_CALENDAR statewide historical range; local validation absent."
+        },
+        {
+          "crop": "grain_sorghum",
+          "relative_harvest_year": 2,
+          "sowing_window": {"relative_calendar_year": 2, "start_month_day": "05-15", "end_month_day": "06-20"},
+          "harvest_window": {"relative_calendar_year": 2, "start_month_day": "09-25", "end_month_day": "11-10"},
+          "calendar_basis": "T1_NASS_CALENDAR statewide historical most-active ranges, including eastern/dryland acreage. Not Sheridan 6 recommendations; local upper planting limit unresolved. Repeat corn in year 3."
+        }
+      ],
+      "evidence_status": "supported_candidate",
+      "status_meaning": "Directly tested two-year sequence worth comparing; no farm-level superiority established.",
+      "field_suitability": null,
+      "locally_validated_calendar": null,
+      "benefits": [
+        {"topic": "trial evidence", "finding": "Highest economic ranking in the 2012-2017 study under its assumptions; later multi-year data do not show a significant corn-yield advantage over continuous corn.", "source_ids": ["T1_ROTATION_2020_ARS", "T1_ROTATION_2021"]},
+        {"topic": "timing", "finding": "Sorghum's later establishment offers a different seasonal schedule. Any weed or irrigation advantage requires an actual management plan.", "source_ids": ["T1_ROTATION_GUIDE", "T1_SORGHUM_GUIDE"]}
+      ],
+      "risks": [
+        {"topic": "soil-water carryover", "finding": "The direct experiment found less soil water at corn planting after sorghum. Drought tolerance must not be scored as stored-water conservation.", "source_ids": ["T1_ROTATION_2021", "T1_ROTATION_2020_ARS"]},
+        {"topic": "water-demand timing", "finding": "Sorghum still has substantial reproductive demand around boot/heading. Both crops occupy summer; phase-split acreage can still have overlapping demand. Stress-delayed maturity may increase frost exposure.", "source_ids": ["T1_SORGHUM_GUIDE", "T1_CORN_GUIDE"]},
+        {"topic": "pests and disease", "finding": "Both crops can suffer charcoal rot. This is not a general disease break; diagnose the actual pest/pathogen before assigning a benefit.", "source_ids": ["T1_CORN_GUIDE", "T1_SORGHUM_GUIDE"]}
+      ],
+      "unknowns": ["Local sorghum buyer, basis, quality requirements and transport cost", "Compatible maturity and latest feasible local sowing date", "Initial and post-sorghum profile water", "Pest, weed, herbicide and crop-trait histories", "Crop-specific limited-water yields and costs"],
+      "gaps_and_calendar_conflicts": [{"finding": "Corn harvest to sorghum sowing and sorghum harvest to next corn sowing both span winter. No wheat-style same-autumn turn is required. Late sorghum harvest can compete with other fall work; actual durations remain unresolved.", "source_ids": ["T1_NASS_CALENDAR", "T1_NW_CORN_CALENDAR"]}],
+      "residue_implications": [{"finding": "Both phases retain cereal residue if it is not removed; distribution and planting through residue must be checked. No measured soil-carbon gain is assigned to changing species.", "source_ids": ["T1_WATER", "T1_ROTATION_GUIDE"]}],
+      "herbicide_carryover": {"finding": "Check both corn-to-sorghum and sorghum-to-corn transitions against actual product records and current labels. Grass-to-grass rotation does not guarantee compatibility.", "source_ids": ["T1_ROTATION_GUIDE"]},
+      "market_equipment_prerequisites": ["Corn equipment plus sorghum-compatible seed metering and harvest setup, owned or contracted", "Sorghum drying/aeration/storage capacity verified separately from corn", "Buyer acceptance and delivered net price for both grains"],
+      "treatment_basis": "Direct no-till sprinkler evidence is T1_ROTATION_2021. T1_ROTATION_2020_ARS provides abstract-level historical economics. The 2016 paper's longer sorghum-containing rotations are not substitutes for this sequence.",
+      "source_ids": ["T1_ROTATION_2021", "T1_ROTATION_2020_ARS", "T1_ROTATION_2018", "T1_WATER", "T1_CORN_GUIDE", "T1_SORGHUM_GUIDE", "T1_ROTATION_GUIDE", "T1_NW_CORN_CALENDAR", "T1_NASS_CALENDAR", "T1_BUDGET_CORN", "T1_BUDGET_SORGHUM"]
+    },
+    {
+      "candidate_id": "corn_wheat",
+      "sequence": [
+        {
+          "crop": "corn",
+          "relative_harvest_year": 1,
+          "sowing_window": {"relative_calendar_year": 1, "start_month_day": "04-25", "end_month_day": "05-15"},
+          "harvest_window": {"relative_calendar_year": 1, "start_month_day": "09-10", "end_month_day": "10-25"},
+          "calendar_basis": "T1_NW_CORN_CALENDAR sowing and T1_NASS_CALENDAR historical statewide harvest. Harvest range overlaps wheat establishment; no automatic feasible handoff."
+        },
+        {
+          "crop": "winter_wheat",
+          "relative_harvest_year": 2,
+          "sowing_window": {"relative_calendar_year": 1, "start_month_day": "09-15", "end_month_day": "10-20"},
+          "harvest_window": {"relative_calendar_year": 2, "start_month_day": "06-20", "end_month_day": "07-05"},
+          "calendar_basis": "T1_NASS_CALENDAR statewide historical ranges only. T1_NW_WHEAT_CALENDAR targets about September 25 locally; do not treat October 20 as a northwest cutoff. Wheat sowing occurs in the preceding harvest calendar year; next corn is year 3."
+        }
+      ],
+      "evidence_status": "conditional",
+      "status_meaning": "Experimentally demonstrated, but the fall handoff, establishment water and wheat health can prevent suitability.",
+      "field_suitability": null,
+      "locally_validated_calendar": null,
+      "benefits": [
+        {"topic": "trial evidence", "finding": "Corn following wheat outyielded continuous corn in the later multi-year trial; this alone does not establish whole-sequence profit.", "source_ids": ["T1_ROTATION_2021", "T1_ROTATION_2020_ARS"]},
+        {"topic": "water-demand timing", "finding": "Wheat shifts reproductive demand into spring before corn's summer peak. Fall establishment may also need water. Concurrent phase-split acreage could spread demand; an entire field alternating years does not split demand within a corn year.", "source_ids": ["T1_ROTATION_2016", "T1_CORN_GUIDE"]}
+      ],
+      "risks": [
+        {"topic": "calendar and establishment", "finding": "Corn harvest can miss timely wheat sowing; little recharge time exists immediately after corn. This is a concrete reason the sequence may be unsuitable.", "source_ids": ["T1_ROTATION_2016", "T1_NW_WHEAT_CALENDAR", "T1_WHEAT_AFTER_CORN"]},
+        {"topic": "disease", "finding": "Corn/volunteer wheat can sustain wheat curl mites; the trial recorded a wheat streak mosaic crop failure. Fusarium head blight after corn is another screening concern, with an explicit eastern-Kansas evidence mismatch.", "source_ids": ["T1_WHEAT_CURL_MITE", "T1_ROTATION_2018", "T1_WHEAT_AFTER_CORN"]},
+        {"topic": "economics", "finding": "Historical wheat-phase returns reduced whole-sequence performance in both research periods; do not rank this first from its corn-phase yield.", "source_ids": ["T1_ROTATION_2016", "T1_ROTATION_2020_ARS"]}
+      ],
+      "unknowns": ["Corn harvest date, grain moisture, drying option and immediate drill availability", "Locally acceptable wheat planting window and establishment water", "Volunteer wheat and surrounding-host status, disease history and suitable cultivar", "Wheat buyer/grade requirements, harvest service and costs", "Whether irrigation allocation accounting permits the proposed crop-year timing"],
+      "gaps_and_calendar_conflicts": [
+        {"finding": "Corn year-1 harvest to wheat year-1 sowing is a short or conflicting autumn handoff. Wheat year-2 harvest to corn year-3 sowing leaves summer, autumn and winter for residue-covered recharge, with weed/volunteer management. No second summer crop is inserted.", "source_ids": ["T1_NASS_CALENDAR", "T1_ROTATION_2016", "T1_WATER_CONUNDRUM"]}
+      ],
+      "residue_implications": [{"finding": "Wheat stubble can cover the long pre-corn gap. Corn residue preceding wheat creates drill-placement and nitrogen-immobilization concerns; these require local assessment, not a nitrogen credit.", "source_ids": ["T1_ROTATION_GUIDE", "T1_WHEAT_AFTER_CORN"]}],
+      "herbicide_carryover": {"finding": "Review corn-to-wheat plant-back compatibility before committing to the short fall turnaround, and wheat-to-corn compatibility before the next phase. No product interval has been assumed.", "source_ids": ["T1_WHEAT_AFTER_CORN", "T1_ROTATION_GUIDE"]},
+      "market_equipment_prerequisites": ["Residue-capable wheat drill or timely custom drilling immediately after corn", "Small-grain harvest capability during the early-summer window", "Wheat storage/segregation, accepted grade and buyer; corn equipment remains needed", "Include any added machinery/service costs and harvest bottlenecks"],
+      "treatment_basis": "Both trials used no-till. The older trial shifted water from wheat to corn; the later report describes approximately equal crop-year applications. Neither is proof of suitability on an unknown soil or under different tillage.",
+      "source_ids": ["T1_ROTATION_2016", "T1_ROTATION_2021", "T1_ROTATION_2020_ARS", "T1_ROTATION_2018", "T1_NW_CORN_CALENDAR", "T1_NW_WHEAT_CALENDAR", "T1_NASS_CALENDAR", "T1_CORN_GUIDE", "T1_ROTATION_GUIDE", "T1_WHEAT_AFTER_CORN", "T1_WHEAT_CURL_MITE", "T1_WHEAT_FREE_WINDOW", "T1_WATER_CONUNDRUM", "T1_BUDGET_CORN", "T1_BUDGET_WHEAT"]
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "T1_R01_FIELD_UNKNOWN",
+      "input_needed": ["actual baseline sequence", "soil texture and depth", "root restrictions", "initial profile water", "tillage and residue history"],
+      "condition_description": "Field inputs are missing or differ materially from the experiment.",
+      "effect": "flag",
+      "rationale": "Retain suitability as unknown and regional evidence as provisional. No boundary is needed to display candidates; evidence_status is not field approval.",
+      "source_ids": ["T1_ROTATION_2016", "T1_ROTATION_GUIDE"],
+      "validation_status": "Evidence-transfer safeguard; local validation pending."
+    },
+    {
+      "rule_id": "T1_R02_ANNUAL_VS_PEAK",
+      "input_needed": ["allocation volume and accounting period", "area", "measured well gpm", "operating hours and downtime", "efficiency", "soil storage", "weather and phenology"],
+      "condition_description": "A plan fits its seasonal volume but crop-stage supply adequacy has not been checked.",
+      "effect": "flag",
+      "rationale": "Evaluate peak delivery separately. Stored water and effective rainfall also supply crop demand; a low flow rate is not equivalent to a small annual allocation.",
+      "source_ids": ["T1_WATER", "T1_CWA", "T1_CORN_GUIDE", "T1_SORGHUM_GUIDE"],
+      "validation_status": "Physical distinction supported; no farm-specific capacity threshold assigned."
+    },
+    {
+      "rule_id": "T1_R03_ET_NOT_PUMPING",
+      "input_needed": ["effective rainfall", "initial/final storage", "irrigation losses", "crop ET", "metered pumping"],
+      "condition_description": "Crop ET ranges or crop labels are being used to calculate pumping savings.",
+      "effect": "explain",
+      "rationale": "Use a consistent water balance and gross/net definitions. ET differences alone do not determine withdrawal changes; no pumping saving is assigned here.",
+      "source_ids": ["T1_WATER", "T1_CWA"],
+      "validation_status": "Supported distinction; numerical estimate unresolved."
+    },
+    {
+      "rule_id": "T1_R04_MATCH_TREATMENTS",
+      "input_needed": ["irrigation by crop and year", "weekly capacity", "tillage", "fertility", "cultivar", "study period"],
+      "condition_description": "Comparing treatment results or applying a rotation yield uplift.",
+      "effect": "explain",
+      "rationale": "Keep the older unequal crop-phase irrigation and later equal-depth trial separate. Neither supplies a universal uplift; annual reports from the same trial are not independent replications.",
+      "source_ids": ["T1_ROTATION_2016", "T1_ROTATION_2021", "T1_ROTATION_2018"],
+      "validation_status": "Methods verified; no uplift coefficient endorsed."
+    },
+    {
+      "rule_id": "T1_R05_WHEAT_HANDOFF",
+      "input_needed": ["corn harvest forecast", "field-ready date", "drill availability", "local wheat sowing window", "establishment moisture"],
+      "condition_description": "Corn harvest and field preparation leave uncertain time or water for wheat establishment.",
+      "effect": "flag",
+      "rationale": "Assess the same-autumn transition; statewide harvest ranges are not proof that a local wheat window remains open.",
+      "source_ids": ["T1_NW_WHEAT_CALENDAR", "T1_WHEAT_AFTER_CORN", "T1_NASS_CALENDAR"],
+      "validation_status": "Calendar conflict supported; farm dates unresolved."
+    },
+    {
+      "rule_id": "T1_R06_CONFIRMED_CALENDAR_FAILURE",
+      "input_needed": ["validated local planting window", "confirmed earliest field-ready date", "available operations"],
+      "condition_description": "The earliest feasible sowing date is later than the locally validated feasible window, with no acceptable operational adjustment.",
+      "effect": "exclude",
+      "rationale": "Exclude that scheduled instance, not the crop everywhere. No universal latest date is invented.",
+      "source_ids": ["T1_NW_WHEAT_CALENDAR", "T1_SORGHUM_GUIDE"],
+      "validation_status": "Proposed feasibility gate; requires confirmed farm inputs before activation."
+    },
+    {
+      "rule_id": "T1_R07_YEAR_AND_AREA_ACCOUNTING",
+      "input_needed": ["phase acreage by year", "wheat sowing year", "irrigation accounting period", "per-phase water plan"],
+      "condition_description": "A two-year sequence is represented as a single annual crop mixture or wheat is sown in its harvest year.",
+      "effect": "explain",
+      "rationale": "Preserve chronology and both phases. A whole field alternating years and concurrent phase-split acreage impose different annual pumping schedules; confirm applicable allocation accounting separately.",
+      "source_ids": ["T1_ROTATION_2016", "T1_ROTATION_2021", "T1_CWA"],
+      "validation_status": "Bookkeeping inference from study design; no Sheridan 6 water-right interpretation made."
+    },
+    {
+      "rule_id": "T1_R08_HERBICIDE_UNKNOWN",
+      "input_needed": ["products and application dates", "rates from records", "current labels", "crop traits", "soil pH/organic matter", "moisture history"],
+      "condition_description": "A next crop is proposed without verified plant-back compatibility.",
+      "effect": "flag",
+      "rationale": "Keep compatibility unresolved until the actual label and field history are checked. No chemical directions, product-specific interval or inferred restriction is supplied.",
+      "source_ids": ["T1_ROTATION_GUIDE", "T1_WHEAT_AFTER_CORN"],
+      "validation_status": "General concern supported; product-specific review pending."
+    },
+    {
+      "rule_id": "T1_R09_CONFIRMED_PLANTBACK_CONFLICT",
+      "input_needed": ["verified current product label", "complete application record", "proposed next crop/date"],
+      "condition_description": "An actual applicable plant-back requirement is verified to conflict with the proposed crop/date.",
+      "effect": "exclude",
+      "rationale": "Exclude the conflicting schedule only after verification; missing history alone triggers a flag.",
+      "source_ids": ["T1_WHEAT_AFTER_CORN", "T1_ROTATION_GUIDE"],
+      "validation_status": "Conditional gate; no such conflict established for this farm."
+    },
+    {
+      "rule_id": "T1_R10_NO_FAMILY_OR_N_CREDIT",
+      "input_needed": ["identified pest/pathogen", "host biology", "soil and tissue tests", "residue and fertility records"],
+      "condition_description": "Species switching is being treated as a crop-family break, disease reduction or nitrogen benefit.",
+      "effect": "explain",
+      "rationale": "All three crops are grasses. Require outcome-specific evidence; shared hosts and residue immobilization prevent automatic credits.",
+      "source_ids": ["T1_WATER", "T1_CORN_GUIDE", "T1_SORGHUM_GUIDE", "T1_WHEAT_AFTER_CORN", "T1_WHEAT_CURL_MITE"],
+      "validation_status": "Supported guardrail; no nitrogen or disease reduction quantified."
+    },
+    {
+      "rule_id": "T1_R11_WHEAT_HEALTH",
+      "input_needed": ["volunteer wheat and nearby hosts", "local wheat-free window", "cultivar susceptibility", "disease history", "flowering weather"],
+      "condition_description": "Corn-wheat is proposed without assessment of green-bridge or residue-associated disease risks.",
+      "effect": "flag",
+      "rationale": "Review wheat streak mosaic and Fusarium risks separately. The former has direct western Kansas trial relevance; the latter's cited management evidence includes eastern Kansas. Use current regional guidance, not an invented cutoff.",
+      "source_ids": ["T1_ROTATION_2018", "T1_WHEAT_CURL_MITE", "T1_WHEAT_FREE_WINDOW", "T1_WHEAT_AFTER_CORN"],
+      "validation_status": "Risk mechanisms supported; local incidence unknown."
+    },
+    {
+      "rule_id": "T1_R12_RESIDUE_AND_RECHARGE",
+      "input_needed": ["residue cover/removal", "tillage", "soil-water observations", "weed/volunteer status", "planting equipment"],
+      "condition_description": "A sequence is awarded a soil benefit or its intercrop gap is assumed to restore all soil water.",
+      "effect": "explain",
+      "rationale": "Retained residue, live plant water use and rainfall storage are different processes. Assess establishment and recharge; do not add a living cover crop or carbon gain by default.",
+      "source_ids": ["T1_ROTATION_GUIDE", "T1_WATER_CONUNDRUM", "T1_ROTATION_2021"],
+      "validation_status": "Qualitative mechanisms supported; dryland cover-crop magnitudes not transferred."
+    },
+    {
+      "rule_id": "T1_R13_MARKET_AND_EQUIPMENT",
+      "input_needed": ["buyer/grade acceptance", "delivered price", "haul distance", "storage/drying", "planter/drill/header availability", "labor and custom-service timing"],
+      "condition_description": "Any required market or operational capability is unverified.",
+      "effect": "flag",
+      "rationale": "Adding sorghum or wheat is conditional on executable production and marketing. Include added costs; do not presume corn facilities fit every grain.",
+      "source_ids": ["T1_ROTATION_GUIDE", "T1_SORGHUM_GUIDE", "T1_WHEAT_AFTER_CORN"],
+      "validation_status": "Practical prerequisite; farm capability unknown."
+    },
+    {
+      "rule_id": "T1_R14_NUMERIC_FALLBACK",
+      "input_needed": ["verified response functions", "local weather series", "soil-water parameters", "phase irrigation schedule", "crop-specific costs and prices", "pump energy characteristics"],
+      "condition_description": "Numerical yield, profit or pumping comparisons are requested without these inputs and a validated model implementation.",
+      "effect": "flag",
+      "rationale": "Return qualitative comparison and unresolved numerical outputs. Trial averages and budget scenarios are not response functions. Do not fit a monotonic yield curve from observational water-use associations.",
+      "source_ids": ["T1_CWA", "T1_ROTATION_2020_ARS", "T1_BUDGET_CORN", "T1_BUDGET_SORGHUM", "T1_BUDGET_WHEAT"],
+      "validation_status": "Fallback active: no numerical farm estimates produced."
+    },
+    {
+      "rule_id": "T1_R15_WHOLE_SEQUENCE_ECONOMICS",
+      "input_needed": ["all phase revenues/costs", "cycle length", "price year", "cost boundary", "transition/equipment costs"],
+      "condition_description": "Ranking from corn-phase yield alone, mixing budget versions, or comparing different return definitions.",
+      "effect": "explain",
+      "rationale": "Compare the complete cycle on the same area-time and cost basis. Label the retrieved 2026 budgets and their 2025 publication date; replace assumptions with farm inputs.",
+      "source_ids": ["T1_ROTATION_2016", "T1_ROTATION_2020_ARS", "T1_CWA", "T1_BUDGET_INDEX", "T1_BUDGET_CORN", "T1_BUDGET_SORGHUM", "T1_BUDGET_WHEAT"],
+      "validation_status": "Comparison safeguard; current profitability unresolved."
+    }
+  ]
+}
