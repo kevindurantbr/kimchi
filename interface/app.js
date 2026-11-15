@@ -1,6 +1,7 @@
 import {names,cropNames,priorities,finite,fieldName,selectField,weatherForYear,weatherSummary,storageAt,cropHistory,safeURL,validateBundle} from './model.mjs';
 import {fetchLiveWeather,LIVE_SOURCE_ID} from './live_weather.mjs';
 import {compare,constraintOutcome,baselineStatus,isoDate,STATES} from './scenario.mjs';
+import {etView} from './et_view.mjs';
 
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -16,7 +17,7 @@ function chooseField(id,fromMap=false) {
   selectField(bundle,id);
   state.field=id;
   $('field-select').value=id;
-  renderField();renderSoil();renderConfirm();renderScenario();
+  renderField();renderSoil();renderET();renderConfirm();renderScenario();
   if(fromMap) document.getElementById(`map-${id}`).focus();
 }
 function renderField() {
@@ -60,6 +61,14 @@ function renderSoil() {
     const r=field.soils.find(s=>s.property===key);return `<div class="soil-category"><span>${label}</span><strong>${esc(r?.value??'Unavailable')}<small>${percent(r?.coverage_fraction)} of field in this category</small></strong></div>`;
   }).join('');
   $('soil-content').innerHTML=`<label class="depth-control">Depth from surface<select id="soil-depth" aria-label="Soil profile depth">${[25,50,100,150].map(d=>`<option value="${d}" ${state.depth===d?'selected':''}>0–${d} cm</option>`).join('')}</select></label><div class="storage-value">${number(row?.value,2)}${finite(row?.value)?'<span>cm water</span>':''}</div><div class="coverage-track" role="img" aria-label="${percent(coverage)} valid soil coverage"><span style="width:${finite(coverage)?Math.max(0,Math.min(100,coverage*100)):0}%"></span></div><div class="coverage-caption"><span>${percent(coverage)} valid coverage</span><span>${finite(coverage)&&coverage<1?`${number((1-coverage)*100)}% missing`:''}</span></div>${finite(coverage)&&coverage<1?'<p class="fine-print coverage-warning">Average over covered soil only. The uncovered area is not assigned zero storage.</p>':''}${categories}`;
+}
+let etUnavailable;
+// Unavailable ET keeps the reviewed static panel; available ET is shown as modelled values only, never as pumping.
+function renderET() {
+  const panel=$('et-panel'),view=etView(bundle,selectField(bundle,state.field));
+  etUnavailable??=panel.innerHTML;
+  if(!view){panel.innerHTML=etUnavailable;return;}
+  panel.innerHTML=`<div class="missing-icon" aria-hidden="true">≈</div><div><h3 id="et-title">Field evapotranspiration</h3><span class="badge neutral">Modelled · ${esc(view.coverage)} with values</span><p>${esc(view.provider)} · monthly actual ET in ${esc(view.units)}, ${esc(view.period)}. Source: ${esc(view.sourceLabel)}. ${esc(view.interpretation)}</p><details class="weather-table"><summary>View monthly ET (${esc(view.units)}) & quality</summary><table><caption>${esc(view.coverage)} with values${view.rangeLabel?` · range: ${esc(view.rangeLabel)}`:''}</caption><thead><tr><th scope="col">Month</th><th scope="col">ET</th>${view.rangeLabel?'<th scope="col">Range</th>':''}<th scope="col">Quality</th></tr></thead><tbody>${view.rows.map(r=>`<tr><td>${esc(r.month)}</td><td>${esc(r.value)}</td>${view.rangeLabel?`<td>${esc(r.range)}</td>`:''}<td>${esc(r.quality)}</td></tr>`).join('')}</tbody></table></details>${sourceButton(view.sourceIds,'Source & limitations')}</div>`;
 }
 const dateLabel=window=>`${months[Number(window.start_month_day.slice(0,2))-1]} ${Number(window.start_month_day.slice(3))}–${months[Number(window.end_month_day.slice(0,2))-1]} ${Number(window.end_month_day.slice(3))} · year ${window.relative_calendar_year}`;
 function findings(items) {return items.map(item=>`<div class="evidence-item"><p>${esc(item.finding)}</p>${sourceButton(item.source_ids)}</div>`).join('');}
@@ -172,7 +181,7 @@ async function load() {
     const response=await fetch('./demo_bundle.json');if(!response.ok)throw new Error('Data request failed');
     bundle=validateBundle(await response.json());
     $('field-select').innerHTML=bundle.fields.map(f=>`<option value="${f.field_id}">${fieldName(f.field_id)}</option>`).join('');
-    populateYears();renderField();renderWeather();renderSoil();renderPriority();renderCandidates();renderConfirm();renderScenario();
+    populateYears();renderField();renderWeather();renderSoil();renderET();renderPriority();renderCandidates();renderConfirm();renderScenario();
     $('load-state').hidden=true;$('workspace').hidden=false;
     refreshLiveWeather();
   }catch(error){bundle=null;$('workspace').hidden=true;$('load-state').innerHTML='The reviewed evidence could not be loaded. No substitute values are shown.<button id="retry">Try again</button>';$('retry').addEventListener('click',load);console.error('Evidence unavailable:',error.message);}

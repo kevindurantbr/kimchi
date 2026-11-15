@@ -155,3 +155,12 @@ python3 t3_water_data.py weather --from-daily-csv weather_daily.csv --provenance
 ## Integration update
 
 The adapter now accepts the field team’s `boundary_status: approximate` and preserves it as `geometry_status`; no relabelling as documented is needed. Response parsing rejects duplicate/invalid months, nonfinite/negative values, and ambiguous columns (e.g. pixel counts instead of ET). Flat geometry cannot silently discard holes. Partial calendar-month requests no longer claim complete monthly precipitation. `prototype/test_compare.py` adds regression coverage. Authenticated live response parsing still needs verification.
+
+## MODIS ET update (2026-11-15)
+
+Keyless NASA ET now fills the field ET slot. `modis_et.py` converts `mod16_raw.json` (ORNL DAAC MODIS Web Service, MOD16A2GF collection 061, band `ET_500m`, 230 gap-filled 8-day composites per field, A2021001–A2025361, one 500 m pixel at each field centroid) into `et_modis.json`, using the same envelope and row shape as the OpenET adapter, with source `T3_MODIS_MOD16A2GF`.
+
+- **Units:** value × 0.1 = mm per composite. Composites are 8 days, except the last of each year (5 days, 6 in a leap year). Each value is spread evenly over its days and summed per calendar month, rounded to 0.1 mm.
+- **Missing data:** a month is null (`missing`) if any day lacks a valid composite (absent, or outside 0–32700, e.g. fill ≥ 32761). It is never zero. The current file has no fill values; all 180 field-months are reported.
+- **Interpretation:** a satellite estimate of actual ET (crop water use) for one ~463 m pixel, which can include land outside the field. It is coarser than OpenET, and MOD16 has no irrigation input, so it may underestimate irrigated crop water use. It is not pumping and not irrigation applied.
+- **Rebuild:** `python3 modis_et.py` regenerates the output; `--check` fails if it is stale. Tests are in `prototype/test_modis_et.py`.

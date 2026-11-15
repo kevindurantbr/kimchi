@@ -27,7 +27,7 @@ Open http://127.0.0.1:8765/ in a browser. Use HTTP rather than opening the HTML 
 ## Verify
 
 ```sh
-node --test interface/test_model.mjs interface/test_live_weather.mjs interface/test_scenario.mjs
+node --test interface/test_*.mjs
 node --check interface/app.js && node --check interface/scenario.mjs
 python3 interface/fixtures/make_scenario_fixtures.py --check
 python3 -m unittest discover -s prototype -v
@@ -44,20 +44,20 @@ Browser QA completed at 1440 × 1000 and 390 × 844: dropdown and keyboard map s
 - Live weather rows are **unreviewed and provisional**. Reviewed months are never replaced; if live values for overlapping months differ, the page says so and keeps the reviewed values. Live months are marked in the chart tooltip and table, and their request is listed as source `T3_NASA_POWER_LIVE`.
 - Soil storage retains **cm water**, profile depth, and valid coverage. `fld01` has 92.8% coverage. Categorical soil shares are labelled separately from numeric valid-data coverage. Soil storage is not current moisture.
 - Crop shares are classified pixel fractions, not probabilities of correctness. Histories always require confirmation; baseline remains unconfirmed.
-- Empty ET stays **Data unavailable**. ET is not pumping.
+- Field ET is NASA MODIS (500 m satellite pixel at field centre), labelled as such; it may underestimate irrigated crop water use. Empty ET stays **Data unavailable**. ET is not pumping. See [ET display](#et-display).
 - All candidate suitability remains unknown and conditional. Priorities change the questions surfaced, never candidate order or performance ranking. Benefits, risks, references, treatment differences, calendars and unresolved inputs come directly from the agronomy bundle.
 - Wheat sowing and harvest years are distinct. Calendar windows remain regional/historical examples, not local planting deadlines.
 - Yield, profit and pumping savings are not predicted. Entered baselines and constraints are labelled *Supplied by you · not verified* (see [scenario inputs](#scenario-inputs)).
 
 ## Files and publication
 
-`index.html`, `styles.css`, `app.js`, `model.mjs`, `live_weather.mjs`, `scenario.mjs` and `icon.svg` are the static application source. The model module contains presentation transforms only. Dynamic data text is escaped, source links accept only HTTP(S), and a bundle/schema failure shows an error instead of substitute evidence.
+`index.html`, `styles.css`, `app.js`, `model.mjs`, `live_weather.mjs`, `scenario.mjs`, `et_view.mjs` and `icon.svg` are the static application source. The model module contains presentation transforms only. Dynamic data text is escaped, source links accept only HTTP(S), and a bundle/schema failure shows an error instead of substitute evidence.
 
 `.openai/hosting.json` stores the existing Site ID and static output configuration. Reuse that ID for future publication. A separate temporary Site checkout holds a deployment snapshot of these assets and `dist/`; the canonical source and research remain in this GitHub repository. Sites credentials must stay in memory/stdin, never in tracked files. Preserve the Site's private audience unless the team explicitly changes it.
 
 ## Live weather
 
-`live_weather.mjs` takes the coordinate from the reviewed `T3_NASA_POWER_DAILY` request, fetches daily PRECTOTCORR/T2M/T2M_MIN/T2M_MAX from January of the last reviewed year to today, and builds monthly rows with the same rules as `research/deliverables/weather-water/weather.json` (rain total only when every day is valid; mean temperature over valid days; ties rounded away from zero). The re-fetched last reviewed year is an overlap check only. Recent POWER days come from near-real-time products (`header.sources` lists GEOSIT) and the latest few days are usually missing, so the current month shows as partial. The in-progress month counts every calendar day, including days after today, so it stays partial with no rain total until the month is over. The request has a 20 s timeout; any failure leaves the reviewed snapshot with a *Live update unavailable* note. The hosted Site must allow requests to `power.larc.nasa.gov` for live months to appear there. ET stays unavailable: OpenET needs an API key, which must never be shipped in a static page.
+`live_weather.mjs` takes the coordinate from the reviewed `T3_NASA_POWER_DAILY` request, fetches daily PRECTOTCORR/T2M/T2M_MIN/T2M_MAX from January of the last reviewed year to today, and builds monthly rows with the same rules as `research/deliverables/weather-water/weather.json` (rain total only when every day is valid; mean temperature over valid days; ties rounded away from zero). The re-fetched last reviewed year is an overlap check only. Recent POWER days come from near-real-time products (`header.sources` lists GEOSIT) and the latest few days are usually missing, so the current month shows as partial. The in-progress month counts every calendar day, including days after today, so it stays partial with no rain total until the month is over. The request has a 20 s timeout; any failure leaves the reviewed snapshot with a *Live update unavailable* note. The hosted Site must allow requests to `power.larc.nasa.gov` for live months to appear there. ET is not fetched live: the reviewed MODIS series is bundled, and OpenET needs an API key, which must never be shipped in a static page.
 
 ## Scenario inputs
 
@@ -71,4 +71,8 @@ Browser QA completed at 1440 × 1000 and 390 × 844: dropdown and keyboard map s
 - **Privacy.** Entries are kept per field in page memory, with no storage and no network. *Clear all my entries* removes them, and so does reloading the page. Real farm inputs must never be added to tracked files; keep them in ignored `*.private.json` scenarios for `compare.py`.
 - **Limits.** Water, equipment and market availability are not constraint kinds in `compare.py`, so they stay as open questions on each card.
 
-Next interface work: reviewed calendars, plus water, market and equipment gates once `compare.py` defines them, then validated ET ingestion. See the [integration review](../research/integration_review.md) for the research prerequisites.
+## ET display
+
+`et_view.mjs` accepts a field's ET only as `unavailable` (the reviewed panel stays exactly as is) or in the exact `available` shape `prototype/compare.py` emits after validating OpenET adapter or NASA MODIS output: monthly mm, one `T3_OPENET*` or `T3_MODIS*` source present in the bundle, adapter row fields, `et_mm` finite and ≥ 0 or null, `missing` exactly when null, rows inside the recorded period, and coverage that matches the rows. Anything else, and any source whose text says SYNTHETIC, stops the page from loading the bundle. The bundle schema has no synthetic flag, so only tests can opt in. Available ET shows the provider (*NASA MODIS (500 m satellite pixel at field centre)* or *OpenET (30 m field-boundary mean)*), the coverage line (“N of M months”), units, period, source, the interpretation, a monthly table with null months as *No value*, and the OpenET MAD range when the bundle carries it. ET is never converted to pumping, irrigation or savings. `test_et.mjs` builds its bundles by running `compare.py` (needs `python3`) on the SYNTHETIC OpenET fixture in `prototype/fixtures/` and on the empty `et_sample.json`, and checks the committed MODIS bundle never says OpenET.
+
+Next interface work: reviewed calendars, plus water, market and equipment gates once `compare.py` defines them, then a first reviewed real OpenET bundle (needs an API key run locally). See the [integration review](../research/integration_review.md) for the research prerequisites.

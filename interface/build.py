@@ -8,7 +8,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 OUTPUT = HERE / 'dist'
-FILES = ['index.html', 'styles.css', 'app.js', 'model.mjs', 'live_weather.mjs', 'scenario.mjs', 'icon.svg']
+FILES = ['index.html', 'styles.css', 'app.js', 'model.mjs', 'live_weather.mjs', 'scenario.mjs', 'et_view.mjs', 'icon.svg']
 
 
 def build():
