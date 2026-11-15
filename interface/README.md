@@ -2,6 +2,8 @@
 
 First read-only interface for the reviewed `prototype/demo_bundle.json`. Select an approximate field, inspect regional weather and field soil/crop history, and compare three whole-field rotation sequences. Source details remain one click away.
 
+Read the [project context and collaborator guide](../PROJECT_CONTEXT.md) for the version boundary and active follow-ups. **Known data correction pending:** PR #5 changes the 2022–2023 crop fractions after correcting raster-grid origins; the first interface still displays the original bundle. Do not quote those fractions as settled results. Recent-weather, scenario and ET display work exists in PRs #6–#8 and is not included in this first deployed snapshot.
+
 Private hosted preview: https://kimchi-field-notes.bingxuanuniversity.chatgpt.site
 
 The hosted Site starts owner-private. Teammates can run the same interface locally from this repository; GitHub visibility does not grant access to the private Site. No farm records, API keys, or user entries are collected.
@@ -49,4 +51,4 @@ Browser QA completed at 1440 × 1000 and 390 × 844: dropdown and keyboard map s
 
 `.openai/hosting.json` stores the existing Site ID and static output configuration. Reuse that ID for future publication. A separate temporary Site checkout holds a deployment snapshot of these assets and `dist/`; the canonical source and research remain in this GitHub repository. Sites credentials must stay in memory/stdin, never in tracked files. Preserve the Site's private audience unless the team explicitly changes it.
 
-Next interface work: a reviewed baseline-confirmation flow and dated constraint inputs, then validated ET ingestion. See the [integration review](../research/integration_review.md) for the research prerequisites.
+Next integration work: review the field-data correction and the existing recent-weather, baseline/scenario and ET follow-ups in dependency order. See the [collaborator guide](../PROJECT_CONTEXT.md#8-follow-up-branches-and-integration-order) and [integration review](../research/integration_review.md) for dependencies and research prerequisites.
