@@ -675,6 +675,11 @@ function sourcesFile() {
     license_or_terms: 'Publication; cite as listed', notes: [x.locator, x.applicability_limit].filter(Boolean).join(' | '),
     evidence_notes: x.evidence_notes ?? null, kind: 'agronomy_source',
   }));
+  const t2 = obs.sources.map((x) => ({
+    id: x.source_id, name: x.title, provider: 'See title (copied from research/deliverables/fields-soils/field_observations.json)',
+    url: x.url, resolution: null, period: x.product_version ?? null, latency: null, license_or_terms: null,
+    notes: [x.method, x.limitations, `retrieved ${x.retrieved_date}`].filter(Boolean).join(' | '), kind: 'field_source',
+  }));
   const rules = agro.rules.map((r) => ({
     id: r.rule_id, name: `Agronomy rule ${r.rule_id}: ${r.condition_description}`, provider: 'Kimchi research team (agronomy.json)',
     url: 'research/deliverables/agronomy/agronomy.json', resolution: null, period: null, latency: null,
@@ -714,11 +719,11 @@ function sourcesFile() {
     generated_at: new Date().toISOString(),
     source_ids: [],
     notes: 'Every source_id used in dashboard/data/*.json should resolve to an entry in "sources". "deferred" lists resources from the team Resources tab not used tonight.',
-    sources: [...core, ...ksu, ...t1, ...rules],
+    sources: [...core, ...t2, ...ksu, ...t1, ...rules],
     deferred,
   };
   writeJson(path.join(DATA, 'sources.json'), out, { pretty: true });
-  console.log(`  ${out.sources.length} sources (${core.length} data, ${ksu.length + t1.length} agronomy, ${rules.length} rules), ${deferred.length} deferred`);
+  console.log(`  ${out.sources.length} sources (${core.length} data, ${t2.length} field, ${ksu.length + t1.length} agronomy, ${rules.length} rules), ${deferred.length} deferred`);
 }
 
 // ---------------------------------------------------------------------------

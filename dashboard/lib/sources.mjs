@@ -25,6 +25,12 @@ export const SOURCES = {
     provider: 'NASA LP DAAC (product), ORNL DAAC (subset service)',
     url: 'https://modis.ornl.gov/rst/api/v1/',
   },
+  MODIS_MOD13Q1_PC: {
+    id: 'MODIS_MOD13Q1_PC',
+    name: 'MODIS Terra MOD13Q1 v061 NDVI COGs on Microsoft Planetary Computer (same NASA product)',
+    provider: 'NASA LP DAAC (product), Microsoft Planetary Computer (hosting)',
+    url: 'https://planetarycomputer.microsoft.com/dataset/modis-13Q1-061',
+  },
   USDA_SSURGO_SDA: {
     id: 'USDA_SSURGO_SDA',
     name: 'USDA NRCS SSURGO via Soil Data Access',
@@ -44,6 +50,21 @@ export const SOURCES = {
     url: 'https://www.fao.org/4/x0490e/x0490e00.htm',
   },
 };
+
+/**
+ * Full registry (data sources, agronomy sources and rules, deferred list) from
+ * data/sources.json. SOURCES above holds the core data sources only.
+ */
+export async function loadSources(url) {
+  const href = url || new URL('../data/sources.json', import.meta.url).href;
+  if (href.startsWith('file:')) {
+    const fs = await import('node:fs');
+    return JSON.parse(fs.readFileSync(new URL(href), 'utf8'));
+  }
+  const res = await fetch(href);
+  if (!res.ok) throw new Error(`sources.json unavailable: HTTP ${res.status}`);
+  return res.json();
+}
 
 // ---------------------------------------------------------------------------
 // Small shared helpers

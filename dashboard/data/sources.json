@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-15T23:16:45.573Z",
+ "generated_at": "2026-11-15T23:17:24.644Z",
  "source_ids": [],
  "notes": "Every source_id used in dashboard/data/*.json should resolve to an entry in \"sources\". \"deferred\" lists resources from the team Resources tab not used tonight.",
  "sources": [
@@ -79,6 +79,102 @@
    "latency": null,
    "license_or_terms": "Public documents",
    "notes": "Research records T2_SD6_BOUNDARY and T2_SD6_ORDER. Allocation in demo_farm.json is illustrative only."
+  },
+  {
+   "id": "T2_SD6_BOUNDARY",
+   "name": "Sheridan 6 LEMA boundary (Kansas Biological Survey, University of Kansas)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://services2.arcgis.com/ZOdjAzAQ2B0f85zi/ArcGIS/rest/services/Sheridan6_LEMA_sections_dissolve/FeatureServer/0",
+   "resolution": null,
+   "period": "ArcGIS item 90041416e6d7427d839d3e0d55229082, modified 2023-01-04",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "FeatureServer query, outSR=4326, f=geojson. Dissolved PLSS sections from Kansas DASC. | Third-party reconstruction, not a DWR file. Cross-checked against the section list in T2_SD6_ORDER. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_SD6_ORDER",
+   "name": "Order of Designation, Sheridan 6 LEMA Management Plan 2018-2022 (KDA DWR, 001-DWR-LEMA-2017), copy hosted by GMD4",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://gmd4.org/New/Sheridan%206%20LEMA%20Order%20of%20Designation.pdf",
+   "resolution": null,
+   "period": "Order dated 2017 for 2018-2022; Section VII lists boundary sections",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Read the scanned PDF, page 8: T7S R30W Sections 19-36; T8S R30W Sections 1-18 (plus other townships). | 2023-2027 Consolidated Order on agriculture.ks.gov could not be downloaded by script (HTTP 403). Boundary assumed unchanged; the KBS 2023 polygon is 99 sections, matching this list. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_PLSS",
+   "name": "BLM National PLSS CadNSDI, PLSS Section layer",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://gis.blm.gov/arcgis/rest/services/Cadastral/BLM_Natl_PLSS_CadNSDI/MapServer/2",
+   "resolution": null,
+   "period": "MapServer 11.5 (as served)",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Envelope query over the SD-6 extent, outSR=4326. Quarter sections split at the section bounding-box midpoints. | Survey grid, not field edges or legal parcels. Quarter split is geometric, not a surveyed aliquot line. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_FIELD_DIGITIZED",
+   "name": "Approximate pivot-circle analysis boundaries (this package)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "scripts/extract_fields.py",
+   "resolution": null,
+   "period": "1.0",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Circle centred on the PLSS quarter-section centroid. Radius fitted from the CDL radial crop pattern (300-400 m). | Approximate. Not a surveyed field, parcel, or confirmed pivot. Center and radius may be off by tens of metres. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_NAIP",
+   "name": "USGS NAIP imagery (ImageServer), visual check of pivot geometry",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer",
+   "resolution": null,
+   "period": "Most recent mosaic served on retrieval date; acquisition year not read",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "exportImage in EPSG:3857 over the three fields; outlines drawn on top (field_check_imagery.jpg). | Visual evidence only. A pivot circle shows equipment geometry, not current irrigation, water rights or ownership. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_CDL",
+   "name": "USDA NASS Cropland Data Layer 2021-2025, Sheridan County KS (FIPS 20179)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://nassgeodata.gmu.edu/axis2/services/CDLService/GetCDLFile?year={year}&fips=20179",
+   "resolution": null,
+   "period": "CDL 2021, 2022, 2023, 2024, 2025 county clips from CropScape cache (30 m, Albers NAD83)",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Pixel-centre-in-polygon counts, no resampling or interpolation. Fractions over valid (non-zero) pixels. | Classification error applies per pixel. Kansas producer's accuracy 2023: corn 90.6%, sorghum 81.0%, winter wheat 88.5% (metadata_ks23). 2024 and 2025 Kansas metadata pages were not found on the NASS site. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_CDL_META",
+   "name": "CDL Kansas metadata 2021-2023 (NASS)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://www.nass.usda.gov/Research_and_Science/Cropland/metadata/metadata_ks23.htm",
+   "resolution": null,
+   "period": "metadata_ks21/22/23 (publication dates 2022-02-14, 2023-01-30, 2024-01-31)",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Read the accuracy tables for codes 1, 4, 24. | State-level accuracy; not field-specific. 2024-2025 not located. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_SSURGO",
+   "name": "USDA NRCS SSURGO via Soil Data Access, survey area KS179 (Sheridan County)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest",
+   "resolution": null,
+   "period": "SDA live database as queried (mupolygon, mapunit, muaggatt)",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Spatial intersection of each field polygon with mupolygon; clipped areas computed in EPSG:5070; muaggatt.aws* (component-weighted average) area-weighted across map units. | Available water storage is a soil property estimate, not current soil moisture. Map-unit averages hide within-unit variation. | retrieved 2026-11-14",
+   "kind": "field_source"
   },
   {
    "id": "KSU_CORN_GDD_LATEPLANT",
