@@ -6,6 +6,7 @@ import copy
 import datetime as dt
 import hashlib
 import json
+import math
 from collections import defaultdict
 from pathlib import Path
 
@@ -22,6 +23,13 @@ PRIORITIES = {
     "soil": ["T1_R12_RESIDUE_AND_RECHARGE", "T1_R10_NO_FAMILY_OR_N_CREDIT"],
     "operations": ["T1_R05_WHEAT_HANDOFF", "T1_R13_MARKET_AND_EQUIPMENT", "T1_R08_HERBICIDE_UNKNOWN"],
 }
+# OpenET adapter contract: research/deliverables/weather-water/t3_water_data.py (`et` sub-command).
+ET_SOURCE_ID = "T3_OPENET_ENSEMBLE_MONTHLY"
+ET_ROW_KEYS = {"field_id", "month", "et_mm", "source_ids", "quality", "geometry_status"}
+ET_MAD_ROW_KEYS = {"field_id", "month", "et_mad_min_mm", "et_mad_max_mm", "source_ids", "geometry_status"}
+ET_QUALITIES = {"reported", "area_weighted_from_parts", "missing"}
+ET_INTERPRETATION = ("Modelled actual ET from rain, irrigation and shallow groundwater; not pumping, not crop "
+                     "stress, not a prediction for another rotation. Null months are missing, never zero.")
 
 
 def require(condition, message):
@@ -41,7 +49,110 @@ def check_refs(obj, sources):
             check_refs(item, sources)
 
 
-def validate(data):
+def is_depth(value):
+    """A finite, non-negative number; booleans, strings and NaN are not water depths."""
+    return type(value) in (int, float) and math.isfinite(value) and value >= 0
+
+
+def month_range(start, end):
+    s, e = dt.date.fromisoformat(start), dt.date.fromisoformat(end)
+    require(s <= e, "ET period is reversed")
+    return ["%04d-%02d" % (y, m) for y in range(s.year, e.year + 1) for m in range(1, 13)
+            if (s.year, s.month) <= (y, m) <= (e.year, e.month)]
+
+
+def recorded_request(source):
+    """The adapter records the request body it sent (no secrets) after 'body='."""
+    text = source.get("request_without_secrets") or ""
+    require("body=" in text, "ET request (period/units) not recorded")
+    try:
+        return json.loads(text.split("body=", 1)[1])
+    except ValueError:
+        raise ValueError("ET request body is not parseable JSON")
+
+
+def et_sources(doc, allow_synthetic):
+    require(doc.get("schema_version") == "1.0", "Unexpected ET envelope schema")
+    found = {s["source_id"]: s for s in doc["sources"]}
+    for s in found.values():
+        text = " ".join(str(s.get(k) or "") for k in ("title", "limitations", "product_version"))
+        require(allow_synthetic or not doc["rows"] or "SYNTHETIC" not in text.upper(),
+                "Synthetic ET fixture cannot enter the demo bundle")
+    return found
+
+
+def openet_ids(ids, sources):
+    return isinstance(ids, list) and bool(ids) and all(
+        isinstance(i, str) and i in sources and i.startswith("T3_OPENET") for i in ids)
+
+
+def validate_et(data, boundary, allow_synthetic=False):
+    """Validate adapter ET (plus its optional MAD range) and return each field's ET entry.
+
+    An empty envelope, or a field without rows, stays unavailable. Missing months stay null."""
+    et, mad = data["et"], data.get("et_mad")
+    sources = et_sources(et, allow_synthetic)
+    require(ET_SOURCE_ID in sources, "ET source record missing")
+    blocks = {fid: {"status": "unavailable", "rows": [], "source_ids": [ET_SOURCE_ID]} for fid in boundary}
+    if not et["rows"]:
+        require(mad is None or not mad["rows"], "ET MAD range supplied without ET rows")
+        return blocks
+    source = sources[ET_SOURCE_ID]
+    require(source.get("retrieved_date") and "NOT RETRIEVED" not in (source.get("product_version") or ""),
+            "ET rows without a recorded retrieval")
+    request = recorded_request(source)
+    require((request.get("units"), request.get("interval"), request.get("variable")) == ("mm", "monthly", "et"),
+            "ET request not recorded as monthly et in mm")
+    period = request.get("date_range")
+    require(isinstance(period, list) and len(period) == 2 and all(isinstance(d, str) for d in period),
+            "ET period not recorded")
+    months = month_range(*period)
+    rows = defaultdict(list)
+    for row in et["rows"]:
+        require(isinstance(row, dict) and set(row) == ET_ROW_KEYS, "Unexpected ET row fields")
+        fid, month, val = row["field_id"], row["month"], row["et_mm"]
+        require(isinstance(fid, str) and fid in boundary, "Unknown field in ET: %r" % (fid,))
+        require(row["geometry_status"] != "test", "Test geometry ET cannot join a field")
+        require(row["geometry_status"] == boundary[fid], "ET geometry status does not match the field boundary")
+        require(isinstance(month, str) and month in months, "ET month outside recorded period: %r" % (month,))
+        require(all(r["month"] != month for r in rows[fid]), "Duplicate ET month: %s %s" % (fid, month))
+        require(openet_ids(row["source_ids"], sources), "Unresolved ET source: %r" % (row["source_ids"],))
+        require(val is None or is_depth(val), "Invalid ET value: %r" % (val,))
+        require(row["quality"] in ET_QUALITIES, "Unknown ET quality")
+        require((val is None) == (row["quality"] == "missing"), "ET quality contradicts its value")
+        rows[fid].append(row)
+    spread = defaultdict(list)
+    if mad is not None and mad["rows"]:
+        mad_sources = et_sources(mad, allow_synthetic)
+        for row in mad["rows"]:
+            require(isinstance(row, dict) and set(row) == ET_MAD_ROW_KEYS, "Unexpected MAD range row fields")
+            fid, lo, hi = row["field_id"], row["et_mad_min_mm"], row["et_mad_max_mm"]
+            require(any(r["month"] == row["month"] for r in rows.get(fid, [])), "MAD range row without ET row")
+            require(row["geometry_status"] == boundary[fid], "MAD range geometry status does not match")
+            require(all(r["month"] != row["month"] for r in spread[fid]), "Duplicate MAD range month")
+            require(openet_ids(row["source_ids"], mad_sources), "Unresolved MAD range source")
+            require(all(v is None or is_depth(v) for v in (lo, hi)), "Invalid MAD range value")
+            require(lo is None or hi is None or lo <= hi, "MAD range minimum exceeds maximum")
+            spread[fid].append(row)
+    for fid, field_rows in rows.items():
+        field_rows.sort(key=lambda r: r["month"])
+        have = {r["month"] for r in field_rows if r["et_mm"] is not None}
+        unc = sorted(spread.get(fid, []), key=lambda r: r["month"])
+        blocks[fid] = {
+            "status": "available", "rows": field_rows,
+            "source_ids": sorted({i for r in field_rows for i in r["source_ids"]}),
+            "units": "mm", "interval": "monthly", "period": {"start": period[0], "end": period[1]},
+            "coverage": {"months_expected": len(months), "months_with_values": len(have),
+                         "months_missing": [m for m in months if m not in have]},
+            "uncertainty": {"status": "available", "kind": "OpenET ensemble MAD range; model spread, not a confidence interval",
+                            "units": "mm", "source_ids": sorted({i for r in unc for i in r["source_ids"]}), "rows": unc}
+            if unc else {"status": "unavailable", "rows": []},
+            "interpretation": ET_INTERPRETATION,
+        }
+    return blocks
+
+
+def validate(data, allow_synthetic_et=False):
     """Validate the frozen demonstration period and cross-workstream contracts."""
     sources = [s for doc in data.values() for s in doc.get("sources", [])]
     ids = [s["source_id"] for s in sources]
@@ -84,7 +195,8 @@ def validate(data):
             require(row["days_observed"] == row["days_expected"] and row["precipitation_mm"] is not None
                     and row["mean_temperature_c"] is not None, "Incomplete month labelled complete")
         require(row["precipitation_mm"] is None or row["precipitation_mm"] >= 0, "Negative rain")
-    require(data["et"]["rows"] == [], "ET sample changed: review real ET coverage before integrating")
+    et = validate_et(data, {f["properties"]["field_id"]: f["properties"]["boundary_status"] for f in fields},
+                     allow_synthetic_et)
     candidates = data["agronomy"]["candidates"]
     require({c["candidate_id"] for c in candidates} == {"corn_corn", "corn_sorghum", "corn_wheat"},
             "Candidate library changed")
@@ -94,12 +206,32 @@ def validate(data):
             if phase["crop"] == "winter_wheat":
                 require(phase["sowing_window"]["relative_calendar_year"] == phase["relative_harvest_year"] - 1,
                         "Winter wheat must be sown before its harvest year")
-    return sources, groups
+    return sources, groups, et
 
 
-def build_bundle(root=ROOT):
-    data = {key: json.loads((root / path).read_text()) for key, path in INPUTS.items()}
-    sources, groups = validate(data)
+def input_paths(root=ROOT, et_path=None):
+    """Inputs actually read. The adapter's optional <out>_mad_range.json is used only if present."""
+    paths = dict(INPUTS)
+    if et_path is not None:
+        try:
+            paths["et"] = (root / et_path).resolve().relative_to(root.resolve()).as_posix()
+        except ValueError:
+            raise ValueError("ET file must be inside the repository so its hash can be checked")
+    et_file = root / paths["et"]
+    mad = et_file.with_name(et_file.stem + "_mad_range.json")
+    if mad.exists():
+        paths["et_mad"] = mad.relative_to(root).as_posix()
+    return paths
+
+
+def load_inputs(root=ROOT, et_path=None):
+    paths = input_paths(root, et_path)
+    return paths, {key: json.loads((root / path).read_text()) for key, path in paths.items()}
+
+
+def build_bundle(root=ROOT, et_path=None, allow_synthetic_et=False):
+    paths, data = load_inputs(root, et_path)
+    sources, groups, et = validate(data, allow_synthetic_et)
     fields = []
     for feature in data["fields"]["features"]:
         fid = feature["properties"]["field_id"]
@@ -111,10 +243,10 @@ def build_bundle(root=ROOT):
         fields.append({"field_id": fid, "feature": feature, "history": history,
                        "baseline": None, "baseline_status": "Farmer-confirmed continuation plan missing",
                        "soils": [r for r in data["observations"]["soils"] if r["field_id"] == fid],
-                       "et": {"status": "unavailable", "rows": [], "source_ids": ["T3_OPENET_ENSEMBLE_MONTHLY"]}})
+                       "et": et[fid]})
     return {
         "schema_version": "kimchi.demo.1", "scope": "Sheridan 6 working demo; not validated farm advice",
-        "input_sha256": {p: hashlib.sha256((root / p).read_bytes()).hexdigest() for p in INPUTS.values()},
+        "input_sha256": {p: hashlib.sha256((root / p).read_bytes()).hexdigest() for p in paths.values()},
         "sources": sources, "fields": fields,
         "regional_weather": {"scope": "One coarse regional POWER series shared by all fields; not field weather or climate normals",
                              "rows": data["weather"]["rows"]},
@@ -170,17 +302,22 @@ def compare(bundle, field_id="fld01", priority="water", scenario=None):
             "sources": bundle["sources"], "winner": None}
 
 
+def dumps(bundle):
+    return json.dumps(bundle, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build", action="store_true", help="Write deterministic demo_bundle.json")
     parser.add_argument("--check", action="store_true", help="Check committed bundle matches source data")
+    parser.add_argument("--et", type=Path, help="OpenET adapter output inside the repository (default: %s)" % INPUTS["et"])
     parser.add_argument("--field", default="fld01")
     parser.add_argument("--priority", choices=PRIORITIES, default="water")
     parser.add_argument("--scenario", type=Path, help="Optional local JSON constraints; keep real farm records private")
     args = parser.parse_args()
-    bundle = build_bundle()
+    bundle = build_bundle(et_path=args.et.resolve() if args.et else None)
     dest = Path(__file__).with_name("demo_bundle.json")
-    payload = json.dumps(bundle, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+    payload = dumps(bundle)
     if args.check:
         require(dest.read_text() == payload, "Bundle is stale; run --build")
         print("Validated: 3 fields, 15 field-years, 60 weather months, 3 candidates; bundle current.")
