@@ -4,6 +4,8 @@ First read-only interface for the reviewed `prototype/demo_bundle.json`. Select 
 
 Weather is **live on open**: after the reviewed bundle renders, the page requests NASA POWER for the same regional point and appends any months newer than the reviewed snapshot, labelled *Live · provisional* (see [live weather](#live-weather)).
 
+**Confirm your field** lets a farmer confirm or correct the crop history, state the intended continuation (the baseline), and add dated sowing-calendar or plant-back constraints. Each sequence then shows its state with reasons, using the same rules as `prototype/compare.py` (see [scenario inputs](#scenario-inputs)). Entries stay in page memory only.
+
 Private hosted preview: https://kimchi-field-notes.bingxuanuniversity.chatgpt.site
 
 The hosted Site starts owner-private. Teammates can run the same interface locally from this repository; GitHub visibility does not grant access to the private Site. No farm records, API keys, or user entries are collected.
@@ -25,12 +27,13 @@ Open http://127.0.0.1:8765/ in a browser. Use HTTP rather than opening the HTML 
 ## Verify
 
 ```sh
-node --test interface/test_model.mjs interface/test_live_weather.mjs
-node --check interface/app.js
+node --test interface/test_model.mjs interface/test_live_weather.mjs interface/test_scenario.mjs
+node --check interface/app.js && node --check interface/scenario.mjs
+python3 interface/fixtures/make_scenario_fixtures.py --check
 python3 -m unittest discover -s prototype -v
 ```
 
-Use Node.js with the built-in test runner. Seven live-weather tests use a recorded-shape POWER response (no network): fill values become null, a partial current month withholds its rain total, a dry month stays zero, reviewed months are never overwritten, a differing overlap is reported, and HTTP/network failures reject. Six presentation-model tests cover separate field histories, soil units/depth/coverage, zero vs missing rain, incomplete annual summaries, priority references, changed evidence states, and safe source links. Existing Python integration tests remain the source-data checks.
+Use Node.js with the built-in test runner. Eight live-weather tests use a recorded-shape POWER response (no network): fill values become null, a partial current month withholds its rain total, a dry month stays zero, reviewed months are never overwritten, a differing overlap is reported, and HTTP/network failures reject. Six presentation-model tests cover separate field histories, soil units/depth/coverage, zero vs missing rain, incomplete annual summaries, priority references, changed evidence states, and safe source links. Scenario tests check `scenario.mjs` against `fixtures/scenario_parity.json`: 20 **synthetic** cases that `make_scenario_fixtures.py` runs through `compare.py` (missing inputs, exclusions, priority changes, a UI-only baseline, and every validation error). Regenerate the fixture after any change to `compare.py`. Existing Python integration tests remain the source-data checks.
 
 Browser QA completed at 1440 × 1000 and 390 × 844: dropdown and keyboard map selection, weather variable/year, soil depth, priority questions, rotation expansion, winter-wheat sowing chronology, source modal open/close, all 31 sources, and mobile overflow. No browser warnings/errors were reported during those flows. Missing/partial weather and changed evidence states were tested in the presentation model. The live module was also run against the real POWER API from a cross-origin page on 2026-11-15: the 12 overlapping 2025 months matched the reviewed snapshot exactly, and 2026-01 to 2026-10 were added as complete with 2026-11 partial (data through Nov 12).
 
@@ -44,11 +47,11 @@ Browser QA completed at 1440 × 1000 and 390 × 844: dropdown and keyboard map s
 - Empty ET stays **Data unavailable**. ET is not pumping.
 - All candidate suitability remains unknown and conditional. Priorities change the questions surfaced, never candidate order or performance ranking. Benefits, risks, references, treatment differences, calendars and unresolved inputs come directly from the agronomy bundle.
 - Wheat sowing and harvest years are distinct. Calendar windows remain regional/historical examples, not local planting deadlines.
-- Yield, profit and pumping savings are not predicted. This interface has no schedule-exclusion form or baseline-confirmation form yet; the Python comparison layer remains available for explicitly supplied constraint scenarios.
+- Yield, profit and pumping savings are not predicted. Entered baselines and constraints are labelled *Supplied by you · not verified* (see [scenario inputs](#scenario-inputs)).
 
 ## Files and publication
 
-`index.html`, `styles.css`, `app.js`, `model.mjs`, `live_weather.mjs` and `icon.svg` are the static application source. The model module contains presentation transforms only. Dynamic data text is escaped, source links accept only HTTP(S), and a bundle/schema failure shows an error instead of substitute evidence.
+`index.html`, `styles.css`, `app.js`, `model.mjs`, `live_weather.mjs`, `scenario.mjs` and `icon.svg` are the static application source. The model module contains presentation transforms only. Dynamic data text is escaped, source links accept only HTTP(S), and a bundle/schema failure shows an error instead of substitute evidence.
 
 `.openai/hosting.json` stores the existing Site ID and static output configuration. Reuse that ID for future publication. A separate temporary Site checkout holds a deployment snapshot of these assets and `dist/`; the canonical source and research remain in this GitHub repository. Sites credentials must stay in memory/stdin, never in tracked files. Preserve the Site's private audience unless the team explicitly changes it.
 
@@ -56,4 +59,16 @@ Browser QA completed at 1440 × 1000 and 390 × 844: dropdown and keyboard map s
 
 `live_weather.mjs` takes the coordinate from the reviewed `T3_NASA_POWER_DAILY` request, fetches daily PRECTOTCORR/T2M/T2M_MIN/T2M_MAX from January of the last reviewed year to today, and builds monthly rows with the same rules as `research/deliverables/weather-water/weather.json` (rain total only when every day is valid; mean temperature over valid days; ties rounded away from zero). The re-fetched last reviewed year is an overlap check only. Recent POWER days come from near-real-time products (`header.sources` lists GEOSIT) and the latest few days are usually missing, so the current month shows as partial. The in-progress month counts every calendar day, including days after today, so it stays partial with no rain total until the month is over. The request has a 20 s timeout; any failure leaves the reviewed snapshot with a *Live update unavailable* note. The hosted Site must allow requests to `power.larc.nasa.gov` for live months to appear there. ET stays unavailable: OpenET needs an API key, which must never be shipped in a static page.
 
-Next interface work: a reviewed baseline-confirmation flow and dated constraint inputs, then validated ET ingestion. See the [integration review](../research/integration_review.md) for the research prerequisites.
+## Scenario inputs
+
+`scenario.mjs` ports `compare()` from `prototype/compare.py`: the same field, priority and constraints give the same states, reasons and validation messages.
+
+- **States.** Every sequence starts *Conditional*, because other farm inputs are unknown. There is no eligible, approved or ranked state. A sequence becomes *Excluded for your supplied schedule* only when a constraint is confirmed **and** has evidence, and either the earliest sowing date is after the validated window end with no feasible adjustment (`T1_R06`) or a verified plant-back conflict is stated (`T1_R09`). The exclusion applies to that supplied schedule only.
+- **Unresolved inputs.** A constraint without confirmation or evidence is listed as unresolved and changes nothing. Unknown never becomes zero or favourable.
+- **Checked constraints.** A confirmed constraint whose dates fit, or that allows an adjustment, is shown as *Checked · no exclusion*.
+- **Priority.** Priority changes only the questions shown first; it never changes a state.
+- **Baseline.** The baseline needs both a checked history (confirmed, or corrected with a note) and an intended continuation. It labels the matching sequence for reference only. `compare()` has no baseline input, and the bundle's `baseline` stays `null` (`validateBundle` still enforces this).
+- **Privacy.** Entries are kept per field in page memory, with no storage and no network. *Clear all my entries* removes them, and so does reloading the page. Real farm inputs must never be added to tracked files; keep them in ignored `*.private.json` scenarios for `compare.py`.
+- **Limits.** Water, equipment and market availability are not constraint kinds in `compare.py`, so they stay as open questions on each card.
+
+Next interface work: reviewed calendars, plus water, market and equipment gates once `compare.py` defines them, then validated ET ingestion. See the [integration review](../research/integration_review.md) for the research prerequisites.
