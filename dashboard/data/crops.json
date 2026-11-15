@@ -1,0 +1,176 @@
+{
+  "generated_at": "2026-11-15T23:30:00Z",
+  "schema": "kimchi.crops.1",
+  "owner": "P4",
+  "notes": [
+    "Values are regional starting points for western Kansas, not field-calibrated parameters.",
+    "A null means 'not evaluated': no sourced value was found tonight. Each null has a matching 'verify' note.",
+    "GDD values are °C·days with the 10/30 °C method (equivalent to the 50/86 °F method), counted from planting. K-State °F values were divided by 1.8.",
+    "Corn, sorghum and winter wheat are all grasses (family 'grass'): changing between them gives no automatic family-break credit (agronomy rule T1_R10_NO_FAMILY_OR_N_CREDIT)."
+  ],
+  "source_ids": ["FAO56", "KSU_CORN_GDD_LATEPLANT", "KSU_SORGHUM_GDD", "KSU_WHEAT_HEAT", "T1_NW_CORN_CALENDAR", "T1_NW_WHEAT_CALENDAR", "T1_NASS_CALENDAR", "T1_CORN_GUIDE", "T1_SORGHUM_GUIDE", "NASA_POWER_DAILY"],
+  "crops": [
+    {
+      "id": "corn",
+      "name": "Corn (grain)",
+      "family": "grass",
+      "agronomy_crop_id": "corn",
+      "season": { "plant": "04-25", "harvest": "10-05", "plant_window": ["04-25", "05-15"], "harvest_window": ["09-10", "10-25"], "harvest_year_offset": 0 },
+      "gdd_base_c": 10,
+      "gdd_cap_c": 30,
+      "gdd_to_silking_c": 835,
+      "gdd_to_maturity_c": 1485,
+      "sensitive_window": { "name": "pollination", "gdd_from": 735, "gdd_to": 935, "months_typical": [7] },
+      "heat_threshold_c": 35,
+      "kc": { "ini": 0.3, "mid": 1.2, "end": 0.6, "stage_days": [30, 40, 50, 30] },
+      "root_depth_m": 1.5,
+      "p_depletion": 0.55,
+      "frost_free_days_needed": 125,
+      "source_ids": ["FAO56", "KSU_CORN_GDD_LATEPLANT", "T1_NW_CORN_CALENDAR", "T1_NASS_CALENDAR", "T1_CORN_GUIDE"],
+      "value_sources": {
+        "season.plant_window": "T1_NW_CORN_CALENDAR (regional sowing reference, as in agronomy.json corn_corn)",
+        "season.harvest_window": "T1_NASS_CALENDAR statewide historical most-active range, not a local deadline",
+        "season.plant": "Start of the T1_NW_CORN_CALENDAR window",
+        "season.harvest": "Middle of the T1_NASS_CALENDAR harvest range",
+        "gdd_to_silking_c": "KSU_CORN_GDD_LATEPLANT: ~1,500 °F GDU to silking for a 110-day hybrid → 833 °C·d, rounded to 835",
+        "gdd_to_maturity_c": "KSU_CORN_GDD_LATEPLANT: ~2,670 °F GDU to black layer for a 110-day hybrid → 1,483 °C·d, rounded to 1,485",
+        "sensitive_window": "Silking ± 100 °C·d (≈ ±1 week in July). Rule of thumb for the pollination period; evidence level C",
+        "heat_threshold_c": "35 °C hot-day screen used across the dashboard (PLAN.md §3); a screening threshold, not a damage threshold",
+        "kc": "FAO-56 Table 12 maize (grain): ini 0.3, mid 1.20, end 0.60 (0.35 if field-dried)",
+        "kc.stage_days": "FAO-56 Table 11 maize (grain), April-planted row (Spain/California): 30/40/50/30 = 150 d. No Great Plains row exists",
+        "root_depth_m": "FAO-56 Table 22 maize 1.0–1.7 m; 1.5 m chosen for deep loess silt loams",
+        "p_depletion": "FAO-56 Table 22 maize p = 0.55",
+        "frost_free_days_needed": "Derived: days from Apr 25 planting to 1,485 °C·d in NASA POWER 2021–2025 at the demo cell were 121–125; 125 used"
+      },
+      "verify": [
+        "gdd_to_silking_c and gdd_to_maturity_c depend on hybrid relative maturity; the farmer's hybrid rating should replace them",
+        "kc.stage_days come from a non-Great-Plains FAO-56 row; total 150 d vs the 163-d Apr 25–Oct 5 calendar (the last ~2 weeks are field dry-down)",
+        "frost_free_days_needed is derived from only 5 years of POWER data at ~50 km resolution",
+        "sensitive_window width (±100 °C·d) is a rule of thumb"
+      ]
+    },
+    {
+      "id": "sorghum",
+      "name": "Grain sorghum",
+      "family": "grass",
+      "agronomy_crop_id": "grain_sorghum",
+      "season": { "plant": "05-25", "harvest": "10-20", "plant_window": ["05-15", "06-20"], "harvest_window": ["09-25", "11-10"], "harvest_year_offset": 0 },
+      "gdd_base_c": 10,
+      "gdd_cap_c": 30,
+      "gdd_to_silking_c": null,
+      "gdd_to_maturity_c": null,
+      "sensitive_window": { "name": "boot to half-bloom", "gdd_from": null, "gdd_to": null, "months_typical": [7, 8] },
+      "heat_threshold_c": 35,
+      "kc": { "ini": 0.3, "mid": 1.05, "end": 0.55, "stage_days": [20, 35, 40, 30] },
+      "root_depth_m": 1.5,
+      "p_depletion": 0.55,
+      "frost_free_days_needed": null,
+      "source_ids": ["FAO56", "KSU_SORGHUM_GDD", "T1_NASS_CALENDAR", "T1_SORGHUM_GUIDE"],
+      "value_sources": {
+        "season.plant_window": "T1_NASS_CALENDAR statewide historical range (as in agronomy.json corn_sorghum); local upper planting limit unresolved",
+        "season.harvest_window": "T1_NASS_CALENDAR statewide historical range",
+        "kc": "FAO-56 Table 12 sorghum (grain): ini 0.3, mid 1.00–1.10 (1.05 used), end 0.55",
+        "kc.stage_days": "FAO-56 Table 11 sorghum (grain), May/June row listing USA: 20/35/40/30 = 125 d",
+        "root_depth_m": "FAO-56 Table 22 sorghum 1.0–2.0 m; 1.5 m chosen",
+        "p_depletion": "FAO-56 Table 22 sorghum (grain) p = 0.55",
+        "heat_threshold_c": "Same 35 °C dashboard screen as corn; not a sorghum-specific damage threshold"
+      },
+      "verify": [
+        "gdd_to_silking_c (half-bloom) is null: K-State gives ~1,500 °F GDD half-bloom → maturity on a 42 °F base (KSU_SORGHUM_GDD), but no planting → half-bloom value on the 10/30 °C method was sourced tonight",
+        "gdd_to_maturity_c is null for the same reason; the sensitive window is therefore not evaluated for sorghum",
+        "frost_free_days_needed is null: depends on hybrid maturity and planting date; K-State notes stress-delayed maturity raises frost exposure (T1_SORGHUM_GUIDE)",
+        "heat_threshold_c 35 is a common screen, not a sorghum pollen-viability threshold"
+      ]
+    },
+    {
+      "id": "winter_wheat",
+      "name": "Winter wheat",
+      "family": "grass",
+      "agronomy_crop_id": "winter_wheat",
+      "season": { "plant": "09-25", "harvest": "06-30", "plant_window": ["09-15", "10-20"], "harvest_window": ["06-20", "07-05"], "harvest_year_offset": 1 },
+      "gdd_base_c": 0,
+      "gdd_cap_c": null,
+      "gdd_to_silking_c": null,
+      "gdd_to_maturity_c": null,
+      "sensitive_window": { "name": "flowering and grain fill", "gdd_from": null, "gdd_to": null, "date_from": "05-01", "date_to": "06-15", "months_typical": [5, 6] },
+      "heat_threshold_c": 32,
+      "kc": { "ini": 0.4, "mid": 1.15, "end": 0.3, "stage_days": [133, 62, 62, 21] },
+      "root_depth_m": 1.5,
+      "p_depletion": 0.55,
+      "frost_free_days_needed": null,
+      "source_ids": ["FAO56", "KSU_WHEAT_HEAT", "T1_NW_WHEAT_CALENDAR", "T1_NASS_CALENDAR", "T1_WHEAT_AFTER_CORN"],
+      "value_sources": {
+        "season.plant": "T1_NW_WHEAT_CALENDAR: northwest Kansas target around September 25",
+        "season.plant_window": "T1_NASS_CALENDAR statewide historical range; do not treat Oct 20 as a northwest cutoff",
+        "season.harvest_window": "T1_NASS_CALENDAR statewide historical range; harvest is in the calendar year after sowing (harvest_year_offset 1)",
+        "sensitive_window": "Calendar-based (May 1 – Jun 15) because winter wheat GDD from autumn sowing is not comparable to the summer-crop method; K-State heat guidance is for flowering/grain fill",
+        "heat_threshold_c": "KSU_WHEAT_HEAT: damage worsens with prolonged temperatures above ~82 °F and yield is reduced with many hours above ~91 °F; 32 °C (~90 °F) daily max used as a screen",
+        "kc": "FAO-56 Table 12 winter wheat with frozen soils: ini 0.4, mid 1.15, end 0.25–0.4 (0.3 used)",
+        "kc.stage_days": "FAO-56 Table 11 winter wheat, October-planted Idaho USA row 160/75/75/25 = 335 d, scaled proportionally to the 278-d Sep 25 – Jun 30 calendar",
+        "root_depth_m": "FAO-56 Table 22 winter wheat 1.5–1.8 m; 1.5 m used",
+        "p_depletion": "FAO-56 Table 22 wheat p = 0.55"
+      },
+      "verify": [
+        "gdd fields are null: winter wheat development (vernalization, dormancy) is not modelled with summer-crop GDD; use the calendar sensitive window",
+        "kc.stage_days are a proportional scaling of the Idaho row, not a published Great Plains row",
+        "heat_threshold_c 32 °C is a screening value between K-State's ~82 °F and ~91 °F statements",
+        "Establishment water after corn harvest is not modelled (agronomy rule T1_R05_WHEAT_HANDOFF)"
+      ]
+    },
+    {
+      "id": "fallow",
+      "name": "Fallow (no crop)",
+      "family": "none",
+      "agronomy_crop_id": null,
+      "season": { "plant": null, "harvest": null, "plant_window": null, "harvest_window": null, "harvest_year_offset": 0 },
+      "gdd_base_c": null,
+      "gdd_cap_c": null,
+      "gdd_to_silking_c": null,
+      "gdd_to_maturity_c": null,
+      "sensitive_window": null,
+      "heat_threshold_c": null,
+      "kc": { "ini": 0.3, "mid": 0.3, "end": 0.3, "stage_days": [90, 90, 90, 95], "rough": true },
+      "root_depth_m": null,
+      "p_depletion": null,
+      "frost_free_days_needed": null,
+      "source_ids": ["FAO56"],
+      "value_sources": {
+        "kc": "Rough bare-soil evaporation coefficient (FAO-56 Ch. 6: Kc ini for bare/sparse soil depends on wetting interval and soil; ~0.3 for infrequent wetting). Flat over 365 d"
+      },
+      "verify": [
+        "Kc 0.3 is a ROUGH value: real bare-soil evaporation is high right after rain and near zero when the surface is dry; residue lowers it further",
+        "Fallow under residue is not the same as bare soil; NDVI cannot tell them apart"
+      ]
+    }
+  ],
+  "extra_sources": [
+    {
+      "id": "KSU_CORN_GDD_LATEPLANT",
+      "name": "Late planting of corn: how location and hybrid maturity affect probability of success (K-State Agronomy eUpdate)",
+      "provider": "Kansas State University Research and Extension",
+      "url": "https://eupdate.agronomy.ksu.edu/article/late-planting-of-corn-how-location-and-hybrid-maturity-affect-probability-of-success-634-1",
+      "notes": "States a 110-day hybrid needs ~1,500 GDU to silking and ~2,670 GDU to black layer (°F, 50/86 method). Retrieved 2026-11-15 via search summary; page text should be re-checked."
+    },
+    {
+      "id": "KSU_SORGHUM_GDD",
+      "name": "Sorghum Growth and Development, MF3234; and K-State eUpdate growing degree update for grain sorghum",
+      "provider": "Kansas State University Research and Extension",
+      "url": "https://bookstore.ksre.ksu.edu/pubs/MF3234.pdf",
+      "notes": "Most hybrids need ~1,900 GDU (35 °F base) or ~1,500 GDU (42 °F base) from half-bloom to physiological maturity. Also https://eupdate.agronomy.ksu.edu/article/growing-degree-update-for-grain-sorghum-417-5. Retrieved 2026-11-15."
+    },
+    {
+      "id": "KSU_WHEAT_HEAT",
+      "name": "Effects of High Temperatures on Wheat (K-State Agronomy eUpdate, Lollato and Redmond)",
+      "provider": "Kansas State University Research and Extension",
+      "url": "https://eupdate.agronomy.ksu.edu/article/effects-of-high-temperatures-on-wheat-494",
+      "notes": "Grain fill can recover from short heat; damage worsens with prolonged temperatures above ~82 °F; yield reductions associated with many hours above ~91 °F. Retrieved 2026-11-15."
+    },
+    {
+      "id": "FAO56",
+      "name": "Crop evapotranspiration: guidelines for computing crop water requirements (FAO Irrigation and Drainage Paper 56), Allen et al. 1998",
+      "provider": "FAO",
+      "url": "https://www.fao.org/4/x0490e/x0490e00.htm",
+      "notes": "Tables 11 (stage lengths), 12 (Kc), 22 (rooting depth, p). P1 also lists this id in data/sources.json."
+    }
+  ]
+}
