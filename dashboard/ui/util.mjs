@@ -37,6 +37,10 @@ export function cssVar(name) {
 
 export function fmtDate(iso) {
   if (!iso) return 'unavailable';
+  if (/^\d{2}-\d{2}$/.test(iso)) { // "MM-DD" normals have no year
+    const d = new Date(`2001-${iso}T00:00:00`);
+    return isNaN(d) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
   const d = new Date(iso + (iso.length === 10 ? 'T00:00:00' : ''));
   return isNaN(d) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }

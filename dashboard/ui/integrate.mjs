@@ -48,7 +48,7 @@ export async function loadAll() {
   if (libAnalysis?.analyzeField) {
     try { site = await fetchJSON('data/site_history.json'); mark('history', true, 'NASA POWER daily history 1981 to now'); }
     catch { mark('history', false, 'site_history.json not pushed yet'); }
-  } else mark('history', false, 'Waiting for P2 analysis engine');
+  } else mark('history', false, libAnalysis ? 'Not loaded: waiting for P2 analyzeField' : 'Not loaded: waiting for P2 analysis engine');
 
   const analysisFixture = await fetchJSON('lib/fixtures/analysis_sample.json').catch(() => fetchJSON('ui/_fixtures/analysis_sample.json'));
   const recFixture = await fetchJSON('ui/_fixtures/recommend_sample.json');
@@ -68,7 +68,12 @@ export function runAnalysis(ctx, { field, farmField, liveDaily }) {
       mark('analysis', true, `P2 analyzeField (${Math.round(performance.now() - t0)} ms)`);
       return a;
     } catch (e) { console.error(e); mark('analysis', false, `analyzeField failed: ${e.message}. Showing sample.`); }
-  } else mark('analysis', false, ctx.libAnalysis ? 'Engine ready, history file missing: sample analysis' : 'P2 engine not pushed yet: sample analysis (fld01, synthetic numbers)');
+  } else {
+    const which = ctx.analysisFixture?.generated_from ? 'P2 fixture' : 'P3 sample';
+    mark('analysis', false, !ctx.libAnalysis ? `P2 engine not pushed yet: ${which} (fld01, synthetic numbers)`
+      : !ctx.libAnalysis.analyzeField ? `P2 engine has no analyzeField yet: ${which} (fld01, synthetic numbers)`
+      : `Engine ready, NASA POWER history file missing: ${which}`);
+  }
   return { ...ctx.analysisFixture, sample: true };
 }
 

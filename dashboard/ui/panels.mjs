@@ -44,7 +44,7 @@ export function renderDetail(el, factorId, analysis, ctx) {
     parts.push(sec('W-1', 'Supply vs demand this season', `<div class="chartbox tall"><canvas id="ch-supply" role="img" aria-label="Cumulative rain plus irrigation versus crop demand"></canvas></div>
       <p class="cap">Crop demand is estimated ET₀ × Kc, not metered pumping or OpenET.</p>`));
     parts.push(sec('W-2', 'Root-zone bucket', f.bucket ? `<div class="chartbox"><canvas id="ch-bucket" role="img" aria-label="Root-zone depletion with the stress threshold"></canvas></div>
-      <p class="cap">Stress days: <span class="num">${num(f.bucket.stress_days)}</span>${f.bucket.first_stress_date ? ` · first on ${esc(fmtDate(f.bucket.first_stress_date))}` : ''}. ${esc(f.bucket.note ?? '')}</p>` : '<div class="unavail">Bucket unavailable</div>'));
+      <p class="cap">Stress days: <span class="num">${num(f.bucket.stress_days)}</span>${f.bucket.first_stress_date ? ` · first on ${esc(fmtDate(f.bucket.first_stress_date))}` : ''}. ${esc(f.bucket.note ?? f.bucket.method ?? '')}</p>` : '<div class="unavail">Bucket unavailable</div>'));
     const cap = f.capacity ?? analysis.interactions?.capacity;
     parts.push(sec('W-3', 'Well capacity vs peak demand', cap ? gauge(cap) : '<div class="unavail">Add well capacity (gpm) in My farm records to compare.</div>'));
   }
@@ -73,7 +73,7 @@ export function renderDetail(el, factorId, analysis, ctx) {
   // Trend, shown only when the engine says so (at least 30 years).
   const tr = f.trend;
   parts.push(sec('X-1', 'Getting worse or better?', tr?.shown
-    ? `<div class="chartbox"><canvas id="ch-trend" role="img" aria-label="Annual values with trend"></canvas></div><p class="cap">Mann-Kendall: <b>${esc(tr.trend)}</b>${finite(tr.p) ? ` (p = ${tr.p.toFixed(2)})` : ''}. Sen's slope ${finite(tr.slope_per_decade) ? `${tr.slope_per_decade > 0 ? '+' : ''}${num(tr.slope_per_decade, 1)} ${esc(tr.unit ?? '')} per decade` : 'unavailable'}.</p>`
+    ? `${tr.values && tr.years ? '<div class="chartbox"><canvas id="ch-trend" role="img" aria-label="Annual values with trend"></canvas></div>' : ''}<p class="cap">${finite(tr.n) ? `${tr.n} years. ` : ''}Mann-Kendall: <b>${esc(tr.trend)}</b>${finite(tr.p) ? ` (${tr.p < 0.01 ? 'p < 0.01' : `p = ${tr.p.toFixed(2)}`})` : ''}. Sen's slope ${finite(tr.slope_per_decade) ? `${tr.slope_per_decade > 0 ? '+' : ''}${num(tr.slope_per_decade, 1)} ${esc(tr.unit ?? '')} per decade` : 'unavailable'}.</p>`
     : `<p class="trend-off">Trend not shown: ${esc(tr?.reason ?? 'not computed')}.</p>`));
 
   // Compound stress calendar (all tabs, collapsible)
@@ -95,11 +95,11 @@ function drawCharts(id, f, analysis) {
       { label: 'Rain + irrigation', data: s.rain_cum?.map((v, i) => (v == null || s.irrigation_cum?.[i] == null ? null : v + s.irrigation_cum[i])), borderColor: '#2c7fb8', borderDash: [], fill: false },
       { label: 'Crop demand', data: s.demand_cum, borderColor: t.acc, borderWidth: 2.5 },
     ] });
-    const b = f.bucket;
-    if (b?.dates) makeChart(document.getElementById('ch-bucket'), { yTitle: 'mm depleted', options: { scales: { ...ticksOnly(), y: { reverse: false, suggestedMax: b.taw_mm } } }, data: { labels: b.dates, datasets: [
+    const b = f.bucket, bDates = b?.dates ?? (b?.depletion_mm?.length === s.dates?.length ? s.dates : null);
+    if (b?.depletion_mm && bDates) makeChart(document.getElementById('ch-bucket'), { yTitle: 'mm depleted', options: { scales: { ...ticksOnly(), y: { reverse: false, suggestedMax: b.taw_mm } } }, data: { labels: bDates, datasets: [
       { label: 'Depletion', data: b.depletion_mm, borderColor: '#bf812d', backgroundColor: hexA('#bf812d', .2), fill: 'origin', pointRadius: 0, borderWidth: 2 },
-      { label: 'Stress starts (RAW)', data: b.dates.map(() => b.raw_mm), borderColor: t.alert, borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5 },
-      { label: 'Total available water', data: b.dates.map(() => b.taw_mm), borderColor: t.muted, borderDash: [2, 3], pointRadius: 0, borderWidth: 1 },
+      { label: 'Stress starts (RAW)', data: bDates.map(() => b.raw_mm), borderColor: t.alert, borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5 },
+      { label: 'Total available water', data: bDates.map(() => b.taw_mm), borderColor: t.muted, borderDash: [2, 3], pointRadius: 0, borderWidth: 1 },
     ] } });
   }
   if (id === 'temperature' && s.gdd_cum) bandChart(document.getElementById('ch-gdd'), { labels: s.dates, lo: s.normal_p25, hi: s.normal_p75, mid: s.normal_p50, yTitle: '°C·day', lines: [{ label: 'This season', data: s.gdd_cum, borderColor: t.acc }] });
@@ -123,23 +123,36 @@ function drawCharts(id, f, analysis) {
 const ticksOnly = () => ({ x: { ticks: { callback(v) { const d = this.getLabelForValue(v); return d ? fmtDate(d).replace(/, \d{4}$/, '') : ''; } } } });
 
 function gauge(c) {
+  if (!finite(c.peak_demand_mm_day) && !finite(c.well_mm_day)) {
+    return `<p class="cap"><span class="sev ${c.ok === false ? 'sev-2' : 'sev-0'}">${c.ok === false ? 'Shortfall' : c.ok ? 'Keeps up' : 'Unknown'}</span> ${c.text ? esc(c.text) : finite(c.shortfall_mm_day) ? `Shortfall <span class="num">${num(c.shortfall_mm_day, 2)}</span> mm/day` : ''}</p>`;
+  }
   const max = Math.max(c.peak_demand_mm_day ?? 0, c.well_mm_day ?? 0, 1) * 1.15;
   const row = (lab, v, cls) => `<div class="gauge-row"><span>${lab}</span><span class="gauge-bar"><i class="${cls}" style="width:${finite(v) ? (v / max) * 100 : 0}%"></i></span><span class="num">${num(v, 1)} mm/d</span></div>`;
   return `<div class="gauge">${row('Peak 7-day demand', c.peak_demand_mm_day, 'acc')}${row('Well capacity', c.well_mm_day, '')}</div>
     <p class="cap"><span class="sev ${c.ok === false ? 'sev-2' : 'sev-0'}">${c.ok === false ? 'Shortfall' : c.ok ? 'Keeps up' : 'Unknown'}</span> ${esc(c.text ?? '')}</p>`;
 }
 
-function heatStrip(sh) {
-  const s = Date.parse(sh.season_start ?? sh.window?.start), e = Date.parse(sh.season_end ?? sh.window?.end);
+function heatStrip(raw) {
+  // Accept both shapes: { window: {name,start,end}, hot_dates, ... } and P2's { name, start, end, hot_days, complete, status }.
+  const win = raw.window ?? (raw.start ? { name: raw.name, start: raw.start, end: raw.end } : null);
+  const yr = (win?.start ?? raw.season_start ?? '').slice(0, 4);
+  const sh = { ...raw, window: win,
+    season_start: raw.season_start ?? (yr ? `${yr}-04-25` : null),
+    season_end: raw.season_end ?? (yr ? `${yr}-10-05` : null),
+    hot_days_in_window: raw.hot_days_in_window ?? raw.hot_days,
+    normal_hot_days_in_window: raw.normal_hot_days_in_window ?? raw.status?.normal_median };
+  if (win && !win.end) win.endLabel = raw.complete === false ? 'in progress' : null;
+  const s = Date.parse(sh.season_start), e = Date.parse(sh.season_end);
   if (!finite(s) || !finite(e) || e <= s) return '<div class="unavail">Season dates unavailable</div>';
   const x = d => ((Date.parse(d) - s) / (e - s)) * 100;
-  const ws = sh.window ? Math.max(0, x(sh.window.start)) : null, we = sh.window ? Math.min(100, x(sh.window.end)) : null;
+  const ws = sh.window?.start ? Math.max(0, x(sh.window.start)) : null;
+  const we = sh.window?.end ? Math.min(100, x(sh.window.end)) : (ws != null ? Math.min(100, x(new Date().toISOString().slice(0, 10))) : null);
   const hot = (sh.hot_dates ?? []).filter(d => x(d) >= 0 && x(d) <= 100).map(d => `<span class="hot" style="left:${x(d)}%" title="${esc(fmtDate(d))}"></span>`).join('');
   const months = []; const d0 = new Date(s); d0.setDate(1);
   for (let d = new Date(d0); d.getTime() <= e; d.setMonth(d.getMonth() + 1)) if (d.getTime() >= s) months.push(`<span class="m" style="left:${x(d.toISOString().slice(0, 10))}%">${d.toLocaleString('en-US', { month: 'short' })}</span>`);
   return `<div class="strip-tl" role="img" aria-label="${sh.hot_days_in_window ?? 'unknown'} hot days inside the ${esc(sh.window?.name ?? 'sensitive')} window">
       ${ws != null ? `<span class="win" style="left:${ws}%;width:${we - ws}%"></span>` : ''}${hot}${months.join('')}</div>
-    <p class="cap" style="margin-top:20px">Shaded: ${esc(sh.window?.name ?? 'sensitive window')} (${esc(fmtDate(sh.window?.start))} to ${esc(fmtDate(sh.window?.end))}). Red ticks: days ≥ 35 °C. In window: <span class="num">${num(sh.hot_days_in_window)}</span> (normal ${num(sh.normal_hot_days_in_window)}).</p>`;
+    <p class="cap" style="margin-top:20px">Shaded: ${esc(sh.window?.name ?? 'sensitive window')} (${esc(fmtDate(sh.window?.start))} to ${esc(sh.window?.end ? fmtDate(sh.window.end) : sh.window?.endLabel ?? 'unavailable')}).${sh.hot_dates ? ' Red ticks: days ≥ 35 °C.' : ''} Hot days in window: <span class="num">${num(sh.hot_days_in_window)}</span> (normal ${num(sh.normal_hot_days_in_window)})${finite(sh.heat_degree_days) ? `; heat above 30 °C: <span class="num">${num(sh.heat_degree_days)}</span> °C·day` : ''}.</p>`;
 }
 
 function frost(fr) {
@@ -150,7 +163,7 @@ function frost(fr) {
 
 function coverCal(c) {
   return `<div class="heatwrap"><table class="heat" aria-label="Months with low green cover by year"><thead><tr><th></th>${c.months.map(m => `<th scope="col">${'JFMAMJJASOND'[m - 1]}</th>`).join('')}</tr></thead><tbody>
-    ${c.years.map((y, i) => `<tr><th scope="row">${y}</th>${c.months.map((m, j) => { const v = c.low?.[i]?.[j]; return `<td style="background:${v == null ? 'transparent' : v ? '#b39b5a' : '#2f6b34'}" title="${y}-${m}: ${v == null ? 'unavailable' : v ? 'low green cover' : 'green'}"></td>`; }).join('')}</tr>`).join('')}
+    ${c.years.map((y, i) => `<tr><th scope="row">${y}</th>${c.months.map((m, j) => { const v = (c.low ?? c.low_cover)?.[i]?.[j]; return `<td style="background:${v == null ? 'transparent' : v ? '#b39b5a' : '#2f6b34'}" title="${y}-${m}: ${v == null ? 'unavailable' : v ? 'low green cover' : 'green'}"></td>`; }).join('')}</tr>`).join('')}
     </tbody></table></div><p class="cap">Tan: ${esc(c.label ?? 'low green cover')} (NDVI below ${c.threshold ?? 0.3}). Green: crop cover. Residue and bare soil look the same to NDVI.</p>`;
 }
 
@@ -158,7 +171,7 @@ function compound(c) {
   const col = n => n == null ? 'transparent' : ['#26343c', '#e6a33a', '#e8622f', '#a6201a'][Math.min(3, n)];
   return `<div class="heatwrap"><table class="heat" aria-label="Number of stressors active per month and year"><thead><tr><th></th>${c.months.map(m => `<th scope="col">${'JFMAMJJASOND'[m - 1]}</th>`).join('')}</tr></thead><tbody>
     ${c.years.map((y, i) => `<tr><th scope="row">${y}</th>${c.counts[i].map((n, j) => `<td style="background:${col(n)}" title="${y}-${c.months[j]}: ${n ?? 'unavailable'} stressors"></td>`).join('')}</tr>`).slice().reverse().join('')}
-    </tbody></table></div><p class="cap">Colour = stressors active that month: 0 dark, 1 amber, 2 orange, 3 red. ${esc(c.detail ?? '')}</p>`;
+    </tbody></table></div><p class="cap">Colour = stressors active that month: 0 dark, 1 amber, 2 orange, 3 red. Stressors: hot (≥3 days ≥35 °C), dry root zone (below p25), water deficit (below p25). ${typeof c.detail === 'string' ? esc(c.detail) : ''}</p>`;
 }
 
 function advanced(id, f, analysis, ctx) {
