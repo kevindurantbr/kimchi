@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Kimchi: field risk and crop-rotation console for irrigated farms, built on NASA POWER, MODIS NDVI and USDA soil data.">
+  <title>Kimchi · Field Risk Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Apply the saved theme before first paint so the page does not flash.
+    try { const t = localStorage.getItem('kimchi.theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip" href="#map">Skip to map</a>
+
+  <div class="strip" role="status" aria-live="polite">
+    <span class="strip-src">PUBLIC DATA · NASA POWER · MODIS NDVI · USDA SSURGO · USDA CDL</span>
+    <span class="strip-gap"></span>
+    <button type="button" id="sample-chip" class="chip chip-warn" hidden aria-haspopup="dialog">SAMPLE DATA</button>
+    <span id="live-chip" class="chip">LIVE POWER · CHECKING</span>
+    <span id="utc-clock" class="mono" aria-label="Current time UTC"></span>
+  </div>
+
+  <header class="bar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">KIMCHI</span>
+      <span class="brand-sub">Field risk &amp; rotation console</span>
+    </div>
+
+    <label class="field-pick">
+      <span class="lbl">Field</span>
+      <select id="field-select" aria-label="Select field"></select>
+    </label>
+
+    <div class="tabs" role="tablist" aria-label="Factor">
+      <button role="tab" data-factor="water" aria-selected="true">Water balance</button>
+      <button role="tab" data-factor="temperature" aria-selected="false">Temperature</button>
+      <button role="tab" data-factor="soil_moisture" aria-selected="false">Soil moisture</button>
+      <button role="tab" data-factor="crop_condition" aria-selected="false">Crop condition</button>
+    </div>
+
+    <div class="seg" role="group" aria-label="Map view">
+      <button type="button" data-view="field" aria-pressed="true">Field view</button>
+      <button type="button" data-view="region" aria-pressed="false">Region view</button>
+    </div>
+
+    <div class="bar-actions">
+      <button type="button" class="btn" id="btn-draw">Draw field</button>
+      <button type="button" class="btn" id="btn-records" aria-haspopup="dialog">My farm records</button>
+      <button type="button" class="btn" id="btn-report" aria-haspopup="dialog">Season report</button>
+      <span class="bar-div" aria-hidden="true"></span>
+      <button type="button" class="btn icon" id="btn-left" aria-pressed="true" aria-controls="left" title="Show or hide the factor panel">◧<span class="sr">Factor panel</span></button>
+      <button type="button" class="btn icon" id="btn-right" aria-pressed="true" aria-controls="right" title="Show or hide the decision panel">◨<span class="sr">Decision panel</span></button>
+      <button type="button" class="btn icon" id="btn-theme" title="Switch light or dark">◐<span class="sr">Switch theme</span></button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" role="alert" hidden></div>
+
+  <main class="console">
+    <aside id="left" class="panel left" aria-label="Factors">
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div class="panel-head"><span class="code">F-00</span><h2>Factor status</h2><span class="panel-meta mono" id="left-meta"></span></div>
+      <div id="cards" class="cards"><p class="state">Loading factor status…</p></div>
+      <div id="detail" class="detail"></div>
+    </aside>
+
+    <section class="mapwrap" aria-label="Map">
+      <div id="map" tabindex="0" aria-label="Field and region map"></div>
+      <div class="hud hud-tl">
+        <div id="map-title" class="hud-title"></div>
+        <div id="map-note" class="hud-note"></div>
+      </div>
+      <div class="hud hud-br mono" id="cursor-readout" aria-hidden="true">LAT —  LON —</div>
+      <div id="legend" class="legend" aria-live="polite"></div>
+      <div class="slider" id="slider">
+        <button type="button" class="btn icon" id="sl-prev" aria-label="Previous step">◀</button>
+        <button type="button" class="btn icon" id="sl-next" aria-label="Next step">▶</button>
+        <button type="button" class="btn" id="sl-play" aria-pressed="false">Play</button>
+        <input type="range" id="sl-range" min="0" max="0" value="0" aria-label="Time">
+        <output id="sl-label" class="mono" for="sl-range"></output>
+      </div>
+    </section>
+
+    <aside id="right" class="panel right" aria-label="Decisions">
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div class="panel-head"><span class="code">D-01</span><h2>Top 3 actions</h2></div>
+      <div class="chips" role="group" aria-label="Focus actions on">
+        <button type="button" data-focus="" aria-pressed="true">All</button>
+        <button type="button" data-focus="water" aria-pressed="false">Water</button>
+        <button type="button" data-focus="temperature" aria-pressed="false">Temperature</button>
+        <button type="button" data-focus="soil_moisture" aria-pressed="false">Soil</button>
+        <button type="button" data-focus="crop_condition" aria-pressed="false">Crop</button>
+      </div>
+      <div id="actions"><p class="state">Loading actions…</p></div>
+
+      <div class="panel-head"><span class="code">D-02</span><h2>Rotation options</h2></div>
+      <p class="fine">Fit indicators over the same historical years. No option is ranked best.</p>
+      <div id="rotations"><p class="state">Loading rotations…</p></div>
+
+      <div class="panel-head"><span class="code">D-03</span><h2>What-if rotation</h2></div>
+      <div id="whatif"></div>
+    </aside>
+
+    <nav class="sheet-tabs" aria-label="Panels">
+      <button type="button" data-sheet="left" aria-pressed="false">Factors</button>
+      <button type="button" data-sheet="map" aria-pressed="true">Map</button>
+      <button type="button" data-sheet="right" aria-pressed="false">Decisions</button>
+    </nav>
+  </main>
+
+  <dialog id="dlg-records" class="dlg wide" aria-labelledby="records-title">
+    <div class="dlg-head"><span class="code">R-01</span><h2 id="records-title">My farm records</h2><button type="button" class="btn icon dlg-close" aria-label="Close">✕</button></div>
+    <div id="records-body"></div>
+  </dialog>
+
+  <dialog id="dlg-report" class="dlg wide" aria-labelledby="report-title">
+    <div class="dlg-head"><span class="code">S-01</span><h2 id="report-title">Season report</h2><button type="button" class="btn" id="btn-print">Print / save PDF</button><button type="button" class="btn icon dlg-close" aria-label="Close">✕</button></div>
+    <div id="report-body"></div>
+  </dialog>
+
+  <dialog id="dlg-sample" class="dlg" aria-labelledby="sample-title">
+    <div class="dlg-head"><span class="code">Q-00</span><h2 id="sample-title">Data status</h2><button type="button" class="btn icon dlg-close" aria-label="Close">✕</button></div>
+    <div id="sample-body"></div>
+  </dialog>
+
+  <dialog id="dlg-name" class="dlg" aria-labelledby="name-title">
+    <form method="dialog" id="name-form">
+      <div class="dlg-head"><span class="code">N-01</span><h2 id="name-title">Name this field</h2></div>
+      <label class="form-row"><span>Field name</span><input id="name-input" required maxlength="60" autocomplete="off"></label>
+      <p class="fine">The boundary stays in this browser only. Live NASA POWER and USDA soil data are fetched for its centre.</p>
+      <div class="form-actions"><button type="submit" value="cancel" class="btn" formnovalidate>Cancel</button><button type="submit" value="ok" class="btn primary">Save field</button></div>
+    </form>
+  </dialog>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
