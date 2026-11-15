@@ -2,6 +2,12 @@
 
 Review date: November 14–15, 2026. Working focus remains irrigated Sheridan 6 fields in western Kansas. This is an integration choice, not a confirmed final team scope or a farm recommendation.
 
+**Later context and corrections:** use [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md) for the current collaborator handoff and dependency map. This review records the original integration, not a completed audit of follow-ups. PR #5 subsequently identified a 2022–2023 raster-origin error affecting crop fractions and supplies current-order verification; its corrections require review and coordinated data/UI updates. The original checks below did not detect that grid error. PRs #6–#8 already propose recent weather, baseline/scenarios and ET handling, so inspect them before duplicating the next-work packages.
+
+## Interface update — November 15, 2026
+
+The [first read-only interface](../interface/README.md) is implemented with field dropdown/map selection, crop history, regional weather year/variable controls, soil depth/coverage, priority questions, expanded rotation evidence/calendars, and a source library. It consumes the reviewed bundle without altering it. Approximate boundaries, unconfirmed baseline/suitability, missing ET, and numerical prediction limits remain visible. Six presentation-model tests pass; desktop/mobile interaction checks passed with no horizontal overflow at 390 px. The next UI milestone is a reviewed baseline-confirmation and dated-constraint flow.
+
 ## Decisions
 
 Accept and integrate [weather PR #1](https://github.com/kevindurantbr/kimchi/pull/1), [agronomy PR #2](https://github.com/kevindurantbr/kimchi/pull/2), and [fields/soils PR #3](https://github.com/kevindurantbr/kimchi/pull/3), with the corrections below. All three provide usable evidence and distinguish uncertainty. Preserve each contributor's source package and authorship.
@@ -34,7 +40,7 @@ The OpenET request fields were checked against the [official API reference](http
 - `prototype/compare.py`: deterministic bundle builder, cross-source validation, field-specific evidence, and qualitative constraint handling.
 - `prototype/demo_bundle.json`: all three fields, 15 field-years of classified history, 18 soil rows, 60 weather months, three candidates, 15 evidence rules, and source metadata. Includes SHA-256 hashes of the five authoritative inputs.
 - `prototype/test_compare.py`: regression tests covering absent data, incomplete soil coverage, source references, real-field adapter compatibility, malformed ET, priority changes, and a synthetic confirmed calendar failure.
-- `prototype/README.md`: commands and consumer contract. There is no web interface yet.
+- `prototype/README.md`: commands and consumer contract. The first interface was added after this data-layer review; see the update above.
 
 Default candidates are conditional. A supplied confirmed conflict can exclude only the affected scheduled instance. Priorities change the questions shown first, not eligibility or invented performance scores. The system does not verify a caller's evidence automatically, and it does not yet implement every agronomy rule as a gate.
 
@@ -54,7 +60,7 @@ These are proposed next tasks; they have not been sent to teammates or silently 
 
 | Work package | Concrete acceptance condition |
 | --- | --- |
-| Main integration: interface | Consume `demo_bundle.json`; field selector/map in center, regional weather and soil context left, three rotation comparisons right. Show missing ET and unconfirmed baseline. Display provenance beside claims. Read-only first; then add baseline confirmation and dated scenario inputs. |
+| Main integration: interface | Read-only interface complete. Next: baseline confirmation and dated scenario inputs, preserving the evidence and exclusion contract. |
 | Agronomy follow-up | Validate a northwest-Kansas calendar for the corn-to-wheat handoff with primary sources or a qualified reviewer; identify transferable response functions with their inputs and validity domain. If none qualify, retain the qualitative fallback. |
 | Fields/soils follow-up | Verify the full current SD-6 legal description; independently check all raster geotransforms/CRS and repeat one field-year extraction. Preserve field boundary uncertainty and missing-soil coverage. |
 | Weather/water follow-up | Obtain OpenET access locally, run a short one-field request, verify the actual response schema and units, then retrieve 2021–2025 for all three fields. Record failures and missing months. Never put the key in Git or chat. |
