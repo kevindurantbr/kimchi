@@ -37,9 +37,9 @@ test('priority rules resolve without altering candidate order, suitability or nu
   assert.ok(bundle.candidates.every(c=>c.field_suitability===null));
 });
 test('new evidence states require explicit interface review',()=>{
-  const changed=structuredClone(bundle);changed.fields[0].et.status='available';
+  const changed=structuredClone(bundle);changed.fields[0].et.status='estimated';
   assert.throws(()=>validateBundle(changed));
-  changed.fields[0].et.status='unavailable';changed.fields[0].baseline='corn';
+  changed.fields[0].et=structuredClone(bundle.fields[0].et);changed.fields[0].baseline='corn';
   assert.throws(()=>validateBundle(changed));
 });
 test('source links cannot execute scripts or reinterpret repository paths as web URLs',()=>{

@@ -1,6 +1,8 @@
-// OpenET display contract: accepts exactly what prototype/compare.py validate_et emits.
+// ET display contract (OpenET or NASA MODIS): accepts exactly what prototype/compare.py validate_et emits.
 // Display only: ET is never converted to pumping, irrigation or a water saving.
 const QUALITIES = ['reported', 'area_weighted_from_parts', 'missing'];
+const PROVIDERS = {T3_OPENET: 'OpenET (30 m field-boundary mean)', T3_MODIS: 'NASA MODIS (500 m satellite pixel at field centre)'};
+const provider = id => Object.entries(PROVIDERS).find(([prefix]) => id.startsWith(prefix))?.[1];
 const shape = (o, keys) => o !== null && typeof o === 'object' && !Array.isArray(o) && Object.keys(o).sort().join() === keys;
 const depth = v => typeof v === 'number' && Number.isFinite(v) && v >= 0;
 const fail = message => {throw new Error(`ET evidence rejected: ${message}`);};
@@ -29,7 +31,7 @@ function checkRows(rows, keys, fieldId, boundary, sources, allowed) {
     if (r.geometry_status !== boundary || boundary === 'test') fail('geometry status does not match the field boundary');
     if (!allowed.includes(r.month) || r.month <= previous) fail(`month outside period or out of order: ${r.month}`);
     previous = r.month;
-    if (!Array.isArray(r.source_ids) || !r.source_ids.length || !r.source_ids.every(id => typeof id === 'string' && id.startsWith('T3_OPENET') && sources.has(id))) fail('unresolved ET source');
+    if (!Array.isArray(r.source_ids) || !r.source_ids.length || !r.source_ids.every(id => typeof id === 'string' && provider(id) && sources.has(id))) fail('unresolved ET source');
   }
 }
 
@@ -52,7 +54,7 @@ export function validateET(bundle, {allowSynthetic = false} = {}) {
       if (r.et_mm !== null && !depth(r.et_mm)) fail(`invalid et_mm: ${r.et_mm}`);
       if (!QUALITIES.includes(r.quality) || (r.et_mm === null) !== (r.quality === 'missing')) fail('quality does not match value');
     }
-    if (!et.source_ids.length || !same(et.source_ids, union(et.rows))) fail('field source_ids do not match rows');
+    if (et.source_ids.length !== 1 || !same(et.source_ids, union(et.rows))) fail('field source_ids do not match rows');
     const have = new Set(et.rows.filter(r => r.et_mm !== null).map(r => r.month));
     const c = et.coverage;
     if (!shape(c, 'months_expected,months_missing,months_with_values') || c.months_expected !== months.length || c.months_with_values !== have.size || !same(c.months_missing, months.filter(m => !have.has(m)))) fail('coverage does not match rows and period');
@@ -75,7 +77,7 @@ export function etView(bundle, field) {
   if (et.status !== 'available') return null;
   const ranges = et.uncertainty.status === 'available' ? new Map(et.uncertainty.rows.map(r => [r.month, r])) : null;
   return {
-    units: et.units, period: `${et.period.start} to ${et.period.end}`, interpretation: et.interpretation,
+    provider: provider(et.source_ids[0]), units: et.units, period: `${et.period.start} to ${et.period.end}`, interpretation: et.interpretation,
     coverage: `${et.coverage.months_with_values} of ${et.coverage.months_expected} months`,
     sourceIds: et.source_ids.concat(ranges ? et.uncertainty.source_ids : []),
     sourceLabel: et.source_ids.map(id => bundle.sources.find(s => s.source_id === id)?.title ?? id).join('; '),

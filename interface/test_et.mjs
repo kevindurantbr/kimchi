@@ -8,10 +8,11 @@ import {etView} from './et_view.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const demo = JSON.parse(readFileSync(new URL('../prototype/demo_bundle.json', import.meta.url)));
-// SYNTHETIC adapter output (fake HTTP responses) bundled in memory by compare.py itself, so the
-// display contract is checked against what compare.py emits. Never real ET.
-const synthetic = JSON.parse(execFileSync('python3', ['-c', 'import sys; sys.path.insert(0, "prototype"); import compare; ' +
-  'print(compare.dumps(compare.build_bundle(et_path="prototype/fixtures/et_synthetic.json", allow_synthetic_et=True)))'], {cwd: root}));
+// Bundles built in memory by compare.py itself, so the display contract is checked against what it emits.
+const build = (etPath, allow = false) => JSON.parse(execFileSync('python3', ['-c', 'import sys; sys.path.insert(0, "prototype"); import compare; ' +
+  `print(compare.dumps(compare.build_bundle(et_path="${etPath}", allow_synthetic_et=${allow ? 'True' : 'False'})))`], {cwd: root}));
+const synthetic = build('prototype/fixtures/et_synthetic.json', true);   // SYNTHETIC OpenET adapter output; never real ET
+const empty = build('research/deliverables/weather-water/et_sample.json');
 const field = (b, id) => b.fields.find(f => f.field_id === id);
 const accept = b => validateBundle(b, {allowSynthetic: true});
 const rejects = (name, mutate) => test(`rejected: ${name}`, () => {
@@ -21,10 +22,25 @@ const rejects = (name, mutate) => test(`rejected: ${name}`, () => {
 });
 
 test('unavailable ET passes and keeps the reviewed panel', () => {
+  validateBundle(empty);
+  for (const f of empty.fields) {
+    assert.deepEqual(f.et, {status: 'unavailable', rows: [], source_ids: ['T3_OPENET_ENSEMBLE_MONTHLY']});
+    assert.equal(etView(empty, f), null);
+  }
+});
+
+test('committed MODIS ET is shown as NASA MODIS, never as OpenET', () => {
   validateBundle(demo);
   for (const f of demo.fields) {
-    assert.deepEqual(f.et, {status: 'unavailable', rows: [], source_ids: ['T3_OPENET_ENSEMBLE_MONTHLY']});
-    assert.equal(etView(demo, f), null);
+    const v = etView(demo, f);
+    assert.equal(v.provider, 'NASA MODIS (500 m satellite pixel at field centre)');
+    assert.equal(v.coverage, '60 of 60 months');
+    assert.deepEqual(v.sourceIds, ['T3_MODIS_MOD16A2GF']);
+    assert.match(v.sourceLabel, /^NASA MODIS MOD16A2GF v061/);
+    assert.match(v.interpretation, /may underestimate irrigated crop water use/);
+    assert.equal(v.rangeLabel, null);
+    assert.ok(v.rows.every(r => /^\d+\.\d{2} mm$/.test(r.value) && r.range === null));
+    assert.doesNotMatch(JSON.stringify(v), /OpenET/);
   }
 });
 
@@ -35,6 +51,7 @@ test('available ET from compare.py validates and formats; null stays "No value",
   assert.equal(v.coverage, '5 of 6 months');
   assert.equal(v.period, '2021-01-01 to 2021-06-30');
   assert.match(v.sourceLabel, /OpenET Ensemble monthly actual ET/);
+  assert.equal(v.provider, 'OpenET (30 m field-boundary mean)');
   assert.deepEqual(v.sourceIds, ['T3_OPENET_ENSEMBLE_MONTHLY', 'T3_OPENET_ENSEMBLE_MAD_RANGE']);
   assert.match(v.rangeLabel, /MAD range/);
   assert.deepEqual(v.rows.map(r => r.value), ['21.00 mm', '22.00 mm', 'No value', '24.00 mm', '25.00 mm', '26.00 mm']);
@@ -44,7 +61,7 @@ test('available ET from compare.py validates and formats; null stays "No value",
 
 test('a field without ET or without a range stays unavailable for that part only', () => {
   const b = structuredClone(synthetic);
-  field(b, 'fld03').et = structuredClone(demo.fields[2].et);
+  field(b, 'fld03').et = structuredClone(empty.fields[2].et);
   field(b, 'fld01').et.uncertainty = {status: 'unavailable', rows: []};
   accept(b);
   assert.equal(etView(b, field(b, 'fld03')), null);
