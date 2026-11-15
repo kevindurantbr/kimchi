@@ -1,5 +1,7 @@
 # Kimchi · Field Notes
 
+**Reference only.** The app being built for submission is in [`dashboard/`](../dashboard/), per [PLAN.md](../PLAN.md). This first viewer is not extended further.
+
 First read-only interface for the reviewed `prototype/demo_bundle.json`. Select an approximate field, inspect regional weather and field soil/crop history, and compare three whole-field rotation sequences. Source details remain one click away.
 
 Read the [project context and collaborator guide](../PROJECT_CONTEXT.md) for the version boundary and active follow-ups. **Known data correction pending:** PR #5 changes the 2022–2023 crop fractions after correcting raster-grid origins; the first interface still displays the original bundle. Do not quote those fractions as settled results. Recent-weather, scenario and ET display work exists in PRs #6–#8 and is not included in this first deployed snapshot.
