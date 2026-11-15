@@ -176,7 +176,10 @@ function drawTime(i) {
   } else if (state.factor === 'crop_condition') {
     const nd = ctx.ndvi?.fields?.find(f => f.field_id === state.field); if (!nd) return;
     map.setNdvi(nd, i, v => (finite(v) ? ramp('ndvi', (v + 0.1) / 1.0) : null));
-    $('map-note').textContent = `MODIS 250 m pixels, 16-day composite starting ${fmtDate(nd.dates[i])}. Greenness, not cause.${ctx.ndvi.fixture ? ' SAMPLE pixel values.' : ''}`;
+    // The source copy has missing composites (for example Jun 26 to Nov 17, 2025). Say so; never fill them.
+    const gapDays = i > 0 ? (Date.parse(nd.dates[i]) - Date.parse(nd.dates[i - 1])) / 864e5 : 0;
+    const gap = gapDays > 20 ? ` Composites between ${fmtDate(nd.dates[i - 1])} and ${fmtDate(nd.dates[i])} are missing from the source; not filled.` : '';
+    $('map-note').textContent = `MODIS 250 m pixels, 16-day composite starting ${fmtDate(nd.dates[i])}. Greenness, not cause.${gap}${ctx.ndvi.fixture ? ' SAMPLE pixel values.' : ''}`;
     $('legend').innerHTML = `<div class="ttl">NDVI (greenness)</div><div class="ramp" style="background:${rampCSS('ndvi')}"></div><div class="ends"><span>-0.1 bare</span><span>0.9 dense green</span></div>`;
   }
 }
