@@ -73,7 +73,7 @@ test('a partial current month withholds its rain total and the year has no annua
   const live = monthlyRows(dailyFromPower(fakePower()), '2025-01-01', '2026-11-15');
   const nov = live.find(r => r.month === '2026-11');
   assert.equal(nov.quality, 'partial');
-  assert.equal(nov.days_expected, 15);
+  assert.equal(nov.days_expected, 30);
   assert.equal(nov.days_observed, 12);
   assert.equal(nov.precipitation_mm, null);
   assert.equal(nov.mean_temperature_c, 10);
@@ -81,6 +81,19 @@ test('a partial current month withholds its rain total and the year has no annua
   const merged = {...bundle, regional_weather: {...bundle.regional_weather, rows: mergeLive(bundle.regional_weather.rows, live).rows}};
   assert.equal(weatherSummary(weatherForYear(merged, '2026'), 'rain'), null);
   assert.ok(weatherSummary(weatherForYear(merged, '2025'), 'rain') > 0);
+});
+
+test('an in-progress month stays partial even when every day so far is valid', () => {
+  const days = dailyFromPower(fakePower({start: '2026-10-01', end: '2026-11-15', lastValid: '2026-11-15'}));
+  const [oct, nov] = monthlyRows(days, '2026-10-01', '2026-11-15');
+  assert.equal(nov.quality, 'partial');
+  assert.equal(nov.days_expected, 30);
+  assert.equal(nov.days_observed, 15);
+  assert.equal(nov.precipitation_mm, null);
+  assert.equal(nov.mean_temperature_c, 10);
+  assert.equal(oct.quality, 'complete');
+  assert.equal(oct.days_expected, 31);
+  assert.equal(oct.precipitation_mm, 46.5);
 });
 
 test('a dry month is zero, not missing', () => {

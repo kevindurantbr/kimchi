@@ -56,9 +56,9 @@ export function monthlyRows(days, start, end, sourceId = LIVE_SOURCE_ID) {
     let expected = 0, both = 0, pN = 0, pSum = 0, tN = 0, tSum = 0;
     for (let d = 1; d <= last; d++) {
       const iso = `${month}-${pad(d)}`;
-      if (iso < start || iso > end) continue;
-      expected++;
-      const r = days.get(iso) ?? {};
+      if (iso < start) continue;
+      expected++; // days after `end` are expected but missing, so an in-progress month stays partial
+      const r = iso > end ? {} : days.get(iso) ?? {};
       const p = r.PRECTOTCORR ?? null, t = r.T2M ?? null;
       if (p !== null) { pN++; pSum += hundredths(p); }
       if (t !== null) { tN++; tSum += hundredths(t); }
