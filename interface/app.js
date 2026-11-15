@@ -1,12 +1,13 @@
 import {names,cropNames,priorities,finite,fieldName,selectField,weatherForYear,weatherSummary,storageAt,cropHistory,safeURL,validateBundle} from './model.mjs';
 import {fetchLiveWeather,LIVE_SOURCE_ID} from './live_weather.mjs';
+import {compare,constraintOutcome,baselineStatus,isoDate,STATES} from './scenario.mjs';
 
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const number=(value,digits=1)=>finite(value)?value.toLocaleString('en-US',{maximumFractionDigits:digits,minimumFractionDigits:digits}):'Unavailable';
 const percent=value=>finite(value)?`${number(value*100)}%`:'Unknown coverage';
 const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const state={field:'fld01',year:'2025',metric:'rain',depth:150,priority:'water',yearTouched:false};
+const state={field:'fld01',year:'2025',metric:'rain',depth:150,priority:'water',yearTouched:false,entries:{}};
 let bundle;
 function sourceButton(ids,label='Evidence & limits') {
   return `<button class="source-link" data-sources="${esc(ids.join(','))}">${esc(label)} <span aria-hidden="true">↗</span></button>`;
@@ -15,7 +16,7 @@ function chooseField(id,fromMap=false) {
   selectField(bundle,id);
   state.field=id;
   $('field-select').value=id;
-  renderField();renderSoil();
+  renderField();renderSoil();renderConfirm();renderScenario();
   if(fromMap) document.getElementById(`map-${id}`).focus();
 }
 function renderField() {
@@ -63,7 +64,44 @@ function renderSoil() {
 const dateLabel=window=>`${months[Number(window.start_month_day.slice(0,2))-1]} ${Number(window.start_month_day.slice(3))}–${months[Number(window.end_month_day.slice(0,2))-1]} ${Number(window.end_month_day.slice(3))} · year ${window.relative_calendar_year}`;
 function findings(items) {return items.map(item=>`<div class="evidence-item"><p>${esc(item.finding)}</p>${sourceButton(item.source_ids)}</div>`).join('');}
 function renderCandidates() {
-  $('rotation-cards').innerHTML=bundle.candidates.map((c,i)=>`<article class="rotation-card" data-candidate="${c.candidate_id}"><div class="rotation-top"><span class="rotation-number">SEQUENCE ${String(i+1).padStart(2,'0')}</span><span class="badge amber">Suitability unknown</span></div><h3>${esc(names[c.candidate_id]??c.candidate_id)}</h3><div class="rotation-sequence">${c.sequence.map((phase,j)=>`${j?'<b aria-hidden="true">→</b>':''}<div class="phase ${phase.crop}"><span>HARVEST YEAR ${phase.relative_harvest_year}</span><strong>${esc(cropNames[phase.crop]??phase.crop)}</strong></div>`).join('')}</div><p class="tradeoff-kicker">A TRADEOFF TO CONSIDER</p><p class="tradeoff">${esc(c.risks[0].finding)}</p>${sourceButton(c.risks[0].source_ids,'Why this matters')}<details class="rotation-details"><summary>Explore evidence & calendar</summary><div class="expanded-evidence"><p><strong>Regional evidence:</strong> ${esc(c.status_meaning)}</p><p><strong>Comparison status:</strong> conditional on missing farm inputs. No field is approved by this prototype.</p><h4>Potential benefits</h4>${findings(c.benefits)}<h4>Risks & constraints</h4>${findings(c.risks)}<h4>Two-year reference calendar</h4><p>Illustrative regional / historical windows, not locally validated deadlines. Whole-field alternation; not concurrent phase-split acreage.</p>${c.sequence.map(phase=>`<div class="calendar-phase"><strong>${esc(cropNames[phase.crop])} · harvest year ${phase.relative_harvest_year}</strong><div class="calendar-row"><span>Sow</span><span>${dateLabel(phase.sowing_window)}</span></div><div class="calendar-row"><span>Harvest</span><span>${dateLabel(phase.harvest_window)}</span></div><small>${esc(phase.calendar_basis)}</small></div>`).join('')}<h4>Calendar handoffs</h4>${findings(c.gaps_and_calendar_conflicts)}<h4>Residue & soil implications</h4>${findings(c.residue_implications)}<h4>Plant-back compatibility</h4>${findings([c.herbicide_carryover])}<h4>What still needs an answer</h4><ul>${c.unknowns.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><h4>Market & equipment prerequisites</h4><ul>${c.market_equipment_prerequisites.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><h4>How far the evidence transfers</h4><p>${esc(c.treatment_basis)}</p>${sourceButton(c.source_ids,'All sources for this sequence')}</div></details></article>`).join('');
+  $('rotation-cards').innerHTML=bundle.candidates.map((c,i)=>`<article class="rotation-card" data-candidate="${c.candidate_id}"><div class="rotation-top"><span class="rotation-number">SEQUENCE ${String(i+1).padStart(2,'0')}</span><span class="badge amber">Suitability unknown</span></div><h3>${esc(names[c.candidate_id]??c.candidate_id)}</h3><div class="candidate-state" id="state-${esc(c.candidate_id)}"></div><div class="rotation-sequence">${c.sequence.map((phase,j)=>`${j?'<b aria-hidden="true">→</b>':''}<div class="phase ${phase.crop}"><span>HARVEST YEAR ${phase.relative_harvest_year}</span><strong>${esc(cropNames[phase.crop]??phase.crop)}</strong></div>`).join('')}</div><p class="tradeoff-kicker">A TRADEOFF TO CONSIDER</p><p class="tradeoff">${esc(c.risks[0].finding)}</p>${sourceButton(c.risks[0].source_ids,'Why this matters')}<details class="rotation-details"><summary>Explore evidence & calendar</summary><div class="expanded-evidence"><p><strong>Regional evidence:</strong> ${esc(c.status_meaning)}</p><p><strong>Comparison status:</strong> conditional on missing farm inputs. No field is approved by this prototype.</p><h4>Potential benefits</h4>${findings(c.benefits)}<h4>Risks & constraints</h4>${findings(c.risks)}<h4>Two-year reference calendar</h4><p>Illustrative regional / historical windows, not locally validated deadlines. Whole-field alternation; not concurrent phase-split acreage.</p>${c.sequence.map(phase=>`<div class="calendar-phase"><strong>${esc(cropNames[phase.crop])} · harvest year ${phase.relative_harvest_year}</strong><div class="calendar-row"><span>Sow</span><span>${dateLabel(phase.sowing_window)}</span></div><div class="calendar-row"><span>Harvest</span><span>${dateLabel(phase.harvest_window)}</span></div><small>${esc(phase.calendar_basis)}</small></div>`).join('')}<h4>Calendar handoffs</h4>${findings(c.gaps_and_calendar_conflicts)}<h4>Residue & soil implications</h4>${findings(c.residue_implications)}<h4>Plant-back compatibility</h4>${findings([c.herbicide_carryover])}<h4>What still needs an answer</h4><ul>${c.unknowns.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><h4>Market & equipment prerequisites</h4><ul>${c.market_equipment_prerequisites.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><h4>How far the evidence transfers</h4><p>${esc(c.treatment_basis)}</p>${sourceButton(c.source_ids,'All sources for this sequence')}</div></details></article>`).join('');
+}
+// Farmer entries live in page memory only (state.entries), per field; never stored or sent.
+const entries=()=>state.entries[state.field]??={baseline:{},constraints:[]};
+const candidateIds=()=>bundle.candidates.map(c=>c.candidate_id);
+const options=(list,value)=>list.map(([v,l])=>`<option value="${esc(v)}" ${v===value?'selected':''}>${esc(l)}</option>`).join('');
+function renderConfirm() {
+  const b=entries().baseline,cands=bundle.candidates.map(c=>[c.candidate_id,names[c.candidate_id]??c.candidate_id]);
+  const text=(name,label,max,hint='')=>`<label>${label}<input type="text" name="${name}" maxlength="${max}" value="${esc(b[name]??'')}" ${hint?`placeholder="${esc(hint)}"`:''}></label>`;
+  $('confirm-content').innerHTML=`<fieldset><legend>1 · Is the 2021–2025 crop history right?</legend>${[['unconfirmed','Not checked yet'],['confirmed','Yes, as shown'],['corrected','No, it needs a correction']].map(([v,l])=>`<label class="choice"><input type="radio" name="history" value="${v}" ${(b.history??'unconfirmed')===v?'checked':''}>${l}</label>`).join('')}${text('correction','What actually grew (if corrected)',300,'e.g. 2023 was sorghum')}</fieldset><fieldset><legend>2 · What do you intend to grow next?</legend><label>Intended continuation<select name="continuation"><option value="">Not decided</option>${options([...cands,['other','Something else']],b.continuation)}</select></label>${text('other','Describe it (if something else)',200)}</fieldset><form id="constraint-form" novalidate><fieldset><legend>3 · Add a dated constraint</legend><label>Sequence<select name="candidate_id">${options(cands)}</select></label><label>Kind<select name="kind"><option value="calendar">Sowing calendar (dates)</option><option value="plantback">Herbicide plant-back</option></select></label><div data-kind="calendar"><label>Earliest date you could sow<input type="date" name="earliest_sowing_date"></label><label>End of the sowing window validated for this field<input type="date" name="validated_window_end"></label><label class="choice"><input type="checkbox" name="no_feasible_adjustment">No feasible adjustment (e.g. earlier harvest, other hybrid)</label></div><div data-kind="plantback" hidden><label class="choice"><input type="checkbox" name="conflict">A verified label plant-back restriction conflicts with this sequence</label></div><label>Evidence: what you checked<input type="text" name="evidence" maxlength="500"></label><label class="choice"><input type="checkbox" name="confirmed">I have confirmed this</label><p class="fine-print">Only a confirmed constraint with evidence can exclude a sequence, and only for the schedule you supplied.</p><button type="submit" id="add-constraint">Add constraint</button><p id="constraint-status" class="fine-print" role="status"></p></fieldset></form>`;
+}
+function describe(item) {
+  const evidence=item.evidence?`Evidence: “${esc(item.evidence)}”`:'No evidence given';
+  return item.kind==='calendar'?`Earliest sowing ${esc(item.earliest_sowing_date)}; validated window ends ${esc(item.validated_window_end)}; ${item.no_feasible_adjustment?'no feasible adjustment':'adjustment may be feasible'}. ${evidence}.`:`Plant-back: ${item.conflict?'verified conflict':'no conflict stated'}. ${evidence}.`;
+}
+const outcomes={excluded:'Excludes this sequence for your schedule',unresolved:'Unresolved · needs confirmation and evidence',no_exclusion:'Checked · no exclusion'};
+function renderScenario() {
+  const {baseline,constraints}=entries(),base=baselineStatus(baseline,candidateIds());
+  let result=null,error='';
+  try{result=compare(bundle,state.field,state.priority,{constraints});}catch(e){error=e.message;}
+  $('baseline-note').innerHTML=base.confirmed?`<h3>Baseline supplied by you · not verified</h3><p>History ${baseline.history==='corrected'?`corrected: “${esc(baseline.correction)}”`:'confirmed as shown'}. Intended continuation: ${esc(base.continuation==='other'?baseline.other:names[base.continuation])}. A reference only: it does not change any sequence’s state.</p>`:`<h3>Baseline not yet confirmed</h3><p>Past crop labels do not establish a future plan. Still needed: ${esc(base.missing.join('; '))}.</p>`;
+  $('constraint-list').innerHTML=constraints.length?`<h3>Your constraints for ${esc(fieldName(state.field))}</h3>${constraints.map((item,i)=>`<div class="constraint-item"><strong>${esc(names[item.candidate_id])} · ${item.confirmed?'confirmed by you':'not confirmed'}</strong><p>${describe(item)}</p><p>${result?esc(outcomes[constraintOutcome(result,item)]):'Not evaluated'} <button type="button" class="source-link" data-remove="${i}" aria-label="Remove constraint ${i+1}">Remove</button></p></div>`).join('')}<p class="fine-print">Status: ${esc(result?.scenario_status??error)}.</p>`:'<p class="fine-print">No constraints entered. Every sequence stays conditional.</p>';
+  for(const c of bundle.candidates){
+    const r=result?.candidates.find(x=>x.candidate_id===c.candidate_id),n=r?.unresolved_constraints.length;
+    $(`state-${c.candidate_id}`).innerHTML=`${base.confirmed&&base.continuation===c.candidate_id?'<p class="state-baseline">Your stated continuation (baseline) · not verified</p>':''}${!r?`<span class="badge neutral">Not evaluated</span><p class="fine-print">${esc(error)}</p>`:r.status===STATES.excluded?`<span class="badge amber">Excluded for your supplied schedule</span><ul>${r.exclusion_reasons.map(x=>{const rule=bundle.rules.find(q=>q.rule_id===x.rule_id);return `<li>${esc(rule?.condition_description??x.rule_id)} ${describe(x.supplied_evidence)} ${rule?sourceButton(rule.source_ids,'Rule evidence'):''}</li>`;}).join('')}</ul><p class="fine-print">Applies only to the schedule you supplied, not to this sequence in general.</p>`:'<span class="badge neutral">Conditional</span><p class="fine-print">Other farm inputs are still unknown: neither approved nor excluded.</p>'}${n?`<p class="fine-print coverage-warning">${n} of your constraints here ${n===1?'is':'are'} unresolved: confirm and add evidence before ${n===1?'it counts':'they count'}.</p>`:''}`;
+  }
+}
+function addConstraint(form) {
+  const f=new FormData(form),kind=f.get('kind'),say=t=>{$('constraint-status').textContent=t;};
+  const item={candidate_id:f.get('candidate_id'),kind,confirmed:f.has('confirmed'),evidence:String(f.get('evidence')).trim()};
+  if(kind==='calendar'){
+    try{isoDate(f.get('earliest_sowing_date'),'Earliest sowing date');isoDate(f.get('validated_window_end'),'Validated window end');}catch{say('Enter both dates (YYYY-MM-DD) for a calendar constraint.');return;}
+    Object.assign(item,{earliest_sowing_date:f.get('earliest_sowing_date'),validated_window_end:f.get('validated_window_end'),no_feasible_adjustment:f.has('no_feasible_adjustment')});
+  } else item.conflict=f.has('conflict');
+  entries().constraints.push(item);renderScenario();
+  for(const name of ['earliest_sowing_date','validated_window_end','evidence'])form.elements[name].value='';
+  for(const name of ['no_feasible_adjustment','conflict','confirmed'])form.elements[name].checked=false;
+  say(`Added for ${names[item.candidate_id]}: ${outcomes[constraintOutcome(compare(bundle,state.field,state.priority,{constraints:entries().constraints}),item)]}.`);
 }
 function renderPriority() {
   const p=priorities[state.priority];$('focus-title').textContent=p.title;
@@ -80,6 +118,7 @@ document.addEventListener('click',event=>{
   if(!bundle)return;
   const source=event.target.closest('[data-sources]');if(source){showSources(source.dataset.sources.split(','));return;}
   const field=event.target.closest('[data-field]');if(field){chooseField(field.dataset.field,true);return;}
+  const remove=event.target.closest('[data-remove]');if(remove){entries().constraints.splice(Number(remove.dataset.remove),1);renderScenario();$('add-constraint').focus();return;}
   const priority=event.target.closest('[data-priority]');if(priority){state.priority=priority.dataset.priority;renderPriority();return;}
   const metric=event.target.closest('[data-metric]');if(metric){state.metric=metric.dataset.metric;document.querySelectorAll('[data-metric]').forEach(b=>b.setAttribute('aria-pressed',String(b===metric)));renderWeather();}
 });
@@ -90,6 +129,13 @@ document.addEventListener('keydown',event=>{
 $('field-select').addEventListener('change',event=>chooseField(event.target.value));
 $('weather-year').addEventListener('change',event=>{state.year=event.target.value;state.yearTouched=true;renderWeather();});
 $('soil-content').addEventListener('change',event=>{if(event.target.id==='soil-depth'){state.depth=Number(event.target.value);renderSoil();$('soil-depth').focus();}});
+$('confirm-content').addEventListener('input',event=>{
+  const {name,value}=event.target;
+  if(['history','correction','continuation','other'].includes(name)){entries().baseline[name]=value;renderScenario();}
+  if(name==='kind')document.querySelectorAll('[data-kind]').forEach(el=>{el.hidden=el.dataset.kind!==value;});
+});
+$('confirm-content').addEventListener('submit',event=>{event.preventDefault();addConstraint(event.target);});
+$('clear-entries').addEventListener('click',()=>{if(!bundle)return;state.entries={};renderConfirm();renderScenario();$('confirm-content').querySelector('input').focus();});
 $('all-sources').addEventListener('click',()=>{if(bundle)showSources();});
 $('close-sources').addEventListener('click',()=>$('source-dialog').close());
 $('source-dialog').addEventListener('click',event=>{if(event.target===$('source-dialog')){const r=$('source-dialog').getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)$('source-dialog').close();}});
@@ -126,7 +172,7 @@ async function load() {
     const response=await fetch('./demo_bundle.json');if(!response.ok)throw new Error('Data request failed');
     bundle=validateBundle(await response.json());
     $('field-select').innerHTML=bundle.fields.map(f=>`<option value="${f.field_id}">${fieldName(f.field_id)}</option>`).join('');
-    populateYears();renderField();renderWeather();renderSoil();renderPriority();renderCandidates();
+    populateYears();renderField();renderWeather();renderSoil();renderPriority();renderCandidates();renderConfirm();renderScenario();
     $('load-state').hidden=true;$('workspace').hidden=false;
     refreshLiveWeather();
   }catch(error){bundle=null;$('workspace').hidden=true;$('load-state').innerHTML='The reviewed evidence could not be loaded. No substitute values are shown.<button id="retry">Try again</button>';$('retry').addEventListener('click',load);console.error('Evidence unavailable:',error.message);}
