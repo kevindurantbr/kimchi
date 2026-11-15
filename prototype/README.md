@@ -1,6 +1,6 @@
 # Comparison data layer
 
-This is the first integrated, offline prototype. Python 3.8+ standard library only. It produces evidence for an interface; it does not yet include a web interface or validated crop-response model.
+This is the first integrated, offline prototype. Python 3.8+ standard library only. It produces evidence for the [first read-only interface](../interface/README.md). No validated crop-response model is included.
 
 From the repository root:
 
