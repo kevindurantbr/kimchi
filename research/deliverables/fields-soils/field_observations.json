@@ -1,0 +1,855 @@
+{
+ "schema_version": "1.0",
+ "sources": [
+  {
+   "source_id": "T2_SD6_BOUNDARY",
+   "title": "Sheridan 6 LEMA boundary (Kansas Biological Survey, University of Kansas)",
+   "url": "https://services2.arcgis.com/ZOdjAzAQ2B0f85zi/ArcGIS/rest/services/Sheridan6_LEMA_sections_dissolve/FeatureServer/0",
+   "retrieved_date": "2026-11-14",
+   "product_version": "ArcGIS item 90041416e6d7427d839d3e0d55229082, modified 2023-01-04",
+   "method": "FeatureServer query, outSR=4326, f=geojson. Dissolved PLSS sections from Kansas DASC.",
+   "limitations": "Third-party reconstruction, not a DWR file. Cross-checked against the section list in T2_SD6_ORDER."
+  },
+  {
+   "source_id": "T2_SD6_ORDER",
+   "title": "Order of Designation, Sheridan 6 LEMA Management Plan 2018-2022 (KDA DWR, 001-DWR-LEMA-2017), copy hosted by GMD4",
+   "url": "https://gmd4.org/New/Sheridan%206%20LEMA%20Order%20of%20Designation.pdf",
+   "retrieved_date": "2026-11-14",
+   "product_version": "Order dated 2017 for 2018-2022; Section VII lists boundary sections",
+   "method": "Read the scanned PDF, page 8: T7S R30W Sections 19-36; T8S R30W Sections 1-18 (plus other townships).",
+   "limitations": "2023-2027 Consolidated Order on agriculture.ks.gov could not be downloaded by script (HTTP 403). Boundary assumed unchanged; the KBS 2023 polygon is 99 sections, matching this list."
+  },
+  {
+   "source_id": "T2_PLSS",
+   "title": "BLM National PLSS CadNSDI, PLSS Section layer",
+   "url": "https://gis.blm.gov/arcgis/rest/services/Cadastral/BLM_Natl_PLSS_CadNSDI/MapServer/2",
+   "retrieved_date": "2026-11-14",
+   "product_version": "MapServer 11.5 (as served)",
+   "method": "Envelope query over the SD-6 extent, outSR=4326. Quarter sections split at the section bounding-box midpoints.",
+   "limitations": "Survey grid, not field edges or legal parcels. Quarter split is geometric, not a surveyed aliquot line."
+  },
+  {
+   "source_id": "T2_FIELD_DIGITIZED",
+   "title": "Approximate pivot-circle analysis boundaries (this package)",
+   "url": "scripts/extract_fields.py",
+   "retrieved_date": "2026-11-14",
+   "product_version": "1.0",
+   "method": "Circle centred on the PLSS quarter-section centroid. Radius fitted from the CDL radial crop pattern (300-400 m).",
+   "limitations": "Approximate. Not a surveyed field, parcel, or confirmed pivot. Center and radius may be off by tens of metres."
+  },
+  {
+   "source_id": "T2_NAIP",
+   "title": "USGS NAIP imagery (ImageServer), visual check of pivot geometry",
+   "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer",
+   "retrieved_date": "2026-11-14",
+   "product_version": "Most recent mosaic served on retrieval date; acquisition year not read",
+   "method": "exportImage in EPSG:3857 over the three fields; outlines drawn on top (field_check_imagery.jpg).",
+   "limitations": "Visual evidence only. A pivot circle shows equipment geometry, not current irrigation, water rights or ownership."
+  },
+  {
+   "source_id": "T2_CDL",
+   "title": "USDA NASS Cropland Data Layer 2021-2025, Sheridan County KS (FIPS 20179)",
+   "url": "https://nassgeodata.gmu.edu/axis2/services/CDLService/GetCDLFile?year={year}&fips=20179",
+   "retrieved_date": "2026-11-14",
+   "product_version": "CDL 2021, 2022, 2023, 2024, 2025 county clips from CropScape cache (30 m, Albers NAD83)",
+   "method": "Pixel-centre-in-polygon counts, no resampling or interpolation. Fractions over valid (non-zero) pixels.",
+   "limitations": "Classification error applies per pixel. Kansas producer's accuracy 2023: corn 90.6%, sorghum 81.0%, winter wheat 88.5% (metadata_ks23). 2024 and 2025 Kansas metadata pages were not found on the NASS site."
+  },
+  {
+   "source_id": "T2_CDL_META",
+   "title": "CDL Kansas metadata 2021-2023 (NASS)",
+   "url": "https://www.nass.usda.gov/Research_and_Science/Cropland/metadata/metadata_ks23.htm",
+   "retrieved_date": "2026-11-14",
+   "product_version": "metadata_ks21/22/23 (publication dates 2022-02-14, 2023-01-30, 2024-01-31)",
+   "method": "Read the accuracy tables for codes 1, 4, 24.",
+   "limitations": "State-level accuracy; not field-specific. 2024-2025 not located."
+  },
+  {
+   "source_id": "T2_SSURGO",
+   "title": "USDA NRCS SSURGO via Soil Data Access, survey area KS179 (Sheridan County)",
+   "url": "https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest",
+   "retrieved_date": "2026-11-14",
+   "product_version": "SDA live database as queried (mupolygon, mapunit, muaggatt)",
+   "method": "Spatial intersection of each field polygon with mupolygon; clipped areas computed in EPSG:5070; muaggatt.aws* (component-weighted average) area-weighted across map units.",
+   "limitations": "Available water storage is a soil property estimate, not current soil moisture. Map-unit averages hide within-unit variation."
+  }
+ ],
+ "crop_history": [
+  {
+   "field_id": "fld01",
+   "year": 2021,
+   "crop": "Corn",
+   "crop_fraction": 0.971,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2021,
+   "crop": "Grassland/Pasture",
+   "crop_fraction": 0.013,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2021,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.016,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2022,
+   "crop": "Corn",
+   "crop_fraction": 0.982,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2022,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.018,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2023,
+   "crop": "Corn",
+   "crop_fraction": 0.959,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2023,
+   "crop": "Fallow/Idle Cropland",
+   "crop_fraction": 0.021,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2023,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.02,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2024,
+   "crop": "Corn",
+   "crop_fraction": 0.957,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2024,
+   "crop": "Grassland/Pasture",
+   "crop_fraction": 0.036,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2024,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.007,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2025,
+   "crop": "Corn",
+   "crop_fraction": 0.948,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2025,
+   "crop": "Grassland/Pasture",
+   "crop_fraction": 0.037,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2025,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.014,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2021,
+   "crop": "Corn",
+   "crop_fraction": 0.989,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2021,
+   "crop": "Sorghum",
+   "crop_fraction": 0.011,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2022,
+   "crop": "Corn",
+   "crop_fraction": 0.946,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2022,
+   "crop": "Developed/Open Space",
+   "crop_fraction": 0.032,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2022,
+   "crop": "Fallow/Idle Cropland",
+   "crop_fraction": 0.013,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2022,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.009,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2023,
+   "crop": "Sorghum",
+   "crop_fraction": 0.919,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": true,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2023,
+   "crop": "Developed/Open Space",
+   "crop_fraction": 0.032,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": true,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2023,
+   "crop": "Winter Wheat",
+   "crop_fraction": 0.025,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": true,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2023,
+   "crop": "Corn",
+   "crop_fraction": 0.014,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": true,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2023,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.009,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": true,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2024,
+   "crop": "Sorghum",
+   "crop_fraction": 1.0,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": true,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2025,
+   "crop": "Winter Wheat",
+   "crop_fraction": 0.948,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2025,
+   "crop": "Grassland/Pasture",
+   "crop_fraction": 0.023,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2025,
+   "crop": "Corn",
+   "crop_fraction": 0.016,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "year": 2025,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.013,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2021,
+   "crop": "Corn",
+   "crop_fraction": 0.966,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2021,
+   "crop": "Sorghum",
+   "crop_fraction": 0.013,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2021,
+   "crop": "Fallow/Idle Cropland",
+   "crop_fraction": 0.013,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2021,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.009,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2022,
+   "crop": "Winter Wheat",
+   "crop_fraction": 0.93,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2022,
+   "crop": "Corn",
+   "crop_fraction": 0.052,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2022,
+   "crop": "Developed/Open Space",
+   "crop_fraction": 0.013,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2022,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.005,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2023,
+   "crop": "Winter Wheat",
+   "crop_fraction": 0.984,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2023,
+   "crop": "Developed/Open Space",
+   "crop_fraction": 0.013,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2023,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.004,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2024,
+   "crop": "Corn",
+   "crop_fraction": 0.989,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2024,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.011,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2025,
+   "crop": "Winter Wheat",
+   "crop_fraction": 0.984,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "year": 2025,
+   "crop": "Other (classes <1% each)",
+   "crop_fraction": 0.016,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  }
+ ],
+ "soils": [
+  {
+   "field_id": "fld01",
+   "property": "available_water_storage",
+   "value": 5.19,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 25,
+   "coverage_fraction": 0.928,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "property": "available_water_storage",
+   "value": 10.33,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 50,
+   "coverage_fraction": 0.928,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "property": "available_water_storage",
+   "value": 20.53,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 100,
+   "coverage_fraction": 0.928,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "property": "available_water_storage",
+   "value": 30.78,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 150,
+   "coverage_fraction": 0.928,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "property": "hydrologic_group_dominant_condition",
+   "value": "C",
+   "unit": null,
+   "depth_top_cm": null,
+   "depth_bottom_cm": null,
+   "coverage_fraction": 0.744,
+   "aggregation_method": "Category covering the largest field area (muaggatt dominant-condition value per map unit)",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "property": "drainage_class_dominant_condition",
+   "value": "Well drained",
+   "unit": null,
+   "depth_top_cm": null,
+   "depth_bottom_cm": null,
+   "coverage_fraction": 0.928,
+   "aggregation_method": "Category covering the largest field area (muaggatt dominant-condition value per map unit)",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "property": "available_water_storage",
+   "value": 5.23,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 25,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "property": "available_water_storage",
+   "value": 10.43,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 50,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "property": "available_water_storage",
+   "value": 20.85,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 100,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "property": "available_water_storage",
+   "value": 31.29,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 150,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "property": "hydrologic_group_dominant_condition",
+   "value": "C",
+   "unit": null,
+   "depth_top_cm": null,
+   "depth_bottom_cm": null,
+   "coverage_fraction": 0.987,
+   "aggregation_method": "Category covering the largest field area (muaggatt dominant-condition value per map unit)",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld02",
+   "property": "drainage_class_dominant_condition",
+   "value": "Well drained",
+   "unit": null,
+   "depth_top_cm": null,
+   "depth_bottom_cm": null,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Category covering the largest field area (muaggatt dominant-condition value per map unit)",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "property": "available_water_storage",
+   "value": 4.94,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 25,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "property": "available_water_storage",
+   "value": 9.82,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 50,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "property": "available_water_storage",
+   "value": 19.79,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 100,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "property": "available_water_storage",
+   "value": 29.92,
+   "unit": "cm water",
+   "depth_top_cm": 0,
+   "depth_bottom_cm": 150,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Area-weighted mean over SSURGO map units clipped to the field; each map-unit value is SSURGO muaggatt component-percent-weighted average",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "property": "hydrologic_group_dominant_condition",
+   "value": "C",
+   "unit": null,
+   "depth_top_cm": null,
+   "depth_bottom_cm": null,
+   "coverage_fraction": 0.967,
+   "aggregation_method": "Category covering the largest field area (muaggatt dominant-condition value per map unit)",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  },
+  {
+   "field_id": "fld03",
+   "property": "drainage_class_dominant_condition",
+   "value": "Well drained",
+   "unit": null,
+   "depth_top_cm": null,
+   "depth_bottom_cm": null,
+   "coverage_fraction": 1.0,
+   "aggregation_method": "Category covering the largest field area (muaggatt dominant-condition value per map unit)",
+   "source_ids": [
+    "T2_SSURGO"
+   ]
+  }
+ ]
+}

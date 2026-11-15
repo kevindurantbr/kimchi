@@ -1,0 +1,414 @@
+{
+ "fld01": {
+  "radius_m": 400,
+  "area_ha": 50.2,
+  "inside_lema": true,
+  "centroid": [
+   -100.678315,
+   39.397453
+  ],
+  "cdl": {
+   "2021": {
+    "pixels": 560,
+    "valid": 560,
+    "top": [
+     [
+      "Corn",
+      0.971
+     ],
+     [
+      "Grassland/Pasture",
+      0.013
+     ],
+     [
+      "Developed/Open Space",
+      0.009
+     ]
+    ],
+    "confirm": false
+   },
+   "2022": {
+    "pixels": 560,
+    "valid": 560,
+    "top": [
+     [
+      "Corn",
+      0.982
+     ],
+     [
+      "Grassland/Pasture",
+      0.009
+     ],
+     [
+      "Sorghum",
+      0.007
+     ]
+    ],
+    "confirm": false
+   },
+   "2023": {
+    "pixels": 560,
+    "valid": 560,
+    "top": [
+     [
+      "Corn",
+      0.959
+     ],
+     [
+      "Fallow/Idle Cropland",
+      0.021
+     ],
+     [
+      "Grassland/Pasture",
+      0.009
+     ]
+    ],
+    "confirm": false
+   },
+   "2024": {
+    "pixels": 560,
+    "valid": 560,
+    "top": [
+     [
+      "Corn",
+      0.957
+     ],
+     [
+      "Grassland/Pasture",
+      0.036
+     ],
+     [
+      "Developed/Open Space",
+      0.007
+     ]
+    ],
+    "confirm": false
+   },
+   "2025": {
+    "pixels": 560,
+    "valid": 560,
+    "top": [
+     [
+      "Corn",
+      0.948
+     ],
+     [
+      "Grassland/Pasture",
+      0.037
+     ],
+     [
+      "Developed/Open Space",
+      0.009
+     ]
+    ],
+    "confirm": false
+   }
+  },
+  "ssurgo": [
+   {
+    "mukey": "2759231",
+    "musym": "1623",
+    "muname": "Keith silt loam, 1 to 3 percent slopes, south",
+    "areasymbol": "KS179",
+    "share": 0.633,
+    "aws0150_cm": "31.42",
+    "hydgrp": "C",
+    "drainage": "Well drained"
+   },
+   {
+    "mukey": "1149991",
+    "musym": "1580",
+    "muname": "Colby silt loam, 6 to 15 percent slopes",
+    "areasymbol": "KS179",
+    "share": 0.163,
+    "aws0150_cm": "31",
+    "hydgrp": "B",
+    "drainage": "Well drained"
+   },
+   {
+    "mukey": "1150000",
+    "musym": "1652",
+    "muname": "Kuma silt loam, 0 to 1 percent slopes",
+    "areasymbol": "KS179",
+    "share": 0.112,
+    "aws0150_cm": "28.67",
+    "hydgrp": "C",
+    "drainage": "Well drained"
+   },
+   {
+    "mukey": "1150015",
+    "musym": "9999",
+    "muname": "Water",
+    "areasymbol": "KS179",
+    "share": 0.072,
+    "aws0150_cm": null,
+    "hydgrp": null,
+    "drainage": null
+   },
+   {
+    "mukey": "2668749",
+    "musym": "1859",
+    "muname": "Ulysses silt loam, 3 to 6 percent slopes",
+    "areasymbol": "KS179",
+    "share": 0.021,
+    "aws0150_cm": "20.85",
+    "hydgrp": "B",
+    "drainage": "Well drained"
+   }
+  ]
+ },
+ "fld02": {
+  "radius_m": 400,
+  "area_ha": 50.2,
+  "inside_lema": true,
+  "centroid": [
+   -100.669317,
+   39.390414
+  ],
+  "cdl": {
+   "2021": {
+    "pixels": 556,
+    "valid": 556,
+    "top": [
+     [
+      "Corn",
+      0.989
+     ],
+     [
+      "Sorghum",
+      0.011
+     ]
+    ],
+    "confirm": false
+   },
+   "2022": {
+    "pixels": 556,
+    "valid": 556,
+    "top": [
+     [
+      "Corn",
+      0.946
+     ],
+     [
+      "Developed/Open Space",
+      0.032
+     ],
+     [
+      "Fallow/Idle Cropland",
+      0.013
+     ]
+    ],
+    "confirm": false
+   },
+   "2023": {
+    "pixels": 556,
+    "valid": 556,
+    "top": [
+     [
+      "Sorghum",
+      0.919
+     ],
+     [
+      "Developed/Open Space",
+      0.032
+     ],
+     [
+      "Winter Wheat",
+      0.025
+     ]
+    ],
+    "confirm": true
+   },
+   "2024": {
+    "pixels": 556,
+    "valid": 556,
+    "top": [
+     [
+      "Sorghum",
+      1.0
+     ]
+    ],
+    "confirm": true
+   },
+   "2025": {
+    "pixels": 556,
+    "valid": 556,
+    "top": [
+     [
+      "Winter Wheat",
+      0.948
+     ],
+     [
+      "Grassland/Pasture",
+      0.023
+     ],
+     [
+      "Corn",
+      0.016
+     ]
+    ],
+    "confirm": false
+   }
+  },
+  "ssurgo": [
+   {
+    "mukey": "2759231",
+    "musym": "1623",
+    "muname": "Keith silt loam, 1 to 3 percent slopes, south",
+    "areasymbol": "KS179",
+    "share": 0.987,
+    "aws0150_cm": "31.42",
+    "hydgrp": "C",
+    "drainage": "Well drained"
+   },
+   {
+    "mukey": "2668749",
+    "musym": "1859",
+    "muname": "Ulysses silt loam, 3 to 6 percent slopes",
+    "areasymbol": "KS179",
+    "share": 0.013,
+    "aws0150_cm": "20.85",
+    "hydgrp": "B",
+    "drainage": "Well drained"
+   }
+  ]
+ },
+ "fld03": {
+  "radius_m": 400,
+  "area_ha": 50.0,
+  "inside_lema": true,
+  "centroid": [
+   -100.697438,
+   39.419264
+  ],
+  "cdl": {
+   "2021": {
+    "pixels": 554,
+    "valid": 554,
+    "top": [
+     [
+      "Corn",
+      0.966
+     ],
+     [
+      "Sorghum",
+      0.013
+     ],
+     [
+      "Fallow/Idle Cropland",
+      0.013
+     ]
+    ],
+    "confirm": false
+   },
+   "2022": {
+    "pixels": 554,
+    "valid": 554,
+    "top": [
+     [
+      "Winter Wheat",
+      0.93
+     ],
+     [
+      "Corn",
+      0.052
+     ],
+     [
+      "Developed/Open Space",
+      0.013
+     ]
+    ],
+    "confirm": false
+   },
+   "2023": {
+    "pixels": 554,
+    "valid": 554,
+    "top": [
+     [
+      "Winter Wheat",
+      0.984
+     ],
+     [
+      "Developed/Open Space",
+      0.013
+     ],
+     [
+      "Fallow/Idle Cropland",
+      0.004
+     ]
+    ],
+    "confirm": false
+   },
+   "2024": {
+    "pixels": 554,
+    "valid": 554,
+    "top": [
+     [
+      "Corn",
+      0.989
+     ],
+     [
+      "Grassland/Pasture",
+      0.007
+     ],
+     [
+      "Fallow/Idle Cropland",
+      0.002
+     ]
+    ],
+    "confirm": false
+   },
+   "2025": {
+    "pixels": 554,
+    "valid": 554,
+    "top": [
+     [
+      "Winter Wheat",
+      0.984
+     ],
+     [
+      "Corn",
+      0.009
+     ],
+     [
+      "Developed/Open Space",
+      0.007
+     ]
+    ],
+    "confirm": false
+   }
+  },
+  "ssurgo": [
+   {
+    "mukey": "2759231",
+    "musym": "1623",
+    "muname": "Keith silt loam, 1 to 3 percent slopes, south",
+    "areasymbol": "KS179",
+    "share": 0.547,
+    "aws0150_cm": "31.42",
+    "hydgrp": "C",
+    "drainage": "Well drained"
+   },
+   {
+    "mukey": "1150000",
+    "musym": "1652",
+    "muname": "Kuma silt loam, 0 to 1 percent slopes",
+    "areasymbol": "KS179",
+    "share": 0.42,
+    "aws0150_cm": "28.67",
+    "hydgrp": "C",
+    "drainage": "Well drained"
+   },
+   {
+    "mukey": "2668749",
+    "musym": "1859",
+    "muname": "Ulysses silt loam, 3 to 6 percent slopes",
+    "areasymbol": "KS179",
+    "share": 0.033,
+    "aws0150_cm": "20.85",
+    "hydgrp": "B",
+    "drainage": "Well drained"
+   }
+  ]
+ }
+}
