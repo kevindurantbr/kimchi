@@ -151,3 +151,7 @@ python3 t3_water_data.py weather --from-daily-csv weather_daily.csv --provenance
 - OpenET API docs (quick start, raster endpoints, data availability, changelog): <https://openet.gitbook.io/docs/quick-start>
 - OpenET OpenAPI spec (Polygon schema, auth scheme): <https://openet-api.org/openapi.json>
 - NASA announcement of OpenET's 48-state expansion (2025-12-16): <https://science.nasa.gov/blogs/science-news/2025/12/16/expanding-crucial-water-tracking/>
+
+## Integration update
+
+The adapter now accepts the field team’s `boundary_status: approximate` and preserves it as `geometry_status`; no relabelling as documented is needed. Response parsing rejects duplicate/invalid months, nonfinite/negative values, and ambiguous columns (e.g. pixel counts instead of ET). Flat geometry cannot silently discard holes. Partial calendar-month requests no longer claim complete monthly precipitation. `prototype/test_compare.py` adds regression coverage. Authenticated live response parsing still needs verification.
