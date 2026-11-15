@@ -16,7 +16,7 @@ The last commands print JSON. `--build` regenerates the committed `demo_bundle.j
 
 ## What consumers must preserve
 
-- Every field boundary is approximate. Irrigation is likely, not confirmed. LEMA inclusion was checked against an earlier order and a third-party boundary; current designation is not independently verified.
+- Every field boundary is approximate. Irrigation is likely, not confirmed. LEMA inclusion is verified against the 2023–2027 designation order (section membership only, not water-right enrolment or allocation); the boundary after 2027 is not verified.
 - Crop history is satellite classification. A 97% crop share is not 97% confidence. All inferred crop histories need farmer confirmation, even when the source's additional ambiguity flag is false.
 - Baseline is null until the farmer confirms both history and the intended continuation. `fld01` has five corn-dominant years; that alone is not a future plan. All three research sequences remain visible for each field.
 - NASA POWER weather is regional and shared across fields. It supplies historical context, not field-specific stress or future weather. Five years do not establish climate normals.

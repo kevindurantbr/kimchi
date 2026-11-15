@@ -8,7 +8,9 @@ mkdir -p raw src
 curl -s "https://services2.arcgis.com/ZOdjAzAQ2B0f85zi/ArcGIS/rest/services/Sheridan6_LEMA_sections_dissolve/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson" \
   -o src/sd6_lema_boundary.geojson
 
-# 2. SD-6 legal description (2018-2022 Order of Designation, GMD4 copy; scanned, read page 8)
+# 2. SD-6 legal description. Current: 2023-2027 Consolidated Order on the KDA Sheridan 6 LEMA page
+#    (https://www.agriculture.ks.gov/home/showpublisheddocument/4946/638466570231300000). KDA returns
+#    HTTP 403 to scripts, so open it in a browser (Section VII, pages 7-8). Historical 2018-2022 copy:
 curl -sL "https://gmd4.org/New/Sheridan%206%20LEMA%20Order%20of%20Designation.pdf" -o src/gmd4_sd6_order_of_designation.pdf
 
 # 3. BLM PLSS sections over the SD-6 extent
