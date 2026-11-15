@@ -1,11 +1,12 @@
 import {names,cropNames,priorities,finite,fieldName,selectField,weatherForYear,weatherSummary,storageAt,cropHistory,safeURL,validateBundle} from './model.mjs';
+import {fetchLiveWeather,LIVE_SOURCE_ID} from './live_weather.mjs';
 
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const number=(value,digits=1)=>finite(value)?value.toLocaleString('en-US',{maximumFractionDigits:digits,minimumFractionDigits:digits}):'Unavailable';
 const percent=value=>finite(value)?`${number(value*100)}%`:'Unknown coverage';
 const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const state={field:'fld01',year:'2025',metric:'rain',depth:150,priority:'water'};
+const state={field:'fld01',year:'2025',metric:'rain',depth:150,priority:'water',yearTouched:false};
 let bundle;
 function sourceButton(ids,label='Evidence & limits') {
   return `<button class="source-link" data-sources="${esc(ids.join(','))}">${esc(label)} <span aria-hidden="true">↗</span></button>`;
@@ -49,8 +50,8 @@ function renderWeather() {
   const top=18,bottom=132,y=v=>bottom-(v-min)/(max-min)*(bottom-top),zero=y(0);
   const ticks=Array.from({length:3},(_,i)=>min+(max-min)*i/2);
   const grid=ticks.map(v=>`<line class="chart-grid" x1="25" x2="276" y1="${y(v)}" y2="${y(v)}"/><text class="chart-label" x="20" y="${y(v)+3}" text-anchor="end">${Math.round(v)}</text>`).join('');
-  const bars=rows.map((r,i)=>{const val=r?.[key],x=29+i*20.3;const missing=!finite(val);return `<g><title>${months[i]} ${state.year}: ${missing?'unavailable':`${number(val,2)} ${unit}`} · ${esc(r?.quality??'missing')}</title>${missing?`<text class="chart-empty" x="${x+6}" y="${zero-5}" text-anchor="middle">×</text>`:`<rect x="${x}" y="${Math.min(y(val),zero)}" width="12" height="${Math.max(0.7,Math.abs(y(val)-zero))}" rx="2" fill="${rain?'#77989a':'#ba9563'}" ${r.quality!=='complete'?'opacity=".45"':''}/>`}<text class="chart-label" x="${x+6}" y="150" text-anchor="middle">${months[i][0]}</text></g>`;}).join('');
-  $('weather-content').innerHTML=`<div class="weather-number">${number(annual)}${finite(annual)?`<span>${unit}</span>`:''}</div><p class="metric-caption">${finite(annual)?`${state.year} ${rain?'total precipitation':'mean daily temperature'}`:'Annual summary unavailable · incomplete coverage'}</p><svg class="weather-chart" viewBox="0 0 286 160" role="img" aria-label="${state.year} monthly ${rain?'precipitation in millimetres':'mean temperature in degrees Celsius'}. Exact values and quality are in the table below.">${grid}${bars}</svg>${rows.some(r=>!r||r.quality!=='complete'||!finite(r[key]))?'<p class="fine-print coverage-warning">× = unavailable. Faded bars indicate partial data. Missing values are never treated as zero.</p>':''}<details class="weather-table"><summary>View monthly values & quality</summary><table><caption>${state.year} · ${rain?'Precipitation (mm)':'Mean temperature (°C)'}</caption><thead><tr><th scope="col">Month</th><th scope="col">Value</th><th scope="col">Quality</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${months[i]}</td><td>${number(r?.[key],2)}</td><td>${esc(r?.quality??'missing')}<br>${r?`${r.days_observed}/${r.days_expected} days`:'—'}</td></tr>`).join('')}</tbody></table></details>`;
+  const bars=rows.map((r,i)=>{const val=r?.[key],x=29+i*20.3;const missing=!finite(val);return `<g><title>${months[i]} ${state.year}: ${missing?'unavailable':`${number(val,2)} ${unit}`} · ${esc(r?.quality??'missing')}${r?.live?' · live, provisional':''}</title>${missing?`<text class="chart-empty" x="${x+6}" y="${zero-5}" text-anchor="middle">×</text>`:`<rect x="${x}" y="${Math.min(y(val),zero)}" width="12" height="${Math.max(0.7,Math.abs(y(val)-zero))}" rx="2" fill="${rain?'#77989a':'#ba9563'}" ${r.quality!=='complete'?'opacity=".45"':''}/>`}<text class="chart-label" x="${x+6}" y="150" text-anchor="middle">${months[i][0]}</text></g>`;}).join('');
+  $('weather-content').innerHTML=`<div class="weather-number">${number(annual)}${finite(annual)?`<span>${unit}</span>`:''}</div><p class="metric-caption">${finite(annual)?`${state.year} ${rain?'total precipitation':'mean daily temperature'}`:'Annual summary unavailable · incomplete coverage'}</p><svg class="weather-chart" viewBox="0 0 286 160" role="img" aria-label="${state.year} monthly ${rain?'precipitation in millimetres':'mean temperature in degrees Celsius'}. Exact values and quality are in the table below.">${grid}${bars}</svg>${rows.some(r=>!r||r.quality!=='complete'||!finite(r[key]))?'<p class="fine-print coverage-warning">× = unavailable. Faded bars indicate partial data. Missing values are never treated as zero.</p>':''}<details class="weather-table"><summary>View monthly values & quality</summary><table><caption>${state.year} · ${rain?'Precipitation (mm)':'Mean temperature (°C)'}</caption><thead><tr><th scope="col">Month</th><th scope="col">Value</th><th scope="col">Quality</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${months[i]}</td><td>${number(r?.[key],2)}</td><td>${esc(r?.quality??'missing')}${r?.live?' · live':''}<br>${r?`${r.days_observed}/${r.days_expected} days`:'—'}</td></tr>`).join('')}</tbody></table></details>`;
 }
 function renderSoil() {
   const field=selectField(bundle,state.field),row=storageAt(field,state.depth),coverage=row?.coverage_fraction;
@@ -87,19 +88,47 @@ document.addEventListener('keydown',event=>{
   if(field&&['Enter',' '].includes(event.key)){event.preventDefault();chooseField(field.dataset.field,true);}
 });
 $('field-select').addEventListener('change',event=>chooseField(event.target.value));
-$('weather-year').addEventListener('change',event=>{state.year=event.target.value;renderWeather();});
+$('weather-year').addEventListener('change',event=>{state.year=event.target.value;state.yearTouched=true;renderWeather();});
 $('soil-content').addEventListener('change',event=>{if(event.target.id==='soil-depth'){state.depth=Number(event.target.value);renderSoil();$('soil-depth').focus();}});
 $('all-sources').addEventListener('click',()=>{if(bundle)showSources();});
 $('close-sources').addEventListener('click',()=>$('source-dialog').close());
 $('source-dialog').addEventListener('click',event=>{if(event.target===$('source-dialog')){const r=$('source-dialog').getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)$('source-dialog').close();}});
+function populateYears() {
+  const years=[...new Set(bundle.regional_weather.rows.map(r=>r.month.slice(0,4)))].sort().reverse();
+  $('weather-year').innerHTML=years.map(y=>`<option value="${esc(y)}">${esc(y)}</option>`).join('');
+  $('weather-year').value=years.includes(state.year)?state.year:years[0];state.year=$('weather-year').value;
+}
+const reviewedRange=rows=>{const m=rows.filter(r=>!r.live).map(r=>r.month).sort();return `${m[0]?.slice(0,4)}–${m.at(-1)?.slice(0,4)}`;};
+const dayLabel=iso=>`${months[Number(iso.slice(5,7))-1]} ${Number(iso.slice(8))}, ${iso.slice(0,4)}`;
+// Live weather extends the reviewed series after it renders; failure leaves the reviewed snapshot in place.
+async function refreshLiveWeather() {
+  const target=bundle;
+  $('weather-live').innerHTML='<span class="badge neutral">Checking NASA POWER for newer months…</span>';
+  try {
+    const live=await fetchLiveWeather(target);
+    if(bundle!==target)return;
+    bundle.regional_weather.rows=live.rows;
+    bundle.sources=[...bundle.sources.filter(s=>s.source_id!==LIVE_SOURCE_ID),live.source];
+    if(!state.yearTouched&&live.added.length)state.year=live.added.at(-1).slice(0,4);
+    populateYears();renderWeather();
+    const fetched=new Date(live.fetchedAt).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+    const check=live.compared?(live.differing.length?` ${live.differing.length} of ${live.compared} overlapping months differ from the reviewed snapshot, so the reviewed values are shown for them.`:` The ${live.compared} overlapping months match the reviewed snapshot.`):'';
+    $('weather-live').innerHTML=`<span class="badge amber">Live · provisional</span> NASA POWER fetched ${esc(fetched)}. ${live.added.length?`Months after ${esc(live.lastReviewed)} are live and unreviewed${live.throughDay?`, with data through ${esc(dayLabel(live.throughDay))}`:''}.`:'No months newer than the reviewed snapshot yet.'}${esc(check)} ${sourceButton([LIVE_SOURCE_ID],'Live request & limits')}`;
+  }catch(error){
+    if(bundle!==target)return;
+    $('weather-live').innerHTML=`<span class="badge neutral">Live update unavailable</span> Showing the reviewed ${esc(reviewedRange(bundle.regional_weather.rows))} snapshot only.`;
+    console.warn('Live weather unavailable:',error.message);
+  }
+}
 async function load() {
   $('load-state').textContent='Loading reviewed field evidence…';
   try {
     const response=await fetch('./demo_bundle.json');if(!response.ok)throw new Error('Data request failed');
     bundle=validateBundle(await response.json());
     $('field-select').innerHTML=bundle.fields.map(f=>`<option value="${f.field_id}">${fieldName(f.field_id)}</option>`).join('');
-    renderField();renderWeather();renderSoil();renderPriority();renderCandidates();
+    populateYears();renderField();renderWeather();renderSoil();renderPriority();renderCandidates();
     $('load-state').hidden=true;$('workspace').hidden=false;
+    refreshLiveWeather();
   }catch(error){bundle=null;$('workspace').hidden=true;$('load-state').innerHTML='The reviewed evidence could not be loaded. No substitute values are shown.<button id="retry">Try again</button>';$('retry').addEventListener('click',load);console.error('Evidence unavailable:',error.message);}
 }
 load();
