@@ -97,5 +97,6 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
   }
   function fitAll() { if (fieldLayer.getLayers().length) map.fitBounds(fieldLayer.getBounds().pad(.35)); }
 
-  return { map, setFields, setGrid, setNdvi, fitTo, fitAll, startDraw, invalidate: () => map.invalidateSize() };
+  const stopDraw = () => { drawer?.disable(); drawer = null; };
+  return { map, setFields, setGrid, setNdvi, fitTo, fitAll, startDraw, stopDraw, invalidate: () => map.invalidateSize() };
 }

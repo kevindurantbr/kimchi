@@ -80,6 +80,8 @@ select, input[type="text"], input[type="number"], input[type="date"], input:not(
 .btn[aria-pressed="true"]:not(.icon) { border-color: var(--acc); color: var(--acc); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
+.banner .btn { margin-left: 10px; min-height: 30px; padding: 3px 9px; background: transparent; color: inherit; border-color: currentColor; }
+textarea { width: 100%; resize: vertical; font-size: 13px; }
 .banner { flex: none; padding: 8px 14px; background: var(--warn-bg); color: var(--warn-ink); border-bottom: 1px solid var(--warn-ink); font-size: 14px; }
 
 /* ---------- console grid ---------- */

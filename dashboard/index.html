@@ -140,6 +140,17 @@
     </form>
   </dialog>
 
+  <dialog id="dlg-coords" class="dlg" aria-labelledby="coords-title">
+    <form method="dialog" id="coords-form" novalidate>
+      <div class="dlg-head"><span class="code">N-02</span><h2 id="coords-title">Enter field corners</h2></div>
+      <label class="form-row"><span>Field name</span><input id="coords-name" required maxlength="60" autocomplete="off"></label>
+      <label class="form-row"><span>Corner coordinates: one "latitude, longitude" per line, at least 3 corners. A GeoJSON Polygon also works.</span>
+        <textarea id="coords-input" rows="6" spellcheck="false" class="mono" placeholder="39.3990, -100.6810&#10;39.3990, -100.6760&#10;39.3955, -100.6760&#10;39.3955, -100.6810"></textarea></label>
+      <p id="coords-msg" class="fine" role="status" aria-live="polite"></p>
+      <div class="form-actions"><button type="button" class="btn dlg-close">Cancel</button><button type="submit" value="ok" class="btn primary">Save field</button></div>
+    </form>
+  </dialog>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

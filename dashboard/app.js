@@ -209,19 +209,63 @@ function nameAndAddField(geometry) {
   showBanner('');
   input.value = ''; dlg.returnValue = '';
   dlg.showModal(); input.focus();
-  dlg.addEventListener('close', async () => {
-    if (dlg.returnValue !== 'ok' || !input.value.trim()) return;
-    if (!farm) farm = { schema: 'kimchi.farm.1', farm_name: 'My farm', synthetic: false, priorities: { water: .4, soil: .3, income: .3 }, constraints: {}, fields: [] };
-    // P1's store returns a new farm (immutable); the temporary stand-in returns the field. Handle both.
-    const before = new Set(farm.fields.map(f => f.field_id));
-    const res = ctx.farmStore.addField(farm, { name: input.value.trim(), geometry });
-    if (res?.fields) farm = res;
-    const ff = farm.fields.find(f => !before.has(f.field_id)) ?? res;
-    ctx.farmStore.saveFarm(farm);
-    ctx.fields.features.push({ type: 'Feature', geometry, properties: { field_id: ff.field_id, label: ff.name, label_short: ff.name.slice(0, 18).toUpperCase(), area_ha: ff.area_ha, boundary_status: 'drawn by farmer', soil: null, user: true } });
-    fillFieldSelect();
-    selectField(ff.field_id, { fit: true });
+  dlg.addEventListener('close', () => {
+    if (dlg.returnValue === 'ok' && input.value.trim()) saveNewField(input.value.trim(), geometry);
   }, { once: true });
+}
+
+/** Store a farmer-entered field (drawn or typed) and select it. */
+function saveNewField(name, geometry) {
+  if (!farm) farm = { schema: 'kimchi.farm.1', farm_name: 'My farm', synthetic: false, priorities: { water: .4, soil: .3, income: .3 }, constraints: {}, fields: [] };
+  // P1's store returns a new farm (immutable); the temporary stand-in returns the field. Handle both.
+  const before = new Set(farm.fields.map(f => f.field_id));
+  const res = ctx.farmStore.addField(farm, { name, geometry });
+  if (res?.fields) farm = res;
+  const ff = farm.fields.find(f => !before.has(f.field_id)) ?? res;
+  ctx.farmStore.saveFarm(farm);
+  ctx.fields.features.push({ type: 'Feature', geometry, properties: { field_id: ff.field_id, label: ff.name, label_short: ff.name.slice(0, 18).toUpperCase(), area_ha: ff.area_ha, boundary_status: 'drawn by farmer', soil: null, user: true } });
+  fillFieldSelect();
+  selectField(ff.field_id, { fit: true });
+}
+
+/** Keyboard path: corners as "lat, lon" lines, or a GeoJSON Polygon / Feature. Returns a closed Polygon or throws. */
+export function parseCorners(text) {
+  const t = text.trim();
+  if (!t) throw new Error('Enter at least 3 corners.');
+  let ring;
+  if (t.startsWith('{')) {
+    let g; try { g = JSON.parse(t); } catch { throw new Error('That looks like JSON but could not be read.'); }
+    g = g.type === 'FeatureCollection' ? g.features?.[0]?.geometry : g.type === 'Feature' ? g.geometry : g;
+    if (g?.type !== 'Polygon' || !Array.isArray(g.coordinates?.[0])) throw new Error('GeoJSON must be a Polygon (or a Feature with a Polygon).');
+    ring = g.coordinates[0].map(([lon, lat]) => [Number(lon), Number(lat)]);
+  } else {
+    ring = t.split(/[\n;]+/).map(s => s.trim()).filter(Boolean).map((line, i) => {
+      const n = line.split(/[\s,]+/).filter(Boolean).map(Number);
+      if (n.length !== 2 || n.some(v => !Number.isFinite(v))) throw new Error(`Line ${i + 1}: write "latitude, longitude", for example 39.3990, -100.6810.`);
+      return [n[1], n[0]];
+    });
+  }
+  for (const [lon, lat] of ring) if (lat < -90 || lat > 90 || lon < -180 || lon > 180) throw new Error(`Out of range: ${lat}, ${lon}. Latitude comes first.`);
+  const first = ring[0], last = ring.at(-1);
+  if (first[0] !== last[0] || first[1] !== last[1]) ring.push([...first]);
+  if (ring.length < 4) throw new Error('A field needs at least 3 different corners.');
+  return { type: 'Polygon', coordinates: [ring] };
+}
+
+function openCoordsDialog() {
+  map.stopDraw(); showBanner('');
+  const dlg = $('dlg-coords'), form = $('coords-form'), msg = $('coords-msg');
+  form.reset(); msg.textContent = ''; msg.className = 'fine';
+  dlg.showModal(); $('coords-name').focus();
+  form.onsubmit = e => {
+    e.preventDefault();
+    const name = $('coords-name').value.trim();
+    if (!name) { msg.textContent = 'Enter a field name.'; msg.className = 'state err'; $('coords-name').focus(); return; }
+    try {
+      const geometry = parseCorners($('coords-input').value);
+      dlg.close(); saveNewField(name, geometry);
+    } catch (err) { msg.textContent = err.message; msg.className = 'state err'; $('coords-input').focus(); }
+  };
 }
 
 async function loadUserFieldData(id) {
@@ -276,7 +320,15 @@ function wireChrome() {
     document.documentElement.dataset.theme = t; try { localStorage.setItem('kimchi.theme', t); } catch {}
     render();
   });
-  $('btn-draw').addEventListener('click', () => { if (state.view !== 'field') document.querySelector('[data-view="field"]').click(); map.startDraw(); showBanner('Click on the map to place the corners of your field. Click the first point to finish. Press Escape to cancel.'); });
+  $('btn-draw').addEventListener('click', () => {
+    if (state.view !== 'field') document.querySelector('[data-view="field"]').click();
+    map.startDraw();
+    showBanner('Click on the map to place the corners of your field. Click the first point to finish. Press Escape to cancel.');
+    // Keyboard path (drawing needs a pointer): type the corners instead.
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'btn', id: 'btn-coords', textContent: 'Enter coordinates instead' });
+    b.addEventListener('click', openCoordsDialog);
+    $('banner').append(b); b.focus();
+  });
   $('btn-records').addEventListener('click', async () => { const m = await import('./ui/farmForm.mjs'); m.openRecords({ ctx, getFarm: () => farm, setFarm: f => { farm = f; ctx.farmStore.saveFarm(farm); mergeUserFields(); fillFieldSelect(); recompute(); }, fieldId: state.field, analysis: state.analysis }); });
   $('btn-report').addEventListener('click', async () => { const m = await import('./ui/report.mjs'); m.openReport({ ctx, analysis: state.analysis, rec: state.rec, farm, field: fieldById(state.field), farmField: farmField(state.field) }); });
   $('btn-print').addEventListener('click', () => window.print());
