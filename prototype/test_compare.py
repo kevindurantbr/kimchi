@@ -29,7 +29,7 @@ class IntegrationTests(unittest.TestCase):
         result = compare.compare(self.bundle)
         self.assertIsNone(result["field"]["baseline"])
         self.assertIsNone(result["winner"])
-        self.assertEqual(result["field"]["et"]["rows"], [])
+        self.assertEqual(result["field"]["et"]["source_ids"], ["T3_MODIS_MOD16A2GF"])   # observed ET, not a prediction
         for c in result["candidates"]:
             self.assertEqual(c["status"], "conditional")
             self.assertTrue(all(v is None for v in c["numeric_outputs"].values()))
@@ -122,11 +122,20 @@ class ETPathwayTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, pattern):
             compare.validate(data, allow_synthetic_et=True)
 
-    def test_empty_envelope_keeps_committed_bundle_byte_identical(self):
+    def test_committed_bundle_pins_modis_et(self):
         bundle = compare.build_bundle()
         self.assertEqual(compare.dumps(bundle).encode("utf-8"),
                          (compare.ROOT / "prototype/demo_bundle.json").read_bytes())
         self.assertEqual(compare.input_paths(), compare.INPUTS)
+        for f in bundle["fields"]:
+            et = f["et"]
+            self.assertEqual((et["status"], et["source_ids"], et["units"]), ("available", ["T3_MODIS_MOD16A2GF"], "mm"))
+            self.assertEqual(et["coverage"]["months_expected"], 60)
+            self.assertEqual(et["uncertainty"], {"status": "unavailable", "rows": []})
+            self.assertIn("may underestimate irrigated crop water use", et["interpretation"])
+
+    def test_empty_et_file_stays_unavailable(self):
+        bundle = compare.build_bundle(et_path="research/deliverables/weather-water/et_sample.json")
         self.assertTrue(all(f["et"] == UNAVAILABLE for f in bundle["fields"]))
 
     def test_adapter_without_key_stays_unavailable(self):

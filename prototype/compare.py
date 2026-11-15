@@ -16,20 +16,21 @@ INPUTS = {
     "fields": "research/deliverables/fields-soils/fields.geojson",
     "observations": "research/deliverables/fields-soils/field_observations.json",
     "weather": "research/deliverables/weather-water/weather.json",
-    "et": "research/deliverables/weather-water/et_sample.json",
+    "et": "research/deliverables/weather-water/et_modis.json",
 }
 PRIORITIES = {
     "water": ["T1_R02_ANNUAL_VS_PEAK", "T1_R03_ET_NOT_PUMPING", "T1_R05_WHEAT_HANDOFF"],
     "soil": ["T1_R12_RESIDUE_AND_RECHARGE", "T1_R10_NO_FAMILY_OR_N_CREDIT"],
     "operations": ["T1_R05_WHEAT_HANDOFF", "T1_R13_MARKET_AND_EQUIPMENT", "T1_R08_HERBICIDE_UNKNOWN"],
 }
-# OpenET adapter contract: research/deliverables/weather-water/t3_water_data.py (`et` sub-command).
-ET_SOURCE_ID = "T3_OPENET_ENSEMBLE_MONTHLY"
+# ET row contract: research/deliverables/weather-water/t3_water_data.py (`et`, OpenET) and modis_et.py (MODIS).
+ET_SOURCE_PREFIXES = ("T3_OPENET", "T3_MODIS")
 ET_ROW_KEYS = {"field_id", "month", "et_mm", "source_ids", "quality", "geometry_status"}
 ET_MAD_ROW_KEYS = {"field_id", "month", "et_mad_min_mm", "et_mad_max_mm", "source_ids", "geometry_status"}
 ET_QUALITIES = {"reported", "area_weighted_from_parts", "missing"}
 ET_INTERPRETATION = ("Modelled actual ET from rain, irrigation and shallow groundwater; not pumping, not crop "
                      "stress, not a prediction for another rotation. Null months are missing, never zero.")
+MODIS_NOTE = " One 500 m MODIS pixel at the field centre; may underestimate irrigated crop water use."
 
 
 def require(condition, message):
@@ -62,7 +63,9 @@ def month_range(start, end):
 
 
 def recorded_request(source):
-    """The adapter records the request body it sent (no secrets) after 'body='."""
+    """Period/units: an explicit monthly_output record (MODIS) or the adapter's request body after 'body='."""
+    if isinstance(source.get("monthly_output"), dict):
+        return source["monthly_output"]
     text = source.get("request_without_secrets") or ""
     require("body=" in text, "ET request (period/units) not recorded")
     try:
@@ -81,9 +84,9 @@ def et_sources(doc, allow_synthetic):
     return found
 
 
-def openet_ids(ids, sources):
+def et_ids(ids, sources):
     return isinstance(ids, list) and bool(ids) and all(
-        isinstance(i, str) and i in sources and i.startswith("T3_OPENET") for i in ids)
+        isinstance(i, str) and i in sources and i.startswith(ET_SOURCE_PREFIXES) for i in ids)
 
 
 def validate_et(data, boundary, allow_synthetic=False):
@@ -92,12 +95,13 @@ def validate_et(data, boundary, allow_synthetic=False):
     An empty envelope, or a field without rows, stays unavailable. Missing months stay null."""
     et, mad = data["et"], data.get("et_mad")
     sources = et_sources(et, allow_synthetic)
-    require(ET_SOURCE_ID in sources, "ET source record missing")
-    blocks = {fid: {"status": "unavailable", "rows": [], "source_ids": [ET_SOURCE_ID]} for fid in boundary}
+    primary = [i for i in sources if i.startswith(ET_SOURCE_PREFIXES)]
+    require(len(primary) == 1, "ET file needs exactly one OpenET or MODIS source record")
+    blocks = {fid: {"status": "unavailable", "rows": [], "source_ids": list(primary)} for fid in boundary}
     if not et["rows"]:
         require(mad is None or not mad["rows"], "ET MAD range supplied without ET rows")
         return blocks
-    source = sources[ET_SOURCE_ID]
+    source = sources[primary[0]]
     require(source.get("retrieved_date") and "NOT RETRIEVED" not in (source.get("product_version") or ""),
             "ET rows without a recorded retrieval")
     request = recorded_request(source)
@@ -116,7 +120,7 @@ def validate_et(data, boundary, allow_synthetic=False):
         require(row["geometry_status"] == boundary[fid], "ET geometry status does not match the field boundary")
         require(isinstance(month, str) and month in months, "ET month outside recorded period: %r" % (month,))
         require(all(r["month"] != month for r in rows[fid]), "Duplicate ET month: %s %s" % (fid, month))
-        require(openet_ids(row["source_ids"], sources), "Unresolved ET source: %r" % (row["source_ids"],))
+        require(et_ids(row["source_ids"], sources), "Unresolved ET source: %r" % (row["source_ids"],))
         require(val is None or is_depth(val), "Invalid ET value: %r" % (val,))
         require(row["quality"] in ET_QUALITIES, "Unknown ET quality")
         require((val is None) == (row["quality"] == "missing"), "ET quality contradicts its value")
@@ -130,7 +134,7 @@ def validate_et(data, boundary, allow_synthetic=False):
             require(any(r["month"] == row["month"] for r in rows.get(fid, [])), "MAD range row without ET row")
             require(row["geometry_status"] == boundary[fid], "MAD range geometry status does not match")
             require(all(r["month"] != row["month"] for r in spread[fid]), "Duplicate MAD range month")
-            require(openet_ids(row["source_ids"], mad_sources), "Unresolved MAD range source")
+            require(et_ids(row["source_ids"], mad_sources), "Unresolved MAD range source")
             require(all(v is None or is_depth(v) for v in (lo, hi)), "Invalid MAD range value")
             require(lo is None or hi is None or lo <= hi, "MAD range minimum exceeds maximum")
             spread[fid].append(row)
@@ -147,7 +151,7 @@ def validate_et(data, boundary, allow_synthetic=False):
             "uncertainty": {"status": "available", "kind": "OpenET ensemble MAD range; model spread, not a confidence interval",
                             "units": "mm", "source_ids": sorted({i for r in unc for i in r["source_ids"]}), "rows": unc}
             if unc else {"status": "unavailable", "rows": []},
-            "interpretation": ET_INTERPRETATION,
+            "interpretation": ET_INTERPRETATION + (MODIS_NOTE if primary[0].startswith("T3_MODIS") else ""),
         }
     return blocks
 
