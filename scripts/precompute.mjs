@@ -92,6 +92,7 @@ async function site() {
       field_ids: ['fld01', 'fld02', 'fld03'],
       start: daily.date[0],
       end: daily.date[daily.date.length - 1],
+      elevation_m: p.elevation_m,
       last_valid,
       units: p.units,
       api_version: p.api_version,

@@ -213,13 +213,15 @@ export async function fetchPowerDaily({ lat, lon, start, end, params = POWER_PAR
     });
   }
   const units = {};
-  for (const param of params) units[powerKey(param)] = POWER_UNITS[powerKey(param)] ?? json.parameters?.[param]?.units ?? null;
+  for (const param of params) units[powerKey(param)] = json.parameters?.[param]?.units ?? POWER_UNITS[powerKey(param)] ?? null;
+  const elev = json.geometry?.coordinates?.[2];
   return {
     site_id: powerSiteId(lat, lon),
     lat: Number(lat),
     lon: Number(lon),
     start: daily.date[0] ?? isoFromCompact(s),
     end: daily.date[daily.date.length - 1] ?? isoFromCompact(e),
+    elevation_m: Number.isFinite(elev) ? elev : null,
     daily,
     units,
     retrieved_at: new Date().toISOString(),
