@@ -1,3 +1,4 @@
+// AI disclosure: written with an AI coding assistant (Claude Code); the team is responsible for reviewing it (Space Apps AI rules).
 // Kimchi decision support: top-3 actions and rotation comparison cards.
 //
 // Pure functions, no dependencies, browser + Node 18+. Owner: P4.

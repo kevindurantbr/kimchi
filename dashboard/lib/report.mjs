@@ -1,3 +1,4 @@
+// AI disclosure: written with an AI coding assistant (Claude Code); the team is responsible for reviewing it (Space Apps AI rules).
 // Kimchi season / quarter report. Owner: P4. Pure functions, browser + Node 18+.
 //
 //   buildReport({ analysis, recs, farm, field, period }) → { title, period, sections: [{ heading, items }] }

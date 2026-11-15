@@ -2,31 +2,78 @@
   "generated_at": "2026-11-15T23:30:00Z",
   "schema": "kimchi.crops.1",
   "owner": "P4",
+  "ai_assistance": "Drafted with an AI coding assistant (Claude Code) from the team's cited agronomy package, FAO-56 and K-State sources; the team should check values against those sources. Disclosed per Space Apps AI rules.",
   "notes": [
     "Values are regional starting points for western Kansas, not field-calibrated parameters.",
     "A null means 'not evaluated': no sourced value was found tonight. Each null has a matching 'verify' note.",
     "GDD values are °C·days with the 10/30 °C method (equivalent to the 50/86 °F method), counted from planting. K-State °F values were divided by 1.8.",
     "Corn, sorghum and winter wheat are all grasses (family 'grass'): changing between them gives no automatic family-break credit (agronomy rule T1_R10_NO_FAMILY_OR_N_CREDIT)."
   ],
-  "source_ids": ["FAO56", "KSU_CORN_GDD_LATEPLANT", "KSU_SORGHUM_GDD", "KSU_WHEAT_HEAT", "T1_NW_CORN_CALENDAR", "T1_NW_WHEAT_CALENDAR", "T1_NASS_CALENDAR", "T1_CORN_GUIDE", "T1_SORGHUM_GUIDE", "NASA_POWER_DAILY"],
+  "source_ids": [
+    "FAO56",
+    "KSU_CORN_GDD_LATEPLANT",
+    "KSU_SORGHUM_GDD",
+    "KSU_WHEAT_HEAT",
+    "T1_NW_CORN_CALENDAR",
+    "T1_NW_WHEAT_CALENDAR",
+    "T1_NASS_CALENDAR",
+    "T1_CORN_GUIDE",
+    "T1_SORGHUM_GUIDE",
+    "NASA_POWER_DAILY"
+  ],
   "crops": [
     {
       "id": "corn",
       "name": "Corn (grain)",
       "family": "grass",
       "agronomy_crop_id": "corn",
-      "season": { "plant": "04-25", "harvest": "10-05", "plant_window": ["04-25", "05-15"], "harvest_window": ["09-10", "10-25"], "harvest_year_offset": 0 },
+      "season": {
+        "plant": "04-25",
+        "harvest": "10-05",
+        "plant_window": [
+          "04-25",
+          "05-15"
+        ],
+        "harvest_window": [
+          "09-10",
+          "10-25"
+        ],
+        "harvest_year_offset": 0
+      },
       "gdd_base_c": 10,
       "gdd_cap_c": 30,
       "gdd_to_silking_c": 835,
       "gdd_to_maturity_c": 1485,
-      "sensitive_window": { "name": "pollination", "gdd_from": 735, "gdd_to": 935, "months_typical": [7] },
+      "sensitive_window": {
+        "name": "pollination",
+        "gdd_from": 735,
+        "gdd_to": 935,
+        "months_typical": [
+          7
+        ]
+      },
       "heat_threshold_c": 35,
-      "kc": { "ini": 0.3, "mid": 1.2, "end": 0.6, "stage_days": [30, 40, 50, 30] },
+      "kc": {
+        "ini": 0.3,
+        "mid": 1.2,
+        "end": 0.6,
+        "stage_days": [
+          30,
+          40,
+          50,
+          30
+        ]
+      },
       "root_depth_m": 1.5,
       "p_depletion": 0.55,
       "frost_free_days_needed": 125,
-      "source_ids": ["FAO56", "KSU_CORN_GDD_LATEPLANT", "T1_NW_CORN_CALENDAR", "T1_NASS_CALENDAR", "T1_CORN_GUIDE"],
+      "source_ids": [
+        "FAO56",
+        "KSU_CORN_GDD_LATEPLANT",
+        "T1_NW_CORN_CALENDAR",
+        "T1_NASS_CALENDAR",
+        "T1_CORN_GUIDE"
+      ],
       "value_sources": {
         "season.plant_window": "T1_NW_CORN_CALENDAR (regional sowing reference, as in agronomy.json corn_corn)",
         "season.harvest_window": "T1_NASS_CALENDAR statewide historical most-active range, not a local deadline",
@@ -54,18 +101,53 @@
       "name": "Grain sorghum",
       "family": "grass",
       "agronomy_crop_id": "grain_sorghum",
-      "season": { "plant": "05-25", "harvest": "10-20", "plant_window": ["05-15", "06-20"], "harvest_window": ["09-25", "11-10"], "harvest_year_offset": 0 },
+      "season": {
+        "plant": "05-25",
+        "harvest": "10-20",
+        "plant_window": [
+          "05-15",
+          "06-20"
+        ],
+        "harvest_window": [
+          "09-25",
+          "11-10"
+        ],
+        "harvest_year_offset": 0
+      },
       "gdd_base_c": 10,
       "gdd_cap_c": 30,
       "gdd_to_silking_c": null,
       "gdd_to_maturity_c": null,
-      "sensitive_window": { "name": "boot to half-bloom", "gdd_from": null, "gdd_to": null, "months_typical": [7, 8] },
+      "sensitive_window": {
+        "name": "boot to half-bloom",
+        "gdd_from": null,
+        "gdd_to": null,
+        "months_typical": [
+          7,
+          8
+        ]
+      },
       "heat_threshold_c": 35,
-      "kc": { "ini": 0.3, "mid": 1.05, "end": 0.55, "stage_days": [20, 35, 40, 30] },
+      "kc": {
+        "ini": 0.3,
+        "mid": 1.05,
+        "end": 0.55,
+        "stage_days": [
+          20,
+          35,
+          40,
+          30
+        ]
+      },
       "root_depth_m": 1.5,
       "p_depletion": 0.55,
       "frost_free_days_needed": null,
-      "source_ids": ["FAO56", "KSU_SORGHUM_GDD", "T1_NASS_CALENDAR", "T1_SORGHUM_GUIDE"],
+      "source_ids": [
+        "FAO56",
+        "KSU_SORGHUM_GDD",
+        "T1_NASS_CALENDAR",
+        "T1_SORGHUM_GUIDE"
+      ],
       "value_sources": {
         "season.plant_window": "T1_NASS_CALENDAR statewide historical range (as in agronomy.json corn_sorghum); local upper planting limit unresolved",
         "season.harvest_window": "T1_NASS_CALENDAR statewide historical range",
@@ -87,18 +169,56 @@
       "name": "Winter wheat",
       "family": "grass",
       "agronomy_crop_id": "winter_wheat",
-      "season": { "plant": "09-25", "harvest": "06-30", "plant_window": ["09-15", "10-20"], "harvest_window": ["06-20", "07-05"], "harvest_year_offset": 1 },
+      "season": {
+        "plant": "09-25",
+        "harvest": "06-30",
+        "plant_window": [
+          "09-15",
+          "10-20"
+        ],
+        "harvest_window": [
+          "06-20",
+          "07-05"
+        ],
+        "harvest_year_offset": 1
+      },
       "gdd_base_c": 0,
       "gdd_cap_c": null,
       "gdd_to_silking_c": null,
       "gdd_to_maturity_c": null,
-      "sensitive_window": { "name": "flowering and grain fill", "gdd_from": null, "gdd_to": null, "date_from": "05-01", "date_to": "06-15", "months_typical": [5, 6] },
+      "sensitive_window": {
+        "name": "flowering and grain fill",
+        "gdd_from": null,
+        "gdd_to": null,
+        "date_from": "05-01",
+        "date_to": "06-15",
+        "months_typical": [
+          5,
+          6
+        ]
+      },
       "heat_threshold_c": 32,
-      "kc": { "ini": 0.4, "mid": 1.15, "end": 0.3, "stage_days": [133, 62, 62, 21] },
+      "kc": {
+        "ini": 0.4,
+        "mid": 1.15,
+        "end": 0.3,
+        "stage_days": [
+          133,
+          62,
+          62,
+          21
+        ]
+      },
       "root_depth_m": 1.5,
       "p_depletion": 0.55,
       "frost_free_days_needed": null,
-      "source_ids": ["FAO56", "KSU_WHEAT_HEAT", "T1_NW_WHEAT_CALENDAR", "T1_NASS_CALENDAR", "T1_WHEAT_AFTER_CORN"],
+      "source_ids": [
+        "FAO56",
+        "KSU_WHEAT_HEAT",
+        "T1_NW_WHEAT_CALENDAR",
+        "T1_NASS_CALENDAR",
+        "T1_WHEAT_AFTER_CORN"
+      ],
       "value_sources": {
         "season.plant": "T1_NW_WHEAT_CALENDAR: northwest Kansas target around September 25",
         "season.plant_window": "T1_NASS_CALENDAR statewide historical range; do not treat Oct 20 as a northwest cutoff",
@@ -122,18 +242,37 @@
       "name": "Fallow (no crop)",
       "family": "none",
       "agronomy_crop_id": null,
-      "season": { "plant": null, "harvest": null, "plant_window": null, "harvest_window": null, "harvest_year_offset": 0 },
+      "season": {
+        "plant": null,
+        "harvest": null,
+        "plant_window": null,
+        "harvest_window": null,
+        "harvest_year_offset": 0
+      },
       "gdd_base_c": null,
       "gdd_cap_c": null,
       "gdd_to_silking_c": null,
       "gdd_to_maturity_c": null,
       "sensitive_window": null,
       "heat_threshold_c": null,
-      "kc": { "ini": 0.3, "mid": 0.3, "end": 0.3, "stage_days": [90, 90, 90, 95], "rough": true },
+      "kc": {
+        "ini": 0.3,
+        "mid": 0.3,
+        "end": 0.3,
+        "stage_days": [
+          90,
+          90,
+          90,
+          95
+        ],
+        "rough": true
+      },
       "root_depth_m": null,
       "p_depletion": null,
       "frost_free_days_needed": null,
-      "source_ids": ["FAO56"],
+      "source_ids": [
+        "FAO56"
+      ],
       "value_sources": {
         "kc": "Rough bare-soil evaporation coefficient (FAO-56 Ch. 6: Kc ini for bare/sparse soil depends on wetting interval and soil; ~0.3 for infrequent wetting). Flat over 365 d"
       },

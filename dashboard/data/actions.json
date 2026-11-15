@@ -2,6 +2,7 @@
   "generated_at": "2026-11-15T23:50:00Z",
   "schema": "kimchi.actions.1",
   "owner": "P4",
+  "ai_assistance": "Drafted with an AI coding assistant (Claude Code) from the team's cited agronomy package, FAO-56 and K-State sources; the team should check values against those sources. Disclosed per Space Apps AI rules.",
   "notes": [
     "Triggers are evaluated by recommend.mjs against the analysis output plus a 'derived' block (see recommend.mjs deriveContext). A missing value never triggers an action.",
     "evidence_level: A = regional field trial / extension research; B = general extension guidance; C = rule of thumb.",
