@@ -1,0 +1,41 @@
+{
+  "request_url": "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR,T2M,T2M_MIN,T2M_MAX&community=AG&longitude=-100.64&latitude=39.36&start=20210101&end=20251231&format=JSON",
+  "longitude": -100.64,
+  "latitude": 39.36,
+  "retrieved_utc": "2026-11-15T01:01:14Z",
+  "http_status": 200,
+  "raw_sha256": "702d13036f3920ab92cc9ee72ebb45b8911fb422a2fa94aaf01c2215d07add80",
+  "raw_bytes": 120395,
+  "retrieval_route": "Browser fetch from the user's computer (this workspace's network blocks power.larc.nasa.gov). Daily values were exported per year as CSV and each yearly chunk was verified by SHA-256 against the browser copy before assembly into weather_daily.csv. Running `t3_water_data.py weather` on any machine with internet repeats the same request and also saves the raw JSON.",
+  "daily_chunk_sha256": {
+    "2021": "29992c1777fb570f01e8192ee9a7566e494372e64699b09a689cfa992c7dc4bd",
+    "2022": "796ec90f769353c408ccc903285b5c098c4f4dbbf48ec3ef8eccdb56789f9344",
+    "2023": "8765dd42c652a6eeba0df1b52fb1ed79a46aa4a4a75b1a80aab115ac51d22d76",
+    "2024": "2885de79b2ab1d839c4f99f260687b2d3654fb7c39dcf4131e62452ff9b4ff39",
+    "2025": "f174d845eb10935566bafcf4ab9c311ece61f3fc29e743ee4361ce9a49023d2b"
+  },
+  "record_counts": {
+    "PRECTOTCORR": 1826,
+    "T2M": 1826,
+    "T2M_MIN": 1826,
+    "T2M_MAX": 1826,
+    "fill_values_found": 0
+  },
+  "power_header": {
+    "title": "NASA/POWER Source Native Resolution Daily Data",
+    "api": {"name": "POWER Daily API", "version": "v2.10.3"},
+    "sources": ["MERRA2", "POWER"],
+    "fill_value": -999,
+    "time_standard": "LST",
+    "start": "20210101",
+    "end": "20251231"
+  },
+  "power_parameters": {
+    "PRECTOTCORR": {"longname": "Precipitation Corrected", "units": "mm/day"},
+    "T2M": {"longname": "Temperature at 2 Meters", "units": "C"},
+    "T2M_MAX": {"longname": "Temperature at 2 Meters Maximum", "units": "C"},
+    "T2M_MIN": {"longname": "Temperature at 2 Meters Minimum", "units": "C"}
+  },
+  "power_geometry": {"type": "Point", "coordinates": [-100.64, 39.36, 866.83]},
+  "power_messages": []
+}

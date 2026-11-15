@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "source_id": "T3_OPENET_ENSEMBLE_MONTHLY",
+      "title": "OpenET Ensemble monthly actual ET (API raster/timeseries/polygon, reducer=mean)",
+      "url": "https://openet.gitbook.io/docs/reference/api-reference/raster",
+      "request_without_secrets": "POST https://openet-api.org/raster/timeseries/polygon with header Authorization: $OPENET_API_KEY (value not stored); body={\"date_range\":[\"2021-01-01\",\"2025-12-31\"],\"interval\":\"monthly\",\"model\":\"ensemble\",\"variable\":\"et\",\"reference_et\":\"gridmet\",\"reducer\":\"mean\",\"units\":\"mm\",\"file_format\":\"json\",\"version\":2.1,\"geometry\":[-100.6447,39.3564,-100.6353,39.3564,-100.6353,39.3636,-100.6447,39.3636]}",
+      "product_version": "OpenET image collection version 2.1 requested (API default 2.1 per OpenAPI 3.2 spec); NOT RETRIEVED: access check on 2026-11-15 (UTC) - POST https://openet-api.org/raster/timeseries/polygon without credentials returned HTTP 403 {\"detail\":\"Not authenticated\"}; Teammate 3 has no OpenET API key. Stopped per brief; no ET substituted.",
+      "retrieved_date": null,
+      "spatial_support": "Mean of 30 m OpenET pixels inside each supplied field polygon; MultiPolygon parts are queried separately and area-weighted.",
+      "limitations": "Modelled actual ET (ensemble mean of up to six satellite models after MAD outlier removal), not a measurement and not pumped irrigation: it includes water from rain, irrigation and shallow groundwater. High ET is not automatically crop stress; rain minus ET is only a partial water-balance indicator. The 200-response schema is undocumented; the parser accepts list-of-records JSON and saves raw responses. The OpenAPI spec lists no per-month quality-flag variable for this endpoint, so row quality only says reported/missing/area_weighted_from_parts. The product's own spread indicator is the ensemble MAD range (variables et_mad_min/et_mad_max, requested with --with-uncertainty)."
+    }
+  ],
+  "rows": []
+}

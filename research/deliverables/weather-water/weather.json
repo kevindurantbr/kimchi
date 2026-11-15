@@ -1,0 +1,737 @@
+{
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "source_id": "T3_NASA_POWER_DAILY",
+      "title": "NASA POWER Daily API, point request: PRECTOTCORR, T2M, T2M_MIN, T2M_MAX",
+      "url": "https://power.larc.nasa.gov/docs/services/api/temporal/daily/",
+      "request_without_secrets": "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR,T2M,T2M_MIN,T2M_MAX&community=AG&longitude=-100.64&latitude=39.36&start=20210101&end=20251231&format=JSON",
+      "product_version": "POWER Daily API v2.10.3; header.sources=MERRA2,POWER; title='NASA/POWER Source Native Resolution Daily Data'; time_standard=LST",
+      "retrieved_date": "2026-11-15",
+      "spatial_support": "Single POWER meteorology grid cell containing lon -100.64, lat 39.36 (MERRA-2-based, source native resolution, about 0.5 deg lat x 0.625 deg lon, i.e. tens of km). Regional context only; not a field or LEMA value.",
+      "limitations": "Modelled/reanalysis weather, not a gauge or on-farm measurement. PRECTOTCORR is bias-corrected model precipitation (mm/day); daily values are Local Solar Time days. Five years (2021-2025) are historical examples, not climate normals or a trend. Fill value -999 is treated as missing (null); monthly precipitation is null unless every day is valid."
+    }
+  ],
+  "rows": [
+    {
+      "region_id": "regional_sample",
+      "month": "2021-01",
+      "precipitation_mm": 10.71,
+      "mean_temperature_c": 0.02,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-02",
+      "precipitation_mm": 5.56,
+      "mean_temperature_c": -4.35,
+      "days_observed": 28,
+      "days_expected": 28,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-03",
+      "precipitation_mm": 101.32,
+      "mean_temperature_c": 6.39,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-04",
+      "precipitation_mm": 21.08,
+      "mean_temperature_c": 10.39,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-05",
+      "precipitation_mm": 147.03,
+      "mean_temperature_c": 16.14,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-06",
+      "precipitation_mm": 44.52,
+      "mean_temperature_c": 24.6,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-07",
+      "precipitation_mm": 40.37,
+      "mean_temperature_c": 26.43,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-08",
+      "precipitation_mm": 35.05,
+      "mean_temperature_c": 27.13,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-09",
+      "precipitation_mm": 64.81,
+      "mean_temperature_c": 23.11,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-10",
+      "precipitation_mm": 20.49,
+      "mean_temperature_c": 13.6,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-11",
+      "precipitation_mm": 3.39,
+      "mean_temperature_c": 7.76,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2021-12",
+      "precipitation_mm": 1.61,
+      "mean_temperature_c": 3.27,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-01",
+      "precipitation_mm": 13.95,
+      "mean_temperature_c": -1.08,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-02",
+      "precipitation_mm": 1.59,
+      "mean_temperature_c": -0.46,
+      "days_observed": 28,
+      "days_expected": 28,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-03",
+      "precipitation_mm": 19.98,
+      "mean_temperature_c": 4.99,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-04",
+      "precipitation_mm": 11.2,
+      "mean_temperature_c": 11.93,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-05",
+      "precipitation_mm": 57.98,
+      "mean_temperature_c": 17.94,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-06",
+      "precipitation_mm": 37.49,
+      "mean_temperature_c": 25.59,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-07",
+      "precipitation_mm": 140.11,
+      "mean_temperature_c": 28.38,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-08",
+      "precipitation_mm": 20.75,
+      "mean_temperature_c": 26.45,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-09",
+      "precipitation_mm": 40.8,
+      "mean_temperature_c": 22.41,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-10",
+      "precipitation_mm": 7.84,
+      "mean_temperature_c": 13.79,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-11",
+      "precipitation_mm": 0.63,
+      "mean_temperature_c": 4.03,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2022-12",
+      "precipitation_mm": 10.55,
+      "mean_temperature_c": -1.07,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-01",
+      "precipitation_mm": 21.7,
+      "mean_temperature_c": -1.36,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-02",
+      "precipitation_mm": 16.17,
+      "mean_temperature_c": 0.8,
+      "days_observed": 28,
+      "days_expected": 28,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-03",
+      "precipitation_mm": 12.7,
+      "mean_temperature_c": 2.94,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-04",
+      "precipitation_mm": 10.54,
+      "mean_temperature_c": 11.82,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-05",
+      "precipitation_mm": 127.64,
+      "mean_temperature_c": 18.19,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-06",
+      "precipitation_mm": 103.72,
+      "mean_temperature_c": 22.43,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-07",
+      "precipitation_mm": 69.68,
+      "mean_temperature_c": 26.38,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-08",
+      "precipitation_mm": 78.72,
+      "mean_temperature_c": 26.34,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-09",
+      "precipitation_mm": 21.06,
+      "mean_temperature_c": 22.66,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-10",
+      "precipitation_mm": 14.27,
+      "mean_temperature_c": 13.11,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-11",
+      "precipitation_mm": 5.43,
+      "mean_temperature_c": 6.69,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2023-12",
+      "precipitation_mm": 18.23,
+      "mean_temperature_c": 2.15,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-01",
+      "precipitation_mm": 14.3,
+      "mean_temperature_c": -3.09,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-02",
+      "precipitation_mm": 26.2,
+      "mean_temperature_c": 4.41,
+      "days_observed": 29,
+      "days_expected": 29,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-03",
+      "precipitation_mm": 19.75,
+      "mean_temperature_c": 7.11,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-04",
+      "precipitation_mm": 33.64,
+      "mean_temperature_c": 13.41,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-05",
+      "precipitation_mm": 106.27,
+      "mean_temperature_c": 17.56,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-06",
+      "precipitation_mm": 50.95,
+      "mean_temperature_c": 25.9,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-07",
+      "precipitation_mm": 56.44,
+      "mean_temperature_c": 26.7,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-08",
+      "precipitation_mm": 76.43,
+      "mean_temperature_c": 25.88,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-09",
+      "precipitation_mm": 25.22,
+      "mean_temperature_c": 22.68,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-10",
+      "precipitation_mm": 10.54,
+      "mean_temperature_c": 15.92,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-11",
+      "precipitation_mm": 75.07,
+      "mean_temperature_c": 5.61,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2024-12",
+      "precipitation_mm": 0.92,
+      "mean_temperature_c": 2.53,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-01",
+      "precipitation_mm": 3.84,
+      "mean_temperature_c": -2.35,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-02",
+      "precipitation_mm": 12.66,
+      "mean_temperature_c": -2.33,
+      "days_observed": 28,
+      "days_expected": 28,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-03",
+      "precipitation_mm": 11.03,
+      "mean_temperature_c": 9.45,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-04",
+      "precipitation_mm": 45.06,
+      "mean_temperature_c": 13.35,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-05",
+      "precipitation_mm": 49.94,
+      "mean_temperature_c": 17.38,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-06",
+      "precipitation_mm": 101.81,
+      "mean_temperature_c": 24.33,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-07",
+      "precipitation_mm": 102.49,
+      "mean_temperature_c": 26.59,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-08",
+      "precipitation_mm": 101.69,
+      "mean_temperature_c": 25.25,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-09",
+      "precipitation_mm": 84.5,
+      "mean_temperature_c": 21.25,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-10",
+      "precipitation_mm": 23.62,
+      "mean_temperature_c": 14.9,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-11",
+      "precipitation_mm": 28.21,
+      "mean_temperature_c": 7.11,
+      "days_observed": 30,
+      "days_expected": 30,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    },
+    {
+      "region_id": "regional_sample",
+      "month": "2025-12",
+      "precipitation_mm": 1.17,
+      "mean_temperature_c": 3.49,
+      "days_observed": 31,
+      "days_expected": 31,
+      "source_ids": [
+        "T3_NASA_POWER_DAILY"
+      ],
+      "quality": "complete"
+    }
+  ]
+}

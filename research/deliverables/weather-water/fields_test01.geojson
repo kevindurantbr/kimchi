@@ -1,0 +1,28 @@
+{
+  "type": "FeatureCollection",
+  "name": "T3_test_geometry_not_a_field",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "field_id": "test01",
+        "geometry_status": "test",
+        "label": "EXPLICITLY LABELED TEST GEOMETRY - not a verified field, not a Sheridan 6 LEMA boundary, may not be cropland",
+        "construction": "~810 m x ~800 m square centred on the regional access-test coordinate lon -100.64, lat 39.36 (WGS84)",
+        "purpose": "Exercise the ET adapter only; it does not choose the demo field"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-100.6447, 39.3564],
+            [-100.6353, 39.3564],
+            [-100.6353, 39.3636],
+            [-100.6447, 39.3636],
+            [-100.6447, 39.3564]
+          ]
+        ]
+      }
+    }
+  ]
+}
