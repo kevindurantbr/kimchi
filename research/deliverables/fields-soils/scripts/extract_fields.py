@@ -135,7 +135,7 @@ for f in FIELDS:
     inside = lema.buffer(1).contains(field5070)
     features.append({"type": "Feature", "geometry": mapping(field4326), "properties": {
         "field_id": f["field_id"], "label": f["label"], "boundary_status": "approximate",
-        "irrigation_status": f["irrigation"], "lema_membership": "verified" if inside else "unverified",
+        "irrigation_status": f["irrigation"], "lema_membership": "historical_boundary_verified_current_unverified" if inside else "unverified",
         "source_ids": ["T2_FIELD_DIGITIZED", "T2_PLSS", "T2_SD6_BOUNDARY", "T2_SD6_ORDER", "T2_CDL", "T2_NAIP"],
         "plss_quarter": f'{f["sec"]} {f["q"]}', "radius_m": r, "area_ha": round(field5070.area / 1e4, 1)}})
     notes[f["field_id"]] = dict(radius_m=r, area_ha=round(field5070.area / 1e4, 1), inside_lema=inside,

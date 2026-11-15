@@ -37,3 +37,7 @@ research/data/raw/
 *.h5
 
 # Keep small, sourced JSON samples in Git.
+
+# Local OpenET responses and private scenario inputs
+openet_raw/
+*.private.json

@@ -36,3 +36,7 @@ Soil record: `field_id`, `property`, `value`, `unit`, `depth_top_cm`, `depth_bot
 Prove one end-to-end field extraction before adding fields. Geometry must open on a map in the expected location; IDs must join; years and units must be correct. A screenshot is supporting evidence, not a replacement for data. No farmer names or private ownership records are needed.
 
 If a boundary or dataset is unavailable after a focused attempt, deliver the accessible subset and the blocker. A clearly labeled illustrative geometry is an acceptable UI fallback, but never attach fabricated history or claim verified LEMA membership. Do not wait for weather/ET or change the shared crop scope. After about 60–90 minutes, return one usable field package or a precise access failure report.
+
+## Integration correction
+
+The Greater GMD4 renewal document is not the Sheridan 6 designation. Use the [official Sheridan 6 page](https://www.agriculture.ks.gov/divisions-programs/division-of-water-resources/managing-kansas-water-resources/local-enhanced-management-areas/sheridan-6-lema) to locate the applicable SD-6 order. Current designation verification remains open; see `integration_review.md`.

@@ -99,3 +99,7 @@ Values are in cm of water.
 - `T2_CDL`: [USDA NASS Cropland Data Layer 2021-2025, Sheridan County KS (FIPS 20179)](https://nassgeodata.gmu.edu/axis2/services/CDLService/GetCDLFile?year={year}&fips=20179) — CDL 2021, 2022, 2023, 2024, 2025 county clips from CropScape cache (30 m, Albers NAD83)
 - `T2_CDL_META`: [CDL Kansas metadata 2021-2023 (NASS)](https://www.nass.usda.gov/Research_and_Science/Cropland/metadata/metadata_ks23.htm) — metadata_ks21/22/23 (publication dates 2022-02-14, 2023-01-30, 2024-01-31)
 - `T2_SSURGO`: [USDA NRCS SSURGO via Soil Data Access, survey area KS179 (Sheridan County)](https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest) — SDA live database as queried (mupolygon, mapunit, muaggatt)
+
+## Integration clarification
+
+`lema_membership` is now `historical_boundary_verified_current_unverified` in the fields and extraction script. The earlier legal description and supplied KU polygon support historical inclusion; the current full order was not independently retrieved. This does not confirm current water-right participation or an allocation. All geometry remains approximate. See `../../integration_review.md`.

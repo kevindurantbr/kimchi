@@ -2,6 +2,10 @@
 
 Prepared November 14, 2026, America/Detroit. This packet starts an evidence-based prototype for the NASA Space Apps farm-rotation challenge. It contains completed initial research, one downloaded NASA dataset, and three independent teammate briefs. It is not a validated farm recommendation engine.
 
+## Integration update
+
+The three teammate contributions have been reviewed and integrated. See [integration review](integration_review.md) for findings, fixes, verification limits, and the next work packages. The [offline comparison layer](../prototype/README.md) joins field, weather, and agronomy evidence. The original handoffs below are retained as task history.
+
 ## Working scope
 
 Help an irrigated farmer in Sheridan 6, western Kansas, compare the current rotation with two locally plausible alternatives under constrained irrigation. Soil protection is a second objective. The region remains a working choice, not a user-confirmed final selection.
@@ -25,7 +29,7 @@ Keep product decisions, data integration, comparison logic, interface, and submi
 
 Verified all expected dates: 1,826 per variable, no fill values, nonnegative precipitation, and minimum temperature no greater than maximum temperature. Parameters are PRECTOTCORR, T2M, T2M_MAX, T2M_MIN. The coordinate is a regional access test, not a verified field or proof of inclusion in a LEMA boundary. POWER represents gridded regional conditions; these data do not resolve differences between adjacent fields. Five years is a comparison sample, not a climate normal. API documentation: https://power.larc.nasa.gov/docs/services/api/temporal/daily/
 
-OpenET, CDL, SSURGO, field boundaries, and local crop response coefficients have not been downloaded or integrated. [OpenET API access](https://old.etdata.org/api-info/) requires an account/token and has quotas. A documented route is not yet a successful data-access test.
+CDL, SSURGO, approximate field boundaries, and weather are now integrated from the teammate deliverables. OpenET observations and validated crop-response coefficients remain unavailable. [OpenET API access](https://old.etdata.org/api-info/) requires an account/token and has quotas. A documented route is not yet a successful data-access test.
 
 ## Comparison design
 

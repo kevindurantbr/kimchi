@@ -66,7 +66,7 @@ OPENET_DOCS = "https://openet.gitbook.io/docs/reference/api-reference/raster"
 OPENET_KEY_ENV = "OPENET_API_KEY"
 ET_SOURCE_ID = "T3_OPENET_ENSEMBLE_MONTHLY"
 ET_UNC_SOURCE_ID = "T3_OPENET_ENSEMBLE_MAD_RANGE"
-GEOMETRY_STATUSES = ("documented", "test")
+GEOMETRY_STATUSES = ("documented", "approximate", "test")
 
 
 class AccessError(RuntimeError):
@@ -169,7 +169,7 @@ def read_daily_csv(path):
 def monthly_weather_rows(daily, start, end):
     """Monthly totals/means with explicit partial-month handling.
 
-    days_expected : calendar days of the month inside [start, end]
+    days_expected : all calendar days of the month (partial request windows are partial)
     days_observed : days with BOTH a valid precipitation and a valid mean temperature
     precipitation_mm : sum of daily values only when every expected day has valid
                        precipitation; otherwise null (a partial sum would be biased low)
@@ -181,7 +181,7 @@ def monthly_weather_rows(daily, start, end):
     while (y, m) <= (end.year, end.month):
         first = max(dt.date(y, m, 1), start)
         last = min(dt.date(y, m, calendar.monthrange(y, m)[1]), end)
-        expected = (last - first).days + 1
+        expected = calendar.monthrange(y, m)[1]
         p_vals, t_vals, both = [], [], 0
         for d in iter_days(first, last):
             rec = daily.get(d)
@@ -291,7 +291,8 @@ def load_fields(path, default_status=None):
     """Read a GeoJSON Feature or FeatureCollection; return list of field dicts.
 
     Every feature must carry properties.field_id. geometry_status comes from
-    properties.geometry_status, else --geometry-status; it must be documented|test.
+    properties.geometry_status, else boundary_status, else --geometry-status.
+    Approximate analysis boundaries remain approximate in every output row.
     """
     with open(path, encoding="utf-8") as fh:
         doc = json.load(fh)
@@ -307,7 +308,7 @@ def load_fields(path, default_status=None):
         if fid in seen:
             raise ValueError("duplicate field_id %s" % fid)
         seen.add(fid)
-        status = props.get("geometry_status") or default_status
+        status = props.get("geometry_status") or props.get("boundary_status") or default_status
         if status not in GEOMETRY_STATUSES:
             raise ValueError("%s: geometry_status must be one of %s (set it in properties or "
                              "pass --geometry-status)" % (fid, GEOMETRY_STATUSES))
@@ -319,11 +320,17 @@ def load_fields(path, default_status=None):
             polys = geom["coordinates"]
         else:
             raise ValueError("%s: geometry must be Polygon or MultiPolygon, got %s" % (fid, gtype))
+        if not polys or any(not poly for poly in polys):
+            raise ValueError("%s: geometry has no rings" % fid)
         for poly in polys:
             for ring in poly:
                 _check_ring(ring, fid)
+            if polygon_area_m2(poly) <= 0:
+                raise ValueError("%s: polygon has no positive area" % fid)
         fields.append({"field_id": fid, "geometry_status": status, "geometry": geom,
                        "polygons": polys})
+    if not fields:
+        raise ValueError("fields collection is empty")
     return fields
 
 
@@ -405,9 +412,8 @@ def parse_openet_monthly(raw, variable):
     for rec in doc:
         dkey = next((k for k in DATE_KEYS if k in rec), None)
         vkey = next((k for k in rec if k.lower() == variable.lower()), None)
-        if vkey is None:
-            others = [k for k in rec if k != dkey]
-            vkey = others[0] if len(others) == 1 else None
+        if vkey is None and "value" in rec:
+            vkey = "value"  # Never mistake count/quality columns for ET.
         if dkey is None or vkey is None:
             raise OpenETResponseError("cannot find date/value columns in record keys %s"
                                       % sorted(rec))
@@ -416,11 +422,23 @@ def parse_openet_monthly(raw, variable):
                 and month[5:].isdigit()):
             raise OpenETResponseError("date column %r is not ISO (YYYY-MM...): %r"
                                       % (dkey, rec[dkey]))
+        try:
+            parse_date(month + "-01")
+        except ValueError as exc:
+            raise OpenETResponseError("invalid month: %s" % month) from exc
+        if month in out:
+            raise OpenETResponseError("duplicate monthly record: %s" % month)
         val = rec[vkey]
         if val is None or (isinstance(val, float) and math.isnan(val)) or val == "":
             out[month] = None
         else:
-            out[month] = float(val)
+            try:
+                numeric = float(val)
+            except (ValueError, TypeError) as exc:
+                raise OpenETResponseError("non-numeric ET value") from exc
+            if isinstance(val, bool) or not math.isfinite(numeric) or numeric < 0:
+                raise OpenETResponseError("invalid ET value")
+            out[month] = numeric
     return out
 
 
@@ -440,6 +458,8 @@ def query_field(field, args, variable, api_key, post, raw_dir):
     polys = field["polygons"]
     has_holes = any(len(p) > 1 for p in polys)
     mode = args.geom_mode
+    if has_holes and mode == "flat":
+        raise ValueError("flat geometry would discard polygon holes; use auto or geojson")
     if mode == "auto":
         mode = "geojson" if has_holes else "flat"
     parts = []

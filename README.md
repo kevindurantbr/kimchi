@@ -4,7 +4,7 @@ Shared repository: https://github.com/kevindurantbr/kimchi
 
 NASA Space Apps 2026 research and prototype for comparing farm crop rotations using NASA environmental data, local soils, crop characteristics, and farmer priorities.
 
-Working focus: irrigated farms in Sheridan 6, western Kansas. The project is currently in research and data acquisition; no web application has been built yet. Research candidates are not validated farm recommendations.
+Working focus: irrigated farms in Sheridan 6, western Kansas. The three research contributions are integrated into a tested offline comparison data layer. The web interface is the next milestone. Research candidates are not validated farm recommendations.
 
 ## Team starting points
 
@@ -19,7 +19,17 @@ Each brief is self-contained. The integration lead maintains the shared scope an
 
 ## Available data
 
-`research/data/` contains a NASA POWER regional sample for 2021–2025, its provenance, and monthly summaries. This is regional weather, not a verified field measurement. Field boundaries, crop history, soil, and ET data are still being acquired.
+`research/deliverables/` contains three approximate fields, 2021–2025 satellite crop classifications, SSURGO soil properties, 60 monthly NASA POWER weather summaries, three sourced rotation candidates, and 15 evidence rules. OpenET is unavailable; no numerical farm prediction is produced.
+
+Start with the [integration review and next tasks](research/integration_review.md) and the [runnable prototype](prototype/README.md).
+
+```sh
+python3 prototype/compare.py --check
+python3 -m unittest discover -s prototype -v
+python3 prototype/compare.py --field fld01 --priority water
+```
+
+`prototype/demo_bundle.json` is the deterministic interface input, with source hashes and limitations. `research/data/` retains the original NASA access sample for comparison.
 
 Python 3 with its standard library is sufficient to re-download the raw weather sample:
 
