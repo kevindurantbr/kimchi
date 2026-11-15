@@ -1,0 +1,46 @@
+{
+  "fixture": true,
+  "generated_from": "Hand-written synthetic fld01 example for 2026-07-15; not observed farm conditions. Two chart dates are illustrative samples, not a daily record.",
+  "fixture_inputs": {"crops": [{"id":"corn","name":"Corn (grain)","season":{"plant":"04-25","harvest":"10-05"},"gdd_base_c":10,"gdd_cap_c":30,"gdd_to_silking_c":780,"gdd_to_maturity_c":1500,"sensitive_window":{"name":"pollination","gdd_from":700,"gdd_to":900},"heat_threshold_c":35,"kc":{"ini":0.3,"mid":1.2,"end":0.6,"stage_days":[30,40,50,30]},"root_depth_m":1.5,"p_depletion":0.55,"source_ids":["FAO56"],"verify":["Temporary example parameters; maturity and stage lengths require P4 verification."]}]},
+  "factors": {
+    "water": {
+      "status":{"value":-212,"unit":"mm","normal_median":-120,"percentile":16,"direction":"adverse","severity":0.36,"label":"Drier than 84% of years for this date","source_ids":["NASA_POWER_DAILY","FAO56"]},
+      "series":{"dates":["2026-07-14","2026-07-15"],"rain_cum":[180,180],"demand_cum":[485,492],"irrigation_cum":[100,100],"normal_p25":[-150,-155],"normal_p50":[-116,-120],"normal_p75":[-75,-80]},
+      "recurrence":{"count":11,"n":45,"years_matching":[1981,1988,1994,2000,2002,2006,2011,2012,2018,2022,2023],"text":"11 of 45 years"},
+      "trend":{"shown":true,"n":45,"S":-310,"z":-3.02,"p":0.0025,"trend":"decreasing","slope_per_decade":-12},
+      "bucket":{"depletion_mm":[116,123],"stress_days":4,"first_stress_date":"2026-07-12","taw_mm":200,"raw_mm":110,"method":"simplified: no runoff, no capillary rise"},
+      "capacity":{"shortfall_mm_day":0.49,"ok":false,"text":"Peak demand exceeds well capacity by 0.49 mm/day"},
+      "source_ids":["NASA_POWER_DAILY","FAO56"]
+    },
+    "temperature": {
+      "status":{"value":9,"unit":"days","normal_median":4,"percentile":85,"direction":"adverse","severity":0.4,"label":"More hot days than 85% of years for this date","source_ids":["NASA_POWER_DAILY"]},
+      "gdd":{"to_date":810,"normal_p50":780,"stage_now":"pollination"},
+      "frost":{"last_spring":"2026-04-18","first_fall":null,"normal_last_spring":"04-20","normal_first_fall":"10-15"},
+      "stage_heat":{"name":"pollination","start":"2026-07-07","end":null,"hot_days":4,"heat_degree_days":35,"complete":false,"status":{"value":4,"unit":"days","normal_median":2,"percentile":80,"direction":"adverse","severity":0.2,"label":"More hot days than 80% of years in this stage","source_ids":["NASA_POWER_DAILY"]}},
+      "recurrence":{"count":11,"n":45,"years_matching":[1981,1988,1994,2000,2002,2006,2011,2012,2018,2022,2023],"text":"11 of 45 years"},
+      "trend":{"shown":true,"n":45,"S":320,"z":3.1,"p":0.0019,"trend":"increasing","slope_per_decade":1.2},
+      "source_ids":["NASA_POWER_DAILY"]
+    },
+    "soil_moisture": {
+      "status":{"value":0.31,"unit":"0–1","normal_median":0.5,"percentile":10,"direction":"adverse","severity":0.6,"label":"Drier than 90% of years for this date","source_ids":["NASA_POWER_DAILY"]},
+      "series":{"dates":["2026-07-14","2026-07-15"],"gwetroot":[0.33,0.31],"p25":[0.4,0.4],"p50":[0.5,0.5],"p75":[0.6,0.6]},
+      "recurrence":{"count":4,"n":45,"years_matching":[1988,2011,2012,2022],"text":"4 of 45 years"},
+      "source_ids":["NASA_POWER_DAILY"]
+    },
+    "crop_condition": {
+      "status":{"value":0.55,"unit":"NDVI","normal_median":0.67,"percentile":12,"direction":"adverse","severity":0.52,"label":"Less green than 88% of years for this composite","source_ids":["MODIS_MOD13Q1_ORNL"]},
+      "series":{"dates":["2026-06-26","2026-07-12"],"field_mean":[0.58,0.55],"p25":[0.6,0.61],"p50":[0.65,0.67],"p75":[0.71,0.73]},
+      "green_cover_calendar":{"label":"low green cover","years":[2026],"months":[1,2,3,4,5,6,7,8,9,10,11,12],"low_cover":[[true,true,true,true,false,false,false,null,null,null,null,null]]},
+      "source_ids":["MODIS_MOD13Q1_ORNL"]
+    }
+  },
+  "interactions": {
+    "compound_calendar":{"years":[2026],"months":[1,2,3,4,5,6,7,8,9,10,11,12],"counts":[[0,0,0,0,1,2,null,null,null,null,null,null]],"detail":[]},
+    "cause_check":{"code":"water","text":"Low greenness coincides with adverse water or soil conditions; this is a scouting clue, not proof of cause."},
+    "capacity":{"shortfall_mm_day":0.49,"ok":false,"text":"Peak demand exceeds well capacity by 0.49 mm/day"},
+    "stage_heat":{"name":"pollination","start":"2026-07-07","end":null,"hot_days":4,"heat_degree_days":35,"complete":false},
+    "farm_sensitivity":{"pattern":"too few years to judge","points":[],"note":"pattern, not proof"}
+  },
+  "rotation_fit": [],
+  "data_quality":{"live_through":"2026-07-15","missing_days":0,"missing_days_this_year":0,"et0_method_share":{"penman_monteith":0.95,"hargreaves":0.05,"unavailable":0},"notes":["Synthetic UI fixture, not observations.","POWER is regional context; soil wetness is model-based.","Crop demand is an estimate, not metered pumping."]}
+}
