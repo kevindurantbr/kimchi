@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore field evidence and crop-rotation tradeoffs with NASA regional weather, soil data, and sourced agronomy research.">
+  <meta name="theme-color" content="#203f35">
+  <title>Kimchi · Field Notes</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#workspace">Skip to field explorer</a>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Kimchi Field Notes home"><img src="icon.svg" alt="" width="35" height="35"><strong>kimchi<span>FIELD NOTES</span></strong></a>
+    <div class="project-label">NASA SPACE APPS <span>2026</span></div>
+    <button class="text-button" id="all-sources">Evidence library <span aria-hidden="true">↗</span></button>
+  </header>
+  <main>
+    <div class="intro">
+      <div><p class="eyebrow"><span class="dot"></span> SHERIDAN 6 · WESTERN KANSAS</p><h1>What could your next rotation look like?</h1><p class="lede">Start with the field. Understand the tradeoffs. See what still needs an answer.</p></div>
+      <div class="demo-note"><span class="badge neutral">Research prototype</span><p>Regional evidence.<br>Farm suitability still unconfirmed.</p></div>
+    </div>
+    <div id="load-state" class="loading" role="status">Loading reviewed field evidence…</div>
+    <div id="workspace" hidden>
+      <div class="toolbar">
+        <label class="control"><span>EXPLORE A FIELD</span><select id="field-select" aria-label="Select field"></select></label>
+        <div class="toolbar-divider"></div>
+        <div class="priority-control"><span class="control-label">FOCUS YOUR COMPARISON</span><div class="segments" role="group" aria-label="Comparison priority"><button data-priority="water" aria-pressed="true">Water</button><button data-priority="soil" aria-pressed="false">Soil protection</button><button data-priority="operations" aria-pressed="false">Operations</button></div></div>
+        <p class="toolbar-note">A focus, not a performance score.</p>
+      </div>
+      <div class="workspace-grid">
+        <aside class="context-column" aria-label="Weather and soil context">
+          <section class="panel weather-panel" aria-labelledby="weather-title">
+            <div class="panel-top"><p class="eyebrow">01 / ENVIRONMENT</p><span class="mini-tag">REGIONAL</span></div>
+            <div class="section-heading"><h2 id="weather-title">The weather context</h2><select id="weather-year" aria-label="Weather year"><option>2025</option><option>2024</option><option>2023</option><option>2022</option><option>2021</option></select></div>
+            <div class="chart-switch" role="group" aria-label="Weather variable"><button data-metric="rain" aria-pressed="true">Rainfall</button><button data-metric="temperature" aria-pressed="false">Temperature</button></div>
+            <div id="weather-content"></div>
+            <p class="fine-print">One NASA POWER series for the region, shared by all three fields. Not an on-farm measurement or forecast. Five years are not climate normals.</p>
+            <button class="source-link" data-sources="T3_NASA_POWER_DAILY">NASA POWER · source &amp; limits <span aria-hidden="true">↗</span></button>
+          </section>
+          <section class="panel soil-panel" aria-labelledby="soil-title">
+            <div class="panel-top"><p class="eyebrow">SOIL PROFILE</p><span class="mini-tag">MODELLED PROPERTY</span></div>
+            <h2 id="soil-title">Water the soil can store</h2>
+            <div id="soil-content"></div>
+            <p class="fine-print">SSURGO available water storage is a soil property estimate, not current soil moisture.</p>
+            <button class="source-link" data-sources="T2_SSURGO">USDA SSURGO · source &amp; limits <span aria-hidden="true">↗</span></button>
+          </section>
+          <section class="missing-panel" aria-labelledby="et-title"><div class="missing-icon" aria-hidden="true">∅</div><div><h3 id="et-title">Field evapotranspiration</h3><span class="badge neutral">Data unavailable</span><p>No OpenET observations retrieved. Missing ET is not zero water use; ET is not pumped irrigation.</p><button class="source-link" data-sources="T3_OPENET_ENSEMBLE_MONTHLY">Access status &amp; limitations ↗</button></div></section>
+        </aside>
+        <div class="field-column">
+          <section class="panel map-panel" aria-labelledby="field-title">
+            <div class="map-heading"><div><p class="eyebrow">02 / YOUR FIELD CONTEXT</p><h2 id="field-title"></h2></div><span class="badge amber">Approximate boundary</span></div>
+            <div id="field-map"></div>
+            <div id="field-meta"></div>
+          </section>
+          <section class="panel history-panel" aria-labelledby="history-title"><div class="section-heading"><h2 id="history-title">What grew here?</h2><span class="mini-tag">SATELLITE CLASSIFICATION</span></div><div id="crop-history"></div><p class="fine-print">Dominant crop shares are fractions of classified pixels, not confidence scores. All history needs farmer confirmation.</p><button class="source-link" data-sources="T2_CDL,T2_CDL_META">USDA Cropland Data Layer · 2021–2025 ↗</button></section>
+          <section class="baseline-note"><span class="outline-icon" aria-hidden="true">?</span><div><h3>Baseline not yet confirmed</h3><p>Past crop labels do not establish a future plan. Confirm the history and intended continuation before treating any sequence as your baseline.</p></div></section>
+          <section class="panel focus-panel" aria-labelledby="focus-title"><p class="eyebrow">WHAT TO CHECK NEXT</p><h2 id="focus-title"></h2><p class="fine-print">Questions surfaced by your selected focus. They do not change eligibility.</p><div id="focus-questions"></div></section>
+        </div>
+        <section class="comparison-column" aria-labelledby="comparison-title">
+          <div class="comparison-heading"><p class="eyebrow">03 / COMPARE THE TRADEOFFS</p><h2 id="comparison-title">Three possible sequences</h2><p>Whole-field rotations over two harvest years. These are research candidates, not a ranked recommendation.</p></div>
+          <div id="rotation-cards"></div>
+          <div class="prediction-note"><h3>No numerical predictions yet</h3><p>Yield, profit, and pumping savings remain unknown. Trial results cannot replace a validated field response model.</p></div>
+        </section>
+      </div>
+      <footer><p><span class="dot"></span> Evidence before estimates.</p><div><a href="https://github.com/kevindurantbr/kimchi/blob/main/research/integration_review.md" target="_blank" rel="noopener noreferrer">Integration review ↗</a><span>NASA data + USDA field context + regional research</span></div></footer>
+    </div>
+  </main>
+  <dialog id="source-dialog" aria-labelledby="source-title"><div class="dialog-header"><div><p class="eyebrow">TRACE THE EVIDENCE</p><h2 id="source-title">Sources &amp; limitations</h2></div><button id="close-sources" class="icon-button" aria-label="Close evidence library">×</button></div><p class="dialog-intro">Source records from the reviewed research bundle. Regional findings do not establish farm-specific suitability.</p><div id="source-list"></div></dialog>
+  <noscript><p class="loading">JavaScript is needed to select fields and compare the reviewed evidence. The source data and research are available in the GitHub repository.</p></noscript>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
