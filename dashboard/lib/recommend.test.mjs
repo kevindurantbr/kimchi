@@ -420,3 +420,24 @@ test('well delivery comes from the farm record when the analysis gives only the 
   assert.equal(w3.short, 'This season, peak demand (9.8 mm/day) beat what your well delivers (6.5 mm/day). Consider fewer irrigated acres.');
   assert.ok(w3.score_parts.severity > 0.5);
 });
+
+// ───────── round 4: collapsed cards and charts ─────────
+test('every card has a short headline, a status word and a chart or an explained "unavailable"', () => {
+  const a = sampleAnalysis();
+  a.annual = { years: [1991, 1992, 2020, 2026], water_deficit_mm: [300, 400, 350, 314], hot_days: [20, 30, 25, 38] };
+  const r = recommend({ analysis: a, farm: farm(), field_id: 'fld01', crops, actions, rotationsFit, today: NOV });
+  for (const c of r.all) {
+    assert.ok(c.headline.split(/\s+/).length <= 8, c.headline);
+    assert.ok(['Concern', 'Watch', 'Normal'].includes(c.status_word));
+    if (c.result) assert.doesNotMatch(c.result, /unavailable|undefined|NaN|\{/);
+    assert.ok(c.chart && (c.chart.unavailable ? c.chart.reason.length > 0 : c.chart.labels.length > 0 && c.chart.series.length > 0), c.id);
+  }
+  const w4 = r.all.find((c) => c.id === 'W4_compare_rotations');
+  assert.equal(w4.result, '14 of 35 seasons short of water');
+  assert.deepEqual(w4.chart.series.map((s) => s.data[0]), [14, 10, 6]);
+  assert.ok(w4.chart.series[0].current);
+  const w1 = r.all.find((c) => c.id === 'W1_irrigation_timing');
+  assert.equal(w1.chart.normal.value, 350); // median of 1991–2020 values 300, 400, 350
+  const bare = recommend({ analysis: {}, farm: null, field_id: 'x', crops, actions, today: NOV });
+  for (const c of bare.all) assert.ok(c.chart.unavailable && c.chart.reason, c.id);
+});
