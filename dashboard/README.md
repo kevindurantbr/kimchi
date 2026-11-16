@@ -56,6 +56,7 @@ Delete `ui/_fixtures/` once every row above is real. The browser console shows 4
 | `ui/report.mjs` | Season report dialog; fallback `buildReport`. |
 | `ui/util.mjs` | Formatting, escaping, colour ramps. |
 | `ui/icons.mjs` | The four factor icons (inline SVG), shared by cards, actions, map badges and legend. |
+| `brand/` | Team logo cut out on a transparent ground at 32–512 px, plus `apple-touch-icon.png`. Used in the header, the season report (screen and print), the favicon and `manifest.webmanifest`. |
 
 ## Visual direction
 

@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#08090a">
+  <link rel="icon" type="image/png" sizes="32x32" href="brand/kimchi-logo-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="brand/kimchi-logo-192.png">
+  <link rel="apple-touch-icon" href="brand/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
   <meta name="description" content="Kimchi: field risk and crop-rotation console for irrigated farms, built on NASA POWER, MODIS NDVI and USDA soil data.">
   <title>Kimchi · Field Risk Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,7 +45,7 @@
 
   <header class="bar">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true"></span>
+      <img class="brand-logo" src="brand/kimchi-logo-64.png" srcset="brand/kimchi-logo-64.png 1x, brand/kimchi-logo-128.png 2x" width="34" height="34" alt="">
       <span class="brand-name">Kimchi</span>
       <span class="brand-sub">Field risk &amp; rotation console</span>
     </div>
@@ -148,7 +152,7 @@
   </dialog>
 
   <dialog id="dlg-report" class="dlg wide" aria-labelledby="report-title">
-    <div class="dlg-head"><span class="code">S-01</span><h2 id="report-title">Season report</h2><button type="button" class="btn" id="btn-print">Print / save PDF</button><button type="button" class="btn icon dlg-close" aria-label="Close">✕</button></div>
+    <div class="dlg-head"><img class="dlg-logo" src="brand/kimchi-logo-64.png" srcset="brand/kimchi-logo-64.png 1x, brand/kimchi-logo-128.png 2x" width="30" height="30" alt="Kimchi"><span class="code">S-01</span><h2 id="report-title">Season report</h2><button type="button" class="btn" id="btn-print">Print / save PDF</button><button type="button" class="btn icon dlg-close" aria-label="Close">✕</button></div>
     <div id="report-body"></div>
   </dialog>
 
