@@ -332,6 +332,7 @@ export function capacityCheck(peakDemandMmDay, wellMmDay) {
   if (![peakDemandMmDay, wellMmDay].every((v) => finite(v) && v >= 0))
     return {
       peak_mm_day,
+      peak_demand_mm_day: peak_mm_day,
       well_mm_day,
       shortfall_mm_day: null,
       ok: null,
@@ -341,6 +342,7 @@ export function capacityCheck(peakDemandMmDay, wellMmDay) {
     Math.round(Math.max(0, peakDemandMmDay - wellMmDay) * 100) / 100;
   return {
     peak_mm_day,
+    peak_demand_mm_day: peak_mm_day,
     well_mm_day,
     shortfall_mm_day,
     ok: shortfall_mm_day === 0,
@@ -353,7 +355,9 @@ export function capacityCheck(peakDemandMmDay, wellMmDay) {
 
 const clean = (a) => (Array.isArray(a) ? a.filter(finite) : []);
 function quantile(sample, p) {
-  const sorted = clean(sample).sort((a, b) => a - b);
+  return quantileSorted(clean(sample).sort((a, b) => a - b), p);
+}
+function quantileSorted(sorted, p) {
   if (!sorted.length) return null;
   const pos = (sorted.length - 1) * p,
     lo = Math.floor(pos),
@@ -362,13 +366,14 @@ function quantile(sample, p) {
 }
 const median = (sample) => quantile(sample, 0.5);
 function distribution(sample) {
-  const n = clean(sample).length;
+  const sorted = clean(sample).sort((a, b) => a - b),
+    n = sorted.length;
   return {
     n,
     ...Object.fromEntries(
       [10, 25, 50, 75, 90].map((p) => [
         `p${p}`,
-        n >= 10 ? quantile(sample, p / 100) : null,
+        n >= 10 ? quantileSorted(sorted, p / 100) : null,
       ]),
     ),
   };
@@ -632,6 +637,8 @@ export function trend(values, years) {
   return {
     shown: true,
     n: pairs.length,
+    years: pairs.map((p) => p.year),
+    values: pairs.map((p) => Math.round(p.value * 100) / 100),
     ...mannKendall(pairs.map((p) => p.value)),
     slope_per_decade: senSlope(
       pairs.map((p) => p.value),
@@ -641,12 +648,16 @@ export function trend(values, years) {
 }
 
 function complete(d, start, end, fields = []) {
-  const dates = d?.date ?? [];
+  const dates = d?.date ?? [],
+    span = daysBetween(start, end);
+  // Exact day count, both endpoints and strictly increasing dates imply no missing calendar day.
   return (
-    dates.length === dateRange(start, end).length &&
+    Number.isFinite(span) &&
+    span >= 0 &&
+    dates.length === span + 1 &&
     dates[0] === start &&
     dates.at(-1) === end &&
-    dates.every((s, i) => i === 0 || daysBetween(dates[i - 1], s) === 1) &&
+    dates.every((s, i) => i === 0 || (dates[i - 1] < s && s.length === 10)) &&
     fields.every(
       (k) =>
         Array.isArray(d[k]) &&
@@ -668,11 +679,24 @@ export function frostDates(daily, year, threshold = 0) {
   ])
     ? (frost(spring).at(-1) ?? null)
     : null;
-  const first_fall = complete(fall, `${year}-07-02`, `${year}-12-31`, [
+  let first_fall = complete(fall, `${year}-07-02`, `${year}-12-31`, [
     "t2m_min",
   ])
     ? (frost(fall)[0] ?? null)
     : null;
+  // Fall still in progress: a frost already observed after an unbroken run of valid days from
+  // Jul 2 is final; a gap before it, or no frost yet, stays unknown.
+  if (first_fall === null) {
+    const at = new Map(fall.date.map((s, i) => [s, fall.t2m_min[i]]));
+    for (const s of dateRange(`${year}-07-02`, `${year}-12-31`)) {
+      const v = at.get(s);
+      if (!finite(v)) break;
+      if (v <= threshold) {
+        first_fall = s;
+        break;
+      }
+    }
+  }
   return {
     last_spring,
     first_fall,
@@ -783,6 +807,7 @@ export function greenCoverCalendar(fieldNdvi, threshold = 0.3) {
   const fullYears = low_cover.filter((row) => row.every((v) => v !== null));
   return {
     label: "low green cover",
+    threshold,
     years,
     months: [...months],
     low_cover,
@@ -1249,6 +1274,7 @@ function seasonalSummary(d, crop, plant, end) {
     gdd: full ? (gd?.at(-1) ?? null) : null,
     rain_cum: full ? cumulative(s.prectotcorr) : s.date.map(() => null),
     demand_cum: full ? cumulative(demand) : s.date.map(() => null),
+    gdd_cum: full && gd ? gd : s.date.map(() => null),
   };
 }
 function irrigationSeries(record, dates, today) {
@@ -1281,20 +1307,171 @@ function irrigationSeries(record, dates, today) {
   );
   return { daily, cumulative: cum, total, timed: total === 0 };
 }
+/** Per-date p25/p50/p75 across past seasons, aligned by month-day. field: "balance" or a series key. */
 function alignedNormal(history, dates, field) {
+  const value = (h, i) => {
+    if (field !== "balance") return h[field]?.[i] ?? null;
+    const r = h.rain_cum[i],
+      demand = h.demand_cum[i];
+    return finite(r) && finite(demand) ? r - demand : null;
+  };
+  const index = history.map(
+    (h) => new Map(h.daily.date.map((d, i) => [d.slice(5), i])),
+  );
   return dates.map((s) =>
     distribution(
-      history.map((h) => {
-        const i = h.daily.date.findIndex((d) => d.slice(5) === s.slice(5));
-        if (i < 0) return null;
-        const r = h.rain_cum[i],
-          demand = h.demand_cum[i];
-        return field === "balance" && finite(r) && finite(demand)
-          ? r - demand
-          : null;
+      history.map((h, k) => {
+        const i = index[k].get(s.slice(5));
+        return i === undefined ? null : value(h, i);
       }),
     ),
   );
+}
+/** p25–p75 of a frost date across 1991–2020 as ["MM-DD", "MM-DD"]; null with fewer than 10 years. */
+function frostRange(history, key) {
+  const days = clean(history.map((f) => (f[key] ? calendarDay(f[key]) : null)));
+  if (days.length < 10) return null;
+  const md = (q) => iso(Date.UTC(2000, 0, Math.round(quantile(days, q)))).slice(5);
+  return [md(0.25), md(0.75)];
+}
+/**
+ * In which months a dry root zone repeats: for each calendar month, the share of past years whose
+ * monthly mean GWETROOT was below the 25th percentile of all 1991–2020 monthly means (one pooled
+ * threshold, so seasonally dry months stand out). Only complete months count.
+ */
+function dryRootZoneMonths(d, beforeYear) {
+  const rows = monthGroups(d).map((g) => {
+    const [a, b] = monthBounds(g.year, g.month);
+    return {
+      year: g.year,
+      month: g.month,
+      value:
+        g.year < beforeYear && complete(g.daily, a, b, ["gwetroot"])
+          ? mean(g.daily.gwetroot)
+          : null,
+    };
+  });
+  const baseline = rows.filter((r) => r.year >= 1991 && r.year <= 2020 && finite(r.value));
+  if (baseline.length < 120) return null;
+  const threshold = quantile(baseline.map((r) => r.value), 0.25);
+  const valid = rows.filter((r) => finite(r.value)),
+    span = `${valid[0].year}–${valid.at(-1).year}`;
+  const per = months.map((m) => {
+    const v = valid.filter((r) => r.month === m);
+    return { n: v.length, count: v.filter((r) => r.value < threshold).length };
+  });
+  return {
+    months: [...months],
+    share: per.map((x) => (x.n ? Math.round((100 * x.count) / x.n) / 100 : null)),
+    count: per.map((x) => x.count),
+    n: per.map((x) => x.n),
+    threshold: Math.round(threshold * 100) / 100,
+    span,
+    text: `Share of years (${span}) whose monthly mean root-zone wetness was below ${Math.round(threshold * 100) / 100}, the driest quarter of all 1991–2020 months`,
+  };
+}
+
+/* ---------- Round 4: map badges and chart-ready series (PLAN.md §13) ---------- */
+const LEVELS = { Good: "good", Normal: "normal", Watch: "watch", Concern: "concern" };
+const LEVEL_RANK = { good: 0, normal: 1, watch: 2, concern: 3 };
+/** PLAN.md §13 colour table; nodata is grey with hatching in the UI, never a "good" colour. */
+const LEVEL_COLOUR = { good: "#2e9e5b", normal: "#7a9a86", watch: "#e0a100", concern: "#d64545", nodata: "#9e9e9e" };
+const BADGE_ICON = { water: "💧", temperature: "🌡", soil_moisture: "🟫", crop_condition: "🌱" };
+const BADGE_FACTOR = { water: "Water", temperature: "Heat", soil_moisture: "Soil moisture", crop_condition: "Greenness" };
+const mmIn = (mm) => `${Math.round(Math.abs(mm))} mm (${inches(Math.abs(mm))} in)`;
+
+/** One badge per factor: level from status.plain.word, a bold headline number and a short detail. */
+function buildBadges(factors, ctx) {
+  const { crop, completed, year, thr } = ctx;
+  return ["water", "temperature", "soil_moisture", "crop_condition"].map((factor) => {
+    const st = factors[factor]?.status,
+      word = st?.plain?.word ?? "No new data",
+      known = finite(st?.value) && finite(st?.percentile),
+      level = known ? (LEVELS[word] ?? "nodata") : "nodata";
+    const base = {
+      factor,
+      name: BADGE_FACTOR[factor],
+      word: level === "nodata" ? "No new data" : word,
+      level,
+      colour: LEVEL_COLOUR[level],
+      icon: BADGE_ICON[factor],
+      as_of: st?.as_of ?? null,
+      period: st?.period ?? null,
+    };
+    if (level === "nodata")
+      return {
+        ...base,
+        headline: "No new data",
+        detail: st?.reason ?? st?.plain?.sentence ?? "No current value for this field.",
+        normal: null,
+      };
+    const v = st.value,
+      n = st.normal_median;
+    const when = completed ? `${year} season` : "this season";
+    if (factor === "water")
+      return {
+        ...base,
+        headline: `${mmIn(v)} ${v < 0 ? "short" : "to spare"}`,
+        detail: crop
+          ? `Rain minus crop water use, ${when}`
+          : `Rain minus reference water use since May 1 (no crop selected)`,
+        normal: finite(n) ? `${mmIn(n)} ${n < 0 ? "short" : "to spare"}` : null,
+      };
+    if (factor === "temperature")
+      return {
+        ...base,
+        headline: `${Math.round(v)} days over ${Math.round(thr * 1.8 + 32)} °F`,
+        detail: `Days ≥ ${thr} °C (${Math.round(thr * 1.8 + 32)} °F), ${crop ? when : `June–August ${year}`}`,
+        normal: finite(n) ? `${Math.round(n)} days` : null,
+      };
+    if (factor === "soil_moisture")
+      return {
+        ...base,
+        headline: `Root zone ${Math.round(v * 100)}% wet`,
+        detail: `Root-zone wetness, ${st.as_of ? shortDate(st.as_of) : "latest day"} (model-based)`,
+        normal: finite(n) ? `${Math.round(n * 100)}%` : null,
+      };
+    return {
+      ...base,
+      headline: `Greenness ${v.toFixed(2)}`,
+      detail: `Field greenness (NDVI), image of ${st.as_of ? shortDate(st.as_of) : "the latest date"}`,
+      normal: finite(n) ? n.toFixed(2) : null,
+    };
+  });
+}
+/** Worst badge level for the field outline; nodata only when every factor is nodata. */
+function worstBadge(badges) {
+  const known = badges.filter((b) => b.level !== "nodata");
+  if (!known.length) return { level: "nodata", factor: null, colour: LEVEL_COLOUR.nodata };
+  const w = known.reduce((a, b) => (LEVEL_RANK[b.level] > LEVEL_RANK[a.level] ? b : a));
+  return { level: w.level, factor: w.factor, colour: LEVEL_COLOUR[w.level] };
+}
+const r1 = (v) => (finite(v) ? Math.round(v * 10) / 10 : null),
+  r2 = (v) => (finite(v) ? Math.round(v * 100) / 100 : null);
+/** Monthly means for one calendar year (null for months with too few valid days) and the normal. */
+function monthlyProfile(dates, values, year, normalYears, minDays) {
+  const sums = new Map();
+  dates.forEach((s, i) => {
+    const y = yearOf(s),
+      v = values[i];
+    if (!finite(v)) return;
+    const key = `${y}-${s.slice(5, 7)}`,
+      e = sums.get(key) ?? { t: 0, n: 0 };
+    e.t += v;
+    e.n++;
+    sums.set(key, e);
+  });
+  const at = (y, m) => {
+    const e = sums.get(`${y}-${String(m).padStart(2, "0")}`);
+    return e && e.n >= minDays ? e.t / e.n : null;
+  };
+  return {
+    this_year: months.map((m) => at(year, m)),
+    normal: months.map((m) => {
+      const v = clean(normalYears.filter((y) => y !== year).map((y) => at(y, m)));
+      return v.length >= 10 ? median(v) : null;
+    }),
+  };
 }
 function frostNormal(history, key) {
   const n = median(history.map((f) => (f[key] ? calendarDay(f[key]) : null)));
@@ -1642,7 +1819,11 @@ export function analyzeField({
   if (cropStatus && !finite(cropStatus.percentile) && cropStatus.plain)
     cropStatus.plain.sentence = visibleNdvi.dates.length
       ? `No satellite greenness image for this period yet; the newest is from ${visibleNdvi.dates.at(-1)}.`
-      : "No satellite greenness images for this field.";
+      : "No satellite greenness for this field yet: new fields need a server-side NDVI download.";
+  if (!visibleNdvi.dates.length)
+    cropStatus.reason = fieldNdvi
+      ? "No satellite greenness images up to this date for this field."
+      : "No satellite greenness for this field yet: new fields need a server-side NDVI download.";
   withPlain(
     cropStatus,
     `Field greenness${ndviAsOf && ndviAsOf !== today ? ` in ${timeOfYear(ndviAsOf)} was` : " is"} ${finite(cropStatus?.value) ? cropStatus.value.toFixed(2) : "unavailable"}; usually ${finite(cropStatus?.normal_median) ? cropStatus.normal_median.toFixed(2) : "unavailable"} for that time of year.`,
@@ -1674,7 +1855,39 @@ export function analyzeField({
       : "Enter this season's crop in My farm records for crop-specific demand and stage heat.",
   };
   const annual = annualSeries(d, [...historical, { year, ...current }]);
-  return {
+  // Extra series the dashboard draws (P3): GDD vs normal, hot-day dates, dry months, frost ranges.
+  const gddNormals = alignedNormal(normals, dates, "gdd_cum");
+  stage.season_start = plant;
+  stage.season_end = harvest ?? null;
+  {
+    const ws = crop ? stage.start : seasonCrop.heat_window && `${year}-${seasonCrop.heat_window[0]}`,
+      we = crop ? (stage.end ?? end) : seasonCrop.heat_window && `${year}-${seasonCrop.heat_window[1]}`;
+    const w = ws ? between(d, ws, we < end ? we : end) : { date: [], t2m_max: [] };
+    stage.hot_dates = w.date.filter((_, i) => finite(w.t2m_max[i]) && w.t2m_max[i] >= thr);
+    stage.hot_threshold_c = thr;
+  }
+  const taw = finite(soil?.aws_0_150_cm) ? soil.aws_0_150_cm * 10 : null;
+  const bucket = rootZoneBucket({
+    dates,
+    rain: current.daily.prectotcorr,
+    demand: current.demand,
+    irrigation: irrigation.daily,
+    taw_mm: taw,
+    p: crop?.p_depletion,
+  });
+  bucket.dates = dates;
+  if (!bucket.depletion_mm.some(finite))
+    bucket.reason = !crop
+      ? "Needs this season's crop (rooting and stress threshold)."
+      : !finite(taw)
+        ? "Needs the field's soil water-holding capacity (USDA SSURGO)."
+        : !irrigation.timed
+          ? "Needs dated irrigation events (or an explicit zero); a seasonal total has no timing."
+          : "Missing weather days in the season.";
+  // P3 shows bucket.note under the chart, so the reason reaches the screen without a UI change.
+  if (bucket.reason) bucket.note = `Unavailable: ${bucket.reason} Method: ${bucket.method}.`;
+  const withUnit = (t, unit) => ({ ...t, unit });
+  const r = {
     crop_context,
     annual,
     factors: {
@@ -1692,18 +1905,8 @@ export function analyzeField({
           normal_p75: normalsSeries.map((s) => s.p75),
         },
         recurrence: waterRec,
-        trend: trend(
-          historical.map((h) => h.balance),
-          years,
-        ),
-        bucket: rootZoneBucket({
-          dates,
-          rain: current.daily.prectotcorr,
-          demand: current.demand,
-          irrigation: irrigation.daily,
-          taw_mm: finite(soil?.aws_0_150_cm) ? soil.aws_0_150_cm * 10 : null,
-          p: crop?.p_depletion,
-        }),
+        trend: withUnit(trend(historical.map((h) => h.balance), years), "mm"),
+        bucket,
         capacity,
         source_ids: WATER,
       },
@@ -1715,17 +1918,27 @@ export function analyzeField({
           normal_p50: roundFor(median(normals.map((h) => h.gdd)), "°C·days"),
           stage_now: stageNow,
         },
+        series: {
+          dates,
+          gdd_cum: current.gdd_cum.map(r1),
+          normal_p25: gddNormals.map((s) => r1(s.p25)),
+          normal_p50: gddNormals.map((s) => r1(s.p50)),
+          normal_p75: gddNormals.map((s) => r1(s.p75)),
+        },
         frost: {
           ...currentFrost,
           normal_last_spring: frostNormal(frostHistory, "last_spring"),
           normal_first_fall: frostNormal(frostHistory, "first_fall"),
+          normal_range_spring: frostRange(frostHistory, "last_spring"),
+          normal_range_fall: frostRange(frostHistory, "first_fall"),
+          first_fall_note:
+            currentFrost.first_fall || year < calendarYear
+              ? null
+              : `No fall frost yet (through ${shortDate(lastAvailable ?? today)})`,
         },
         stage_heat: stage,
         recurrence: heatRec,
-        trend: trend(
-          historical.map((h) => h.hot_days),
-          years,
-        ),
+        trend: withUnit(trend(historical.map((h) => h.hot_days), years), "days"),
         source_ids: POWER,
       },
       soil_moisture: {
@@ -1738,6 +1951,15 @@ export function analyzeField({
           p75: soilIndices.map((i) => soilNormals.p75[i - 1]),
         },
         recurrence: soilRec,
+        monthly_recurrence: dryRootZoneMonths(d, calendarYear),
+        // July mean root-zone wetness by year (past complete years only).
+        trend: withUnit(
+          trend(
+            annual.gwetroot_jul.filter((_, i) => annual.years[i] < calendarYear || today.slice(5) > "07-31"),
+            annual.years.filter((y) => y < calendarYear || today.slice(5) > "07-31"),
+          ),
+          "0–1 (July mean)",
+        ),
         source_ids: POWER,
       },
       crop_condition: {
@@ -1750,6 +1972,19 @@ export function analyzeField({
           p75: ndviNormals.map((s) => s.p75),
         },
         green_cover_calendar: greenCoverCalendar(visibleNdvi),
+        // July mean NDVI by year; MODIS starts in 2000, so this stays hidden until 30 years exist.
+        trend: withUnit(
+          (() => {
+            const ys = [...new Set(visibleNdvi.dates.map(yearOf))].filter((y) => y < calendarYear || today.slice(5) > "07-31");
+            const vals = ys.map((y) => {
+              const v = clean(visibleNdvi.dates.flatMap((s, i) => (yearOf(s) === y && s.slice(5, 7) === "07" ? [visibleNdvi.field_mean[i]] : [])));
+              return v.length ? mean(v) : null;
+            });
+            const t = trend(vals, ys);
+            return t.shown ? t : { ...t, reason: `need ≥ 30 years; MODIS greenness has ${clean(vals).length}` };
+          })(),
+          "NDVI (July mean)",
+        ),
         source_ids: ndviSources(visibleNdvi),
       },
     },
@@ -1783,6 +2018,75 @@ export function analyzeField({
       missing_days_this_year: missing,
       et0_method_share: methodShare,
       notes,
+    },
+  };
+  r.badges = buildBadges(r.factors, { crop, completed, year, thr });
+  r.status_summary = worstBadge(r.badges);
+  r.charts = buildCharts({
+    annual,
+    normals,
+    year,
+    crop,
+    completed,
+    d,
+    soilYear: yearOf(soilAsOf ?? today),
+    ndvi: visibleNdvi,
+    ndviYear: yearOf(ndviAsOf ?? today),
+    ndviReason: cropStatus.reason,
+  });
+  return r;
+}
+
+/** Chart-ready, rounded series for the expanded action cards (P4). The last 35 seasons. */
+function buildCharts({ annual, normals, year, crop, completed, d, soilYear, ndvi, ndviYear, ndviReason }) {
+  const n = 35,
+    years = annual.years.slice(-n),
+    span = (k) => annual[k].slice(-n);
+  const deficitNormal = r1(median(normals.map((h) => (finite(h.balance) ? -h.balance : null)))),
+    heatNormal = r1(median(normals.map((h) => h.hot_days)));
+  const toDate = completed ? "" : " (each year to the same date)";
+  const deficit = span("water_deficit_mm"),
+    hot = span("hot_days");
+  const soil = monthlyProfile(d.date, d.gwetroot ?? [], soilYear, Array.from({ length: 30 }, (_, i) => 1991 + i), 10);
+  const green = monthlyProfile(ndvi.dates, ndvi.field_mean, ndviYear, Array.from({ length: 25 }, (_, i) => 2001 + i), 1);
+  return {
+    water_by_year: {
+      years,
+      deficit_mm: deficit,
+      normal_mm: years.map(() => deficitNormal),
+      normal_value: deficitNormal,
+      current_year: year,
+      unit: "mm",
+      label: `${crop ? "Crop water use" : "Reference water use (no crop)"} minus rain, mm; above 0 = short${toDate}`,
+      reason: deficit.some(finite) ? null : "Season water balance unavailable",
+    },
+    heat_by_year: {
+      years,
+      hot_days: hot,
+      normal: years.map(() => heatNormal),
+      normal_value: heatNormal,
+      current_year: year,
+      unit: "days",
+      label: `Days ≥ ${crop?.heat_threshold_c ?? 35} °C ${crop ? "in the crop season" : "in June–August"}${toDate}`,
+      reason: hot.some(finite) ? null : "Hot-day counts unavailable",
+    },
+    soil_by_month: {
+      months: [...months],
+      this_year: soil.this_year.map(r2),
+      normal: soil.normal.map(r2),
+      year: soilYear,
+      unit: "0–1",
+      label: `Mean root-zone wetness by month, ${soilYear} vs 1991–2020 median (model-based)`,
+      reason: soil.this_year.some(finite) ? null : "Root-zone wetness unavailable",
+    },
+    green_by_month: {
+      months: [...months],
+      this_year: green.this_year.map(r2),
+      normal: green.normal.map(r2),
+      year: ndviYear,
+      unit: "NDVI",
+      label: `Mean field greenness (NDVI) by month, ${ndviYear} vs 2001–2025 median`,
+      reason: green.this_year.some(finite) ? null : (ndviReason ?? "No satellite greenness for this year"),
     },
   };
 }

@@ -919,3 +919,176 @@ test("P4 contract on real data for today: every path exists, all four cards fill
   for (const v of Object.values(r.rotation_fit[0].metrics))
     assert.doesNotMatch(JSON.stringify(v), /\.\d{2,}/);
 });
+
+// Round 4 (team/P2_analysis_engine.md, PLAN.md §13)
+const LEVEL_OF = { Good: "good", Normal: "normal", Watch: "watch", Concern: "concern", "No new data": "nodata" };
+const COLOUR_OF = { good: "#2e9e5b", normal: "#7a9a86", watch: "#e0a100", concern: "#d64545", nodata: "#9e9e9e" };
+const noUndefined = (x) => assert.doesNotMatch(JSON.stringify(x, (k, v) => (v === undefined ? "UNDEFINED" : v)), /UNDEFINED|NaN|undefined/);
+
+/** A site shaped like P1's pullFieldData / fetchPowerDaily output for an arbitrary US point. */
+function pulledSite(lat, lon, start, end) {
+  const d = weather(start, end);
+  // Seasonal swing so normals, frost and hot days are not degenerate.
+  d.t2m_max = d.date.map((s, i) => {
+    const day = a.doy(s), y = Number(s.slice(0, 4));
+    return 12 + 22 * Math.sin((Math.PI * (day - 80)) / 200) + ((y * 7 + i) % 5) - 2;
+  });
+  d.t2m_min = d.t2m_max.map((v) => v - 14);
+  d.gwetroot = d.date.map((s, i) => 0.4 + 0.15 * Math.sin(i / 50));
+  // Recent days not yet published, as POWER returns them (null after the fill value).
+  for (const k of Object.keys(d)) if (k !== "date") d[k] = d[k].map((v, i) => (i >= d.date.length - 4 ? null : v));
+  return {
+    site_id: `power_${lat}_${lon}`,
+    lat,
+    lon,
+    elevation_m: 290,
+    daily: d,
+    units: { allsky_sw_dwn: "MJ/m^2/day", t2m_max: "C", gwetroot: "1" },
+    source_ids: ["NASA_POWER_DAILY"],
+  };
+}
+
+test("badges: one per factor, level from status.plain.word per PLAN.md §13, nodata when status is null", () => {
+  const site = pulledSite(41.5, -93.6, "1981-01-01", "2026-11-16");
+  const r = a.analyzeField({ daily: site.daily, site, ndvi: null, soil: null, farmField: null, crops: [corn], today: "2026-11-16" });
+  assert.deepEqual(r.badges.map((b) => b.factor), ["water", "temperature", "soil_moisture", "crop_condition"]);
+  noUndefined(r.badges);
+  for (const b of r.badges) {
+    const st = r.factors[b.factor].status;
+    const expected = Number.isFinite(st.value) && Number.isFinite(st.percentile) ? LEVEL_OF[st.plain.word] : "nodata";
+    assert.equal(b.level, expected, b.factor);
+    assert.equal(b.colour, COLOUR_OF[b.level]);
+    for (const k of ["word", "icon", "headline", "detail"]) assert.equal(typeof b[k], "string", `${b.factor}.${k}`);
+    assert.ok(b.headline.length > 0 && b.headline.split(" ").length <= 6, b.headline);
+  }
+  const green = r.badges.find((b) => b.factor === "crop_condition");
+  assert.equal(green.level, "nodata");
+  assert.equal(green.word, "No new data");
+  assert.match(green.detail, /NDVI download/);
+  const water = r.badges.find((b) => b.factor === "water");
+  assert.match(water.headline, /^\d+ mm \(\d+\.\d in\) (short|to spare)$/);
+  assert.match(r.badges.find((b) => b.factor === "temperature").headline, /^\d+ days over 95 °F$/);
+  assert.match(r.badges.find((b) => b.factor === "soil_moisture").headline, /^Root zone \d+% wet$/);
+  // Field outline: worst known level; nodata never wins over a known level.
+  const rank = { good: 0, normal: 1, watch: 2, concern: 3 };
+  const worst = Math.max(...r.badges.filter((b) => b.level !== "nodata").map((b) => rank[b.level]));
+  assert.equal(rank[r.status_summary.level], worst);
+  // Before Jun 1 with no crop the heat status is null, so its badge is nodata.
+  const may = a.analyzeField({ daily: site.daily, site, crops: [corn], today: "2026-05-20" });
+  const heat = may.badges.find((b) => b.factor === "temperature");
+  assert.equal(heat.level, "nodata");
+  assert.match(heat.detail, /Jun 1/);
+  noUndefined(may.badges);
+  // Everything unknown → every badge nodata, outline nodata.
+  const none = a.analyzeField({ today: "2026-07-15" });
+  assert.ok(none.badges.every((b) => b.level === "nodata" && b.headline === "No new data"));
+  assert.equal(none.status_summary.level, "nodata");
+  noUndefined(none.badges);
+});
+
+test("pulled site at any US location: crop-independent, crop condition nodata with a reason, under 1.5 s", () => {
+  for (const [lat, lon] of [[41.5, -93.6], [30.4, -84.3], [46.9, -96.8]]) {
+    const site = pulledSite(lat, lon, "1981-01-01", "2026-11-16");
+    const t0 = performance.now();
+    const r = a.analyzeField({ daily: site.daily, site, ndvi: null, soil: null, farmField: null, crops: [corn], today: "2026-11-16" });
+    const ms = performance.now() - t0;
+    assert.ok(ms < 1500, `${lat},${lon}: ${Math.round(ms)} ms`);
+    assert.equal(r.crop_context.mode, "crop_independent");
+    for (const k of ["water", "temperature", "soil_moisture"])
+      assert.ok(Number.isFinite(r.factors[k].status.percentile), `${k} at ${lat},${lon}`);
+    // POWER's last 4 days are unpublished: soil uses the as-of rule.
+    assert.equal(r.factors.soil_moisture.status.as_of, "2026-11-12");
+    const cc = r.factors.crop_condition.status;
+    assert.equal(cc.value, null);
+    assert.match(cc.reason, /NDVI download/);
+    assert.equal(r.interactions.cause_check.code, "unavailable");
+    assert.equal(r.data_quality.live_through, "2026-11-12");
+    noUndefined({ badges: r.badges, charts: r.charts, crop_context: r.crop_context });
+  }
+});
+
+test("charts: last 35 seasons by year and this year vs normal by month, rounded, with reasons when missing", () => {
+  const site = pulledSite(41.5, -93.6, "1981-01-01", "2026-11-16");
+  const r = a.analyzeField({
+    daily: site.daily,
+    site,
+    crops: [corn],
+    farmField: { records: [{ year: 2026, crop: "corn", planting_date: "2026-04-25", harvest_date: "2026-10-05" }] },
+    today: "2026-11-16",
+  });
+  const c = r.charts;
+  for (const k of ["water_by_year", "heat_by_year"]) {
+    assert.equal(c[k].years.length, 35);
+    assert.equal(c[k].years[0], 1992);
+    assert.equal(c[k].years.at(-1), 2026);
+  }
+  assert.equal(c.water_by_year.deficit_mm.length, 35);
+  assert.deepEqual(c.water_by_year.deficit_mm, r.annual.water_deficit_mm.slice(-35));
+  assert.ok(c.water_by_year.normal_mm.every((v) => v === c.water_by_year.normal_value));
+  assert.equal(c.heat_by_year.hot_days.length, 35);
+  assert.ok(c.heat_by_year.normal.every((v) => v === c.heat_by_year.normal_value));
+  for (const k of ["soil_by_month", "green_by_month"]) {
+    assert.deepEqual(c[k].months, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    assert.equal(c[k].this_year.length, 12);
+    assert.equal(c[k].normal.length, 12);
+  }
+  assert.ok(c.soil_by_month.this_year.slice(0, 10).every(Number.isFinite));
+  assert.equal(c.soil_by_month.this_year[11], null); // December has not happened
+  assert.ok(c.green_by_month.this_year.every((v) => v === null));
+  assert.match(c.green_by_month.reason, /NDVI/);
+  const text = JSON.stringify(c);
+  assert.doesNotMatch(text, /\d\.\d{3,}/);
+  noUndefined(c);
+});
+
+test("P3 inputs: GDD series, dry-month recurrence, frost ranges, heat-strip dates, trend values, bucket reason", () => {
+  const site = pulledSite(41.5, -93.6, "1981-01-01", "2026-11-16");
+  const r = a.analyzeField({
+    daily: site.daily,
+    site,
+    crops: [corn],
+    farmField: { records: [{ year: 2026, crop: "corn", planting_date: "2026-04-25", harvest_date: "2026-10-05", irrigation_mm: 200 }], well_capacity_gpm: 600, area_ha: 50.2 },
+    today: "2026-11-16",
+  });
+  const T = r.factors.temperature;
+  assert.equal(T.series.dates.length, T.series.gdd_cum.length);
+  assert.equal(T.series.dates[0], "2026-04-25");
+  assert.equal(T.series.gdd_cum.at(-1), T.gdd.to_date);
+  assert.ok(Number.isFinite(T.series.normal_p50.at(-1)));
+  assert.equal(T.stage_heat.season_start, "2026-04-25");
+  assert.equal(T.stage_heat.season_end, "2026-10-05");
+  assert.ok(Array.isArray(T.stage_heat.hot_dates));
+  for (const s of T.stage_heat.hot_dates) assert.ok(s >= T.stage_heat.start && s <= T.stage_heat.end);
+  for (const k of ["normal_range_spring", "normal_range_fall"]) {
+    assert.equal(T.frost[k].length, 2);
+    assert.match(T.frost[k][0], /^\d{2}-\d{2}$/);
+    assert.ok(T.frost[k][0] <= T.frost[k][1]);
+  }
+  const mr = r.factors.soil_moisture.monthly_recurrence;
+  assert.equal(mr.months.length, 12);
+  assert.ok(mr.share.every((v) => v >= 0 && v <= 1));
+  assert.ok(mr.n.every((n) => n === 45));
+  assert.match(mr.text, /^Share of years \(1981–2025\)/);
+  const tr = r.factors.water.trend;
+  assert.equal(tr.unit, "mm");
+  assert.equal(tr.values.length, tr.years.length);
+  assert.equal(r.factors.temperature.trend.unit, "days");
+  assert.equal(r.interactions.capacity.peak_demand_mm_day, r.interactions.capacity.peak_mm_day);
+  assert.equal(r.factors.crop_condition.green_cover_calendar.threshold, 0.3);
+  assert.match(r.factors.water.bucket.reason, /soil water-holding capacity/);
+  assert.equal(r.factors.water.bucket.dates.length, r.factors.water.series.dates.length);
+});
+
+test("first fall frost is reported once observed, even before the year ends; a gap before it stays unknown", () => {
+  const dates = Array.from({ length: 320 }, (_, i) => new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10));
+  const tmin = dates.map((s) => (s === "2026-04-10" || s === "2026-10-12" ? -2 : 8));
+  const d = { date: dates, t2m_min: tmin, t2m_max: tmin.map((v) => v + 12) };
+  const f = a.frostDates(d, 2026);
+  assert.equal(f.last_spring, "2026-04-10");
+  assert.equal(f.first_fall, "2026-10-12");
+  assert.equal(f.frost_free_days, 184);
+  d.t2m_min = tmin.map((v, i) => (dates[i] === "2026-09-01" ? null : v));
+  assert.equal(a.frostDates(d, 2026).first_fall, null);
+  d.t2m_min = tmin.map((v, i) => (dates[i] === "2026-10-12" ? 8 : v));
+  assert.equal(a.frostDates(d, 2026).first_fall, null); // no frost yet and the year is not over
+});

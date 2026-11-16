@@ -18,8 +18,9 @@ self.onmessage = async ({ data }) => {
   try {
     let result;
     if (op === 'init') result = await init(args);
-    else if (op === 'analyze') result = A.analyzeField({ ...args, daily: site.daily, site, crops });
-    else if (op === 'fit') result = A.rotationFit({ ...args, daily: site.daily, crops });
+    // A field with its own pulled history (P1 pullFieldData) passes args.site; demo fields use the loaded one.
+    else if (op === 'analyze') { const s = args.site ?? site; result = A.analyzeField({ ...args, daily: s.daily, site: s, crops }); }
+    else if (op === 'fit') { const s = args.site ?? site; result = A.rotationFit({ ...args, site: undefined, daily: { ...s.daily, lat: s.lat, elev_m: s.elevation_m, units: s.units }, crops }); }
     else throw new Error('unknown op ' + op);
     self.postMessage({ id, ok: true, result });
   } catch (e) {

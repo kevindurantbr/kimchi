@@ -201,3 +201,30 @@ Real-data smoke checks used P1 commit `8354d5c795d716a596a9b4fa7a605de2d40c876c`
 - **P4 contract.** Checked on real output for today: `interactions.capacity.{peak_mm_day, well_mm_day, shortfall_mm_day, ok, text}`, `interactions.stage_heat.recurrence`, `factors.crop_condition.green_cover_calendar.mean_low_months_per_year` (mean count of low-cover months over years with all 12 months observed, 0.1 precision; `years_complete` gives how many) and `rotation_fit[].rotation_id` all exist. A test asserts it.
 - **Rounding for display.** `status.value` and `status.normal_median` are rounded to 0.1 for mm and days and 0.01 for NDVI and 0–1 wetness; percentiles and severities are computed from the unrounded values first. `status.display = { value, normal_median, percentile }` are strings ("-312.8 mm", "38 days", "0.45", "72"; "unavailable" when missing). `gdd.to_date` and `gdd.normal_p50` are rounded to 0.1 °C·days, and `gdd.from` gives the start date. `rotationFit` medians, `low_cover_months_per_year` and `demand_by_month` are rounded to 0.1.
 - Node 24 timing on real data: `analyzeField` 0.6–0.8 s per field (the added heat recurrence costs about 0.05 s).
+
+## Round 4 additions (team/P2_analysis_engine.md, PLAN.md §13)
+
+- **`analysis.badges`**: one per factor, in the order water, temperature, soil_moisture, crop_condition: `{ factor, name, word, level, colour, icon, headline, detail, normal, as_of, period }`.
+  - `level` maps `status.plain.word` exactly as in the PLAN.md §13 table: Good → `good`, Normal → `normal`, Watch → `watch`, Concern → `concern`. A status without a value or percentile is always `nodata` ("No new data"), never a good colour. `colour` is the table's hex (`nodata` is grey; the UI adds the hatching).
+  - `icon`: 💧 water, 🌡 heat, 🟫 soil moisture, 🌱 greenness.
+  - `headline` is the one number to focus on: "313 mm (12.3 in) short" / "61 mm (2.4 in) to spare", "38 days over 95 °F", "Root zone 45% wet", "Greenness 0.40". With nodata it is "No new data" and `detail` gives the reason.
+  - `normal` is the same quantity for a normal year, as text; `detail` names the quantity and period.
+- **`analysis.status_summary`** = `{ level, factor, colour }`: the worst known badge level (good < normal < watch < concern), for the field outline. It is `nodata` only when every factor is nodata.
+- **`analysis.charts`** (all values rounded):
+  - `water_by_year = { years, deficit_mm, normal_mm, normal_value, current_year, unit, label, reason }`: the last 35 seasons of crop (or reference) water use minus rain (positive = short), the same numbers as `annual.water_deficit_mm`. `normal_mm` repeats the 1991–2020 median so it draws as a line.
+  - `heat_by_year = { years, hot_days, normal, normal_value, … }`: hot days in the crop season (Jun–Aug without a crop).
+  - In season, past years are cut at the same calendar date (the label says so).
+  - `soil_by_month = { months, this_year, normal, year, … }`: monthly mean GWETROOT for the calendar year of the soil as-of date (months with ≥ 10 valid days) against the 1991–2020 median of monthly means.
+  - `green_by_month`: the same for field-mean NDVI against the 2001–2025 median.
+  - `reason` is null when there is data, else why there is none ("No satellite greenness for this field yet: …").
+- **Fields P3 already reads** (previously missing, so the UI showed "unavailable"):
+  - `temperature.series = { dates, gdd_cum, normal_p25, normal_p50, normal_p75 }`: cumulative GDD from planting (May 1 without a crop) against past seasons aligned by month-day.
+  - `stage_heat.hot_dates`, `hot_threshold_c`, `season_start` and `season_end` for the heat strip (no longer hard-coded corn dates). Without a crop, `hot_dates` covers Jun 1–Aug 31.
+  - `frost.normal_range_spring` and `normal_range_fall` = 1991–2020 p25–p75 as `["MM-DD","MM-DD"]`; `frost.first_fall_note` = "No fall frost yet (through Nov 12)" when the fall has no frost so far.
+  - `frostDates` now reports a first fall frost once it is observed after an unbroken run of valid days from Jul 2, without waiting for Dec 31. A gap before it, or no frost yet, stays null.
+  - `soil_moisture.monthly_recurrence = { months, share, count, n, threshold, span, text }`: the share of past years whose monthly mean root-zone wetness was below one pooled threshold (the 25th percentile of all 1991–2020 monthly means), so seasonally dry months stand out. Complete months only; the current year is excluded.
+  - `trend.years`, `trend.values` and `trend.unit` for the trend chart. Soil moisture now has a trend of July mean wetness. Crop condition has a July mean NDVI trend that stays hidden ("need ≥ 30 years; MODIS greenness has 25").
+  - `capacity.peak_demand_mm_day` (alias of `peak_mm_day`), `green_cover_calendar.threshold`, `bucket.dates`, and `bucket.reason` / `bucket.note` explaining why the bucket is unavailable (no crop, no SSURGO water capacity, or irrigation without dates).
+  - `crop_condition.status.reason` when no NDVI is supplied: "No satellite greenness for this field yet: new fields need a server-side NDVI download."
+- **Pulled sites.** `analyzeField({ daily: site.daily, site, ndvi: null, soil, farmField: null, crops, today })` works for `fetchPowerDaily` / `pullFieldData` output at any US point. It was checked on a real POWER pull at 41.5, −93.6 (Iowa): 1981-01-01 → 2026-11-16, with the last 4 days unpublished and radiation missing before 1984 (those days use Hargreaves). The crop-independent fallback applies, the as-of rule handles the unpublished days, and crop condition is nodata with its reason. `site.lat`, `site.elevation_m` and `site.units` are used, not the demo site's.
+- **Speed.** `distribution()` sorts once instead of once per percentile, and `complete()` checks the day count, endpoints and strictly increasing dates instead of building a date array. Real-data `analyzeField` dropped from ~0.85 s to ~0.4–0.5 s per field in Node 24, including the new outputs; a test asserts < 1.5 s on three pulled-site shapes.
