@@ -17,6 +17,17 @@ export const get = (obj, path) => path.split('.').reduce((o, k) => (o == null ? 
 export function num(v, digits = 0) {
   return finite(v) ? v.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits }) : 'unavailable';
 }
+/** Round by magnitude for display: 1234 -> "1,234", 108.452 -> "108", 12.345 -> "12.3", 0.4567 -> "0.46".
+ *  Strings pass through, with any long decimals inside them rounded the same way. */
+export function fmtVal(v) {
+  if (v == null) return 'unavailable';
+  if (typeof v === 'number') {
+    if (!Number.isFinite(v)) return 'unavailable';
+    const a = Math.abs(v), d = a >= 100 ? 0 : a >= 10 ? 1 : 2;
+    return v.toLocaleString('en-US', { maximumFractionDigits: d });
+  }
+  return String(v).replace(/-?\d+\.\d{3,}/g, m => fmtVal(Number(m)));
+}
 export const pct = v => (finite(v) ? `p${Math.round(v)}` : 'percentile unavailable');
 
 /** Severity 0..1 to a 3-step class. Text always accompanies the colour. */

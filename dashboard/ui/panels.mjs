@@ -26,10 +26,21 @@ export function renderCards(el, analysis, selected, onSelect) {
         </div>
         <div class="pbar-scale"><span>p0</span><span>p25</span><span>p50 normal</span><span>p75</span><span>p100</span></div>
         <div class="rec"><span class="sev sev-${sc}">${esc(sevText(st.severity))}</span> ${esc(pct(st.percentile))} · ${rec?.text ? `Since 1991: ${esc(rec.text)}` : 'recurrence unavailable'}</div>`
-      : `<div class="unavail">Status unavailable for this field</div>`}
+      : `<div class="unavail">${esc(unavailableReason(f.id, st, analysis))}</div>`}
     </button>`;
   }).join('');
   el.querySelectorAll('.fcard').forEach(b => b.addEventListener('click', () => onSelect(b.dataset.factor)));
+}
+
+/** Plain reason for a missing status, using the engine's own notes. */
+function unavailableReason(id, st, analysis) {
+  const notes = (analysis?.data_quality?.notes ?? []).join(' ');
+  if (id === 'water' && /current crop is unconfirmed/i.test(notes)) return "Unavailable: this season's crop is not recorded. Add it in My farm records (crop and planting date).";
+  if (id === 'crop_condition' && analysis?.factors?.crop_condition?.series?.dates?.length) {
+    const last = analysis.factors.crop_condition.series.dates.at(-1);
+    return `Unavailable for the latest weather date: the newest satellite composite is ${fmtDate(last)}.`;
+  }
+  return st?.label ? st.label.replace(/^Unavailable:\s*/i, 'Unavailable: ') : 'Status unavailable for this field';
 }
 
 /* ---------- factor detail ---------- */

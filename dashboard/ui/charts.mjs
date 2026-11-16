@@ -1,5 +1,5 @@
 // Chart.js wrappers themed from the CSS variables. MOTION dial 1: no chart animation.
-import { cssVar, fmtDate } from './util.mjs';
+import { cssVar, fmtDate, fmtVal } from './util.mjs';
 
 const live = new Map();
 
@@ -21,7 +21,8 @@ export function makeChart(canvas, config) {
     plugins: {
       legend: { position: 'bottom', labels: { color: t.muted, boxWidth: 10, boxHeight: 10, font: { family: t.mono, size: 10.5 }, filter: i => !i.text.startsWith('_') } },
       tooltip: { backgroundColor: t.raised, titleColor: t.ink, bodyColor: t.ink, borderColor: t.line, borderWidth: 1, titleFont: { family: t.mono }, bodyFont: { family: t.mono },
-                 filter: i => !i.dataset.label.startsWith('_') },
+                 filter: i => !i.dataset.label.startsWith('_'),
+                 callbacks: { label: i => `${i.dataset.label}: ${fmtVal(i.parsed.y)}` } },
     },
     scales: {
       x: { ticks: { color: t.muted, font: { family: t.mono, size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }, grid: { color: t.line, drawTicks: false }, border: { color: t.line } },
