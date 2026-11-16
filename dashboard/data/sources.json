@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-15T23:17:24.644Z",
+ "generated_at": "2026-11-16T01:34:50.842Z",
  "source_ids": [],
  "notes": "Every source_id used in dashboard/data/*.json should resolve to an entry in \"sources\". \"deferred\" lists resources from the team Resources tab not used tonight.",
  "sources": [
@@ -750,6 +750,10 @@
   {
    "name": "OpenET",
    "why": "Field-scale (30 m) actual ET would replace our ET₀ × Kc estimate, but the API needs a free account and key; the adapter exists in research/deliverables/weather-water/. Next step."
+  },
+  {
+   "name": "NASA MODIS MOD16A2GF ET",
+   "why": "500 m 8-day actual ET for fld01–fld03 (2021–2025) was retrieved from ORNL in research PR #8 but is not wired into the dashboard tonight. Next step."
   },
   {
    "name": "GRACE-FO",

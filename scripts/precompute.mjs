@@ -545,11 +545,123 @@ function ndviFieldRecord(f, n, sourceNote) {
   };
 }
 
+/** Every MOD13Q1 composite start (A2001001, A2001017, ...) from `start` up to `end`. */
+function expectedComposites(start, end) {
+  const out = [];
+  const lo = toModisDateLocal(start);
+  for (let y = Number(start.slice(0, 4)); y <= Number(end.slice(0, 4)); y++) {
+    for (let doy = 1; doy <= 353; doy += 16) {
+      const a = `A${y}${String(doy).padStart(3, '0')}`;
+      if (a >= lo && modisToIso(a) <= end) out.push(a);
+    }
+  }
+  return out;
+}
+
+/** Group missing composites into runs that are consecutive in the expected sequence. */
+function missingRuns(expected, have) {
+  const runs = [];
+  let cur = null;
+  expected.forEach((a, i) => {
+    if (have.has(a)) { cur = null; return; }
+    if (cur && cur.lastIdx === i - 1) { cur.dates.push(a); cur.lastIdx = i; } else { cur = { dates: [a], lastIdx: i }; runs.push(cur); }
+  });
+  return runs.map((r) => r.dates);
+}
+
+/**
+ * --fill-gaps: keep every existing composite unchanged and add only the missing
+ * ones from --ndvi-source (ornl or pc). Records the source of every composite
+ * in fields[].composite_sources (aligned with dates).
+ */
+async function fillNdviGaps(fc, mode) {
+  const outFile = path.join(DATA, 'fields_ndvi.json');
+  if (!fs.existsSync(outFile)) throw new Error('--fill-gaps needs an existing fields_ndvi.json');
+  if (mode !== 'ornl' && mode !== 'pc') throw new Error('--fill-gaps needs --ndvi-source=ornl or --ndvi-source=pc');
+  const srcId = mode === 'ornl' ? 'MODIS_MOD13Q1_ORNL' : 'MODIS_MOD13Q1_PC';
+  const file = readJson(outFile);
+  const start = opt('ndvi-start', '2001-01-01');
+  const expected = expectedComposites(start, TODAY);
+  const log = { ran_at: new Date().toISOString(), source_id: srcId, filled: {}, still_missing: {}, errors: [] };
+
+  for (const rec of file.fields) {
+    const f = fc.features.find((x) => x.properties.field_id === rec.field_id);
+    // Composites from the original run carry the file-level source.
+    if (!rec.composite_sources) rec.composite_sources = rec.dates.map(() => file.source_ids[0]);
+    const have = new Set(rec.modis_dates);
+    const runs = missingRuns(expected, have);
+    console.log(`ndvi fill: ${rec.field_id} ${runs.flat().length} missing in ${runs.length} runs: ${runs.map((r) => r.length > 1 ? `${r[0]}..${r.at(-1)}` : r[0]).join(', ') || 'none'}`);
+    const got = new Map(); // modis_date → {values, rel}
+    for (const run of runs) {
+      const s = modisToIso(run[0]);
+      const e = modisToIso(run.at(-1));
+      try {
+        let n;
+        if (mode === 'ornl') {
+          n = await fetchModisNdvi({ lat: rec.request.lat, lon: rec.request.lon, startDate: s, endDate: e,
+            kmAboveBelow: 1, kmLeftRight: 1, timeoutMs: 90000 });
+        } else {
+          [n] = await fetchNdviPlanetary([{ field_id: rec.field_id, lat: rec.request.lat, lon: rec.request.lon }], s, e);
+        }
+        // Put the new pixels on the file's 9 × 9 grid. A window offset by whole pixels is realigned
+        // (cells outside the new window become null); anything else is refused.
+        const cs = rec.cellsize;
+        const dc = (rec.xllcorner - n.xllcorner) / cs;
+        const dr = ((n.yllcorner + n.nrows * cs) - (rec.yllcorner + rec.nrows * cs)) / cs;
+        if (Math.abs(n.cellsize - cs) > 0.01 || Math.abs(dc - Math.round(dc)) > 0.01 || Math.abs(dr - Math.round(dr)) > 0.01) {
+          throw new Error(`grid mismatch: got ${n.nrows}x${n.ncols} cell ${n.cellsize} at (${n.xllcorner}, ${n.yllcorner}), file has ${rec.nrows}x${rec.ncols} cell ${cs} at (${rec.xllcorner}, ${rec.yllcorner})`);
+        }
+        const DC = Math.round(dc); const DR = Math.round(dr);
+        if (DC || DR || n.nrows !== rec.nrows || n.ncols !== rec.ncols) {
+          console.warn(`  ${rec.field_id}: realigning ${n.nrows}x${n.ncols} window by ${DR} rows, ${DC} cols`);
+        }
+        const realign = (vals) => {
+          const out = [];
+          for (let r = 0; r < rec.nrows; r++) for (let c = 0; c < rec.ncols; c++) {
+            const R = r + DR; const C = c + DC;
+            out.push(R >= 0 && R < n.nrows && C >= 0 && C < n.ncols ? vals[R * n.ncols + C] : null);
+          }
+          return out;
+        };
+        n.modis_dates.forEach((a, i) => { if (run.includes(a)) got.set(a, { values: realign(n.pixels[i]), rel: n.reliability_applied }); });
+      } catch (err) {
+        console.warn(`  ${rec.field_id} ${run[0]}..${run.at(-1)}: ${err.message}`);
+        log.errors.push({ field_id: rec.field_id, run: [run[0], run.at(-1)], error: err.message });
+      }
+    }
+    // Merge in date order without touching existing composites.
+    const rows = rec.modis_dates.map((a, i) => ({ a, date: rec.dates[i], px: rec.pixels[i], mean: rec.field_mean[i], src: rec.composite_sources[i] }));
+    for (const [a, g] of got) {
+      if (have.has(a)) continue;
+      const mean = fieldMeanSeries({ pixel_centers: rec.pixel_centers, pixels: [g.values] }, f.geometry)[0];
+      rows.push({ a, date: modisToIso(a), px: g.values, mean, src: srcId });
+      if (!g.rel) rec.reliability_applied = false;
+    }
+    rows.sort((x, y) => x.a.localeCompare(y.a));
+    rec.modis_dates = rows.map((r) => r.a);
+    rec.dates = rows.map((r) => r.date);
+    rec.pixels = rows.map((r) => r.px);
+    rec.field_mean = rows.map((r) => r.mean);
+    rec.composite_sources = rows.map((r) => r.src);
+    log.filled[rec.field_id] = [...got.keys()].sort();
+    log.still_missing[rec.field_id] = expected.filter((a) => !rec.modis_dates.includes(a));
+    console.log(`  ${rec.field_id}: filled ${got.size}; still missing ${log.still_missing[rec.field_id].join(' ') || 'none'}`);
+  }
+  file.source_ids = [...new Set(file.fields.flatMap((r) => r.composite_sources))];
+  file.generated_at = new Date().toISOString();
+  file.notes = file.notes.filter((t) => !t.startsWith('composite_sources'));
+  file.notes.push('composite_sources[i] is the source id of dates[i] (MODIS_MOD13Q1_PC = Planetary Computer COGs, MODIS_MOD13Q1_ORNL = ORNL DAAC web service). Both are NASA MOD13Q1 v061.');
+  file.gap_fills = [...(file.gap_fills || []), log];
+  writeJson(outFile, file);
+  return true;
+}
+
 async function ndvi() {
   const fc = fs.existsSync(path.join(DATA, 'demo_fields.geojson'))
     ? readJson(path.join(DATA, 'demo_fields.geojson')) : fields();
   const start = opt('ndvi-start', '2001-01-01');
   const mode = opt('ndvi-source', 'auto');
+  if (args.includes('--fill-gaps')) return fillNdviGaps(fc, mode);
   const outFile = path.join(DATA, 'fields_ndvi.json');
   const outFields = [];
   const failures = [];
@@ -696,6 +808,7 @@ function sourcesFile() {
     license_or_terms: 'Extension publication', notes: 'Copied from dashboard/data/crops.json extra_sources (P4); see that file for the values used.', kind: 'agronomy_source' }));
   const deferred = [
     ['OpenET', 'Field-scale (30 m) actual ET would replace our ET₀ × Kc estimate, but the API needs a free account and key; the adapter exists in research/deliverables/weather-water/. Next step.'],
+    ['NASA MODIS MOD16A2GF ET', '500 m 8-day actual ET for fld01–fld03 (2021–2025) was retrieved from ORNL in research PR #8 but is not wired into the dashboard tonight. Next step.'],
     ['GRACE-FO', 'Groundwater/total water storage at ~300 km and monthly: regional aquifer context only, cannot resolve a field or the SD-6 LEMA.'],
     ['SMAP', 'Satellite soil moisture (9–36 km) needs an Earthdata login for downloads; POWER GWETROOT covers the factor tonight (model-based).'],
     ['GPM IMERG', '~10 km precipitation, finer than POWER, but needs Earthdata login and gridded HDF5/NetCDF processing; POWER PRECTOTCORR is used.'],
