@@ -1,28 +1,32 @@
 // Integration layer: loads the P1/P2/P4 modules and data files. There is NO sample fallback on the live site:
 // when a real file or module fails to load, that part gets no data and an entry in `ctx.loadErrors`
 // ({ ok: false, part, file, label, message, error }), so the UI can show an error card instead of numbers.
-// `status` still records what loaded, for the data-status table. Nothing here invents values.
+// `status` records only what loaded (all real), so the old SAMPLE DATA chip stays hidden. Nothing here invents values.
 // (The app no longer imports ui/_fixtures/.)
 
-const status = {};           // key -> { real: bool, detail, error?: true }
+const status = {};           // key -> { real: true, detail } for each part that loaded (failures go to loadErrors)
 export const dataStatus = () => status;
-const mark = (key, real, detail, error = false) => { status[key] = error ? { real, detail, error: true } : { real, detail }; };
+const mark = (key, detail) => { status[key] = { real: true, detail }; };
 
-/** Every load failure, in order. The same array is returned as `ctx.loadErrors`, so later failures show up too. */
+/** Every load failure, in order. The same array is returned as `ctx.loadErrors`, so later failures show up too.
+ *  Entry: { ok: false, part, file, label, what, message, error }. app.js renders
+ *  "Couldn't load <what>. <message>. Showing nothing rather than estimates." */
 const loadErrors = [];
 export const getLoadErrors = () => loadErrors;
 function fail(part, file, label, e) {
   const error = String(e?.message ?? e);
-  const message = `Couldn't load ${label} (${file.split('/').pop()}). Showing nothing rather than estimates.`;
-  const entry = { ok: false, part, file, label, message, error };
+  const what = `${label} (${file.split('/').pop()})`;
+  const entry = { ok: false, part, file, label, what, message: /fetch|network|load/i.test(error) ? 'The request failed' : error, error };
   const i = loadErrors.findIndex(x => x.part === part);
   if (i >= 0) loadErrors[i] = entry; else loadErrors.push(entry);
-  mark(part, false, message, true);
-  console.error(`[kimchi] ${message}`, error);
+  delete status[part];
+  console.error(`[kimchi] Couldn't load ${what}: ${error}`);
   return entry;
 }
 function clearError(part) { const i = loadErrors.findIndex(x => x.part === part); if (i >= 0) loadErrors.splice(i, 1); }
-const errorFor = (part, fallback) => loadErrors.find(x => x.part === part)?.message ?? fallback;
+/** One plain sentence for a failed part, e.g. "Couldn't load NASA history (site_history.json). Showing nothing rather than estimates." */
+const sentence = e => `Couldn't load ${e.what}. Showing nothing rather than estimates.`;
+const errorFor = (part, fallbackWhat) => sentence(loadErrors.find(x => x.part === part) ?? { what: fallbackWhat });
 
 async function tryImport(part, path, label) {
   try { return await import(path); } catch (e) { fail(part, path.replace('../', ''), label, e); return null; }
@@ -34,7 +38,7 @@ async function fetchJSON(url) {
 }
 /** A real data file, or null plus a load error. Never a sample. */
 async function loadJSON(part, url, label) {
-  try { const d = await fetchJSON(url); clearError(part); mark(part, true, label); return d; }
+  try { const d = await fetchJSON(url); clearError(part); mark(part, label); return d; }
   catch (e) { fail(part, url, label, e); return null; }
 }
 
@@ -46,7 +50,7 @@ export async function loadAll() {
     tryImport('lib_report', '../lib/report.mjs', 'the season report'),
     tryImport('farmStore', '../lib/farmStore.mjs', 'the farm-records store'),
   ]);
-  if (libFarm) mark('farmStore', true, 'P1 farmStore.mjs');
+  if (libFarm) mark('farmStore', 'P1 farmStore.mjs');
 
   const [fields, grid, ndvi, crops, actions, sources, site] = await Promise.all([
     loadJSON('fields', 'data/demo_fields.geojson', 'the demo fields'),
@@ -57,13 +61,13 @@ export async function loadAll() {
     loadJSON('sources', 'data/sources.json', 'the source list'),
     loadJSON('history', 'data/site_history.json', 'NASA history'),
   ]);
-  if (site) mark('history', true, 'NASA POWER daily history 1981 to now');
+  if (site) mark('history', 'NASA POWER daily history 1981 to now');
 
   // Without the field outlines or a place to keep farm records the app cannot draw anything: stop with a clear
   // message (app.js shows it as a full-page error) instead of rendering an empty or made-up screen.
-  const fatal = (part, fallback) => new Error(errorFor(part, fallback).replace(/\. Showing nothing rather than estimates\.$/, ''));
-  if (!fields?.features) throw fatal('fields', "Couldn't load the demo fields (demo_fields.geojson)");
-  if (!libFarm) throw fatal('farmStore', "Couldn't load the farm-records store (farmStore.mjs)");
+  const fatal = (part, what) => new Error(`Couldn't load ${loadErrors.find(x => x.part === part)?.what ?? what}`);
+  if (!fields?.features) throw fatal('fields', 'the demo fields (demo_fields.geojson)');
+  if (!libFarm) throw fatal('farmStore', 'the farm-records store (farmStore.mjs)');
 
   return { libSources, libAnalysis, libRecommend, libReport, farmStore: libFarm, fields, grid, ndvi, crops, actions, sources, site,
     analysisFixture: null, recFixture: null, loadErrors };
@@ -111,7 +115,7 @@ export async function runAnalysisAsync(ctx, args) {
       const t0 = performance.now();
       const a = await call('analyze', { liveDaily, ndvi: ctx.ndvi?.fields?.find(f => f.field_id === fid) ?? null, soil: field.properties.soil, farmField, today });
       clearError('analysis');
-      mark('analysis', true, `P2 analyzeField in a background worker (${Math.round(performance.now() - t0)} ms)`);
+      mark('analysis', `P2 analyzeField in a background worker (${Math.round(performance.now() - t0)} ms)`);
       return a;
     } catch (e) { console.error(e); }
   }
@@ -150,13 +154,12 @@ export function runAnalysis(ctx, { field, farmField, liveDaily }) {
       const today = lastDataDate(liveDaily) ?? lastDataDate(site.daily);
       const a = ctx.libAnalysis.analyzeField({ daily: site.daily, liveDaily, ndvi: fieldNdvi, soil: field.properties.soil, farmField, crops: ctx.crops, today, site });
       clearError('analysis');
-      mark('analysis', true, `P2 analyzeField (${Math.round(performance.now() - t0)} ms)`);
+      mark('analysis', `P2 analyzeField (${Math.round(performance.now() - t0)} ms)`);
       return a;
-    } catch (e) { console.error(e); return unavailableAnalysis(fail('analysis', 'lib/analysis.mjs', 'the factor analysis', e).message); }
+    } catch (e) { console.error(e); return unavailableAnalysis(sentence(fail('analysis', 'lib/analysis.mjs', 'the factor analysis', e))); }
   }
-  const reason = !ctx.site ? errorFor('history', "Couldn't load NASA history (site_history.json). Showing nothing rather than estimates.")
-    : errorFor('lib_analysis', "Couldn't load the analysis engine (analysis.mjs). Showing nothing rather than estimates.");
-  mark('analysis', false, reason, true);
+  const reason = !ctx.site ? errorFor('history', 'NASA history (site_history.json)')
+    : errorFor('lib_analysis', 'the analysis engine (analysis.mjs)');
   return unavailableAnalysis(reason);
 }
 
@@ -171,26 +174,24 @@ export function runRotationFit(ctx, { rotation, field, farmField, farm }) {
 /** Run P4's recommend if available; otherwise no cards plus the reason. Never sample cards. */
 export function runRecommend(ctx, { analysis, farm, field_id, field, focus, rotationsFit }) {
   const none = error => ({ top3: [], all: [], rotations: [], error });
-  if (analysis?.unavailable) { mark('recommend', false, `No recommendations: ${analysis.error}`, true); return none(analysis.error); }
+  if (analysis?.unavailable) return none(analysis.error);
   if (ctx.libRecommend?.recommend && ctx.actions) {
     try {
       const r = ctx.libRecommend.recommend({ analysis, farm, field_id, field, crops: ctx.crops, actions: ctx.actions, rotationsFit, focus: focus || null, today: new Date() });
       clearError('recommend');
-      mark('recommend', true, 'P4 recommend');
+      mark('recommend', 'P4 recommend');
       return r;
-    } catch (e) { console.error(e); return none(fail('recommend', 'lib/recommend.mjs', 'the recommendations', e).message); }
+    } catch (e) { console.error(e); return none(sentence(fail('recommend', 'lib/recommend.mjs', 'the recommendations', e))); }
   }
-  const reason = !ctx.actions ? errorFor('actions', "Couldn't load the action library (actions.json). Showing nothing rather than estimates.")
-    : errorFor('lib_recommend', "Couldn't load the recommendation engine (recommend.mjs). Showing nothing rather than estimates.");
-  mark('recommend', false, reason, true);
-  return none(reason);
+  return none(!ctx.actions ? errorFor('actions', 'the action library (actions.json)')
+    : errorFor('lib_recommend', 'the recommendation engine (recommend.mjs)'));
 }
 
 /** Live POWER for this year at a point, through P1's fetchPowerDaily. Throws with the reason if it isn't loaded. */
 export async function fetchLive(ctx, { lat, lon }) {
   const today = new Date(), start = `${today.getUTCFullYear()}0101`;
   const end = today.toISOString().slice(0, 10).replace(/-/g, '');
-  if (!ctx.libSources?.fetchPowerDaily) throw new Error(errorFor('lib_sources', "Couldn't load the live NASA POWER fetcher (sources.mjs)."));
+  if (!ctx.libSources?.fetchPowerDaily) throw new Error(errorFor('lib_sources', 'the live NASA POWER fetcher (sources.mjs)'));
   return ctx.libSources.fetchPowerDaily({ lat, lon, start, end });
 }
 
