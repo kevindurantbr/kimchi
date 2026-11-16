@@ -4,6 +4,33 @@
 
 ---
 
+## ▶ ROUND 3: start here (9:05 pm → 9:45 pm; freeze 10:00 pm)
+
+Read PLAN.md §8 (status), §11 (detail levels) and `team/QA_REVIEW.md`. Branch from the latest `main`: `p3-round3`. You keep merging; run `node --test dashboard/lib/*.test.mjs` before each merge. **Ownership change:** `ui/integrate.mjs` moves to P1 tonight.
+
+1. **(9:05) Merge PR #20** (P4 round 2) if its tests pass.
+2. **(by 9:15) Left-panel collapse bug** (reported by the owner). Collapsing the left panel makes the map **0 px wide**, and the decision panel jumps into the map's place. The cause: `.left{display:none}` removes a grid item, so `.mapwrap` and `.right` shift one column left. The fix in `styles.css`:
+   ```css
+   .console > .left { grid-column: 1; } .console > .mapwrap { grid-column: 2; } .console > .right { grid-column: 3; }
+   ```
+   (Mobile already uses one column, so leave that rule as it is.) Then call `map.invalidateSize()` about 50 ms after any panel toggle. Verify both panels collapse, separately and together, at 1440 px.
+3. **(by 9:20) Error cards** (QA review §3). Render P1's `ctx.loadErrors` as red cards in the affected panel: "Couldn't load NASA history (site_history.json). Showing nothing rather than estimates. [Retry]". Add `onerror` handlers on the Leaflet and Chart.js `<script>` tags, plus a `window.onerror`, that show "The map library couldn't load. Check your connection and reload." This replaces the silent freeze on "CHECKING".
+4. **(by 9:40) The detail-level filter, View: Simple / Moderate / Complete** (PLAN.md §11, the full table).
+   - Put the segmented control in the top bar, defaulting to **Simple**, and remember it in localStorage inside try/catch.
+   - Set `body` class `level-1/2/3`; tag elements with `data-min-level`.
+   - Hide the codes (F-01, W-1, D-01, Q-00) below level 3.
+   - In Simple, the tiles use P2's `status.plain`, the actions use P4's `card.short`, and the rotations use P4's `rotationTable()`.
+   - Fall back to the current text if a field is missing; **never show `undefined`**.
+   - **If time runs short**, ship Simple = hide `[data-min-level]` elements + the rotation table; Moderate and Complete = today's screen.
+5. **(by 9:45) Slider** (QA review §4).
+   - Field view for Water, Temperature and Soil moisture: use P2's `analysis.annual.years` as frames. Colour the field by that year's value vs normal and show `caption[i]` next to the slider.
+   - Until that lands, or if it's missing, when the slider has no frames show "Press **Region view** or **Crop condition** to play history", and make that text a button that switches for them.
+   - The slider must never look dead without explanation.
+6. **(10:00–10:45)** Feature freeze. Run the QA list in QA_REVIEW.md on the live URL at 1440 px and on a phone, fix bugs only, and give P4 the "go" for recording in **Simple** view.
+
+---
+
+
 You are helping build **Kimchi**, a NASA Space Apps 2026 project for the "Field Shift: Adapting Farms with NASA Data" challenge. Repository: https://github.com/kevindurantbr/kimchi. **Read `PLAN.md` first**, especially §4 (data workflow), §5 (factor interactions), §6 (layout) and §7 (contracts). The deadline is **tonight, Nov 15, 11:59 pm Eastern**, and the video gets recorded from your app at **9:30 pm**, so a working app matters more than a perfect one.
 
 ## Your role

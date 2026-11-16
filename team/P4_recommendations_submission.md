@@ -4,6 +4,43 @@
 
 ---
 
+## ▶ ROUND 3: start here (9:05 pm → submit 11:15 pm)
+
+Read PLAN.md §8 (status), §11 (detail levels) and §12 (data coverage). Your PR #20 is being merged by P3 at 9:05; if it needs a rebase, do that first. Branch: `p4-round3`.
+
+1. **(by 9:30) Short text for the Simple view** (PLAN.md §11).
+   - Add `card.short` to every recommendation: **one sentence**, under 25 words, with a number and no jargon. For example: "Continuous corn ran short of water in 28 of 35 past seasons under your 280 mm (11 in) allocation. Compare corn–sorghum or corn–wheat."
+   - Keep `expert_check` on every card.
+   - Never put "unavailable" inside a sentence; drop the clause instead, e.g. "about unavailable mm/day" must not appear.
+2. **(by 9:40) `rotationTable({ rotations })`** in `recommend.mjs`. Return one row per metric for the current rotation + 2 alternatives:
+   - short on water X of N;
+   - heat at pollination X of N, using P2's above-normal metric if present, else "≥ 1 hot day at pollination X of N";
+   - months with low green cover;
+   - main benefit;
+   - main risk;
+   - what we don't know.
+
+   P3 renders it in the Simple view. This is the challenge's core "compare ≥ 3 rotations including the current one", so it must be visible at the default level. Add a test.
+3. **(9:45–10:00) Write-up.**
+   - Add the §12 data-coverage paragraph to `submission/WRITEUP.md`: what we use, what we deferred, why, and what's next (SMAP, observed ET via MOD16/OpenET, IMERG, HLS, QuickStats).
+   - Add the 3 detail levels as a design point: farmer-first, with the Complete view for experts.
+   - Link the live URL, DATA.md and ANALYSIS.md.
+   - Fill every `[[FILL]]`.
+4. **(10:00–10:45) Record the video in Simple view** (30 s if the 2026 rules match 2025; confirm). Suggested beats:
+   1. problem;
+   2. pick the field → 4 tiles;
+   3. slider playing 1981 → 2026;
+   4. top-3 "What to consider";
+   5. the rotation table;
+   6. switch to Complete for 2 seconds ("every number and source is here");
+   7. "Check with your agronomist".
+
+   Take 6 screenshots.
+5. **(by 11:15) Submit** and post the confirmation in the team chat.
+
+---
+
+
 You are helping build **Kimchi**, a NASA Space Apps 2026 project for the "Field Shift: Adapting Farms with NASA Data" challenge. Repository: https://github.com/kevindurantbr/kimchi. **Read `PLAN.md` first**; it is the source of truth for scope, contracts and the timeline. The deadline is **tonight, Nov 15, 11:59 pm Eastern**. You also own the **submission**, so protect 9:30–11:15 pm for the video and write-up.
 
 ## Your role
