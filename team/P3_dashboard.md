@@ -4,6 +4,40 @@
 
 ---
 
+## ▶ ROUND 4: start here (9:55 pm → merge by 10:40; freeze 10:45)
+
+Read PLAN.md §13. Branch from the latest `main`: `p3-round4`. You still merge. **`ui/recs.mjs` moves to P4 for tonight.**
+
+1. **(by 10:15) A new field pulls its own data automatically.** In `app.js`:
+   1. After `saveNewField` (drawn or typed), call P1's `pullFieldData(geometry)`.
+   2. Show progress: "Pulling 45 years of NASA weather and USDA soil for *Field name*… (about 2 s)".
+   3. Then run `analyzeField` on the returned `site` and render the panels exactly as for a demo field.
+   4. Add a **"↻ Refresh data"** button next to the field picker for drawn fields; it re-runs the pull and shows "Data pulled Nov 15, 10:12 pm".
+   5. On reload, use P1's cache first, then refresh in the background.
+   6. Any `errors` show as the round-3 red error cards, never as fake values.
+   7. **Show "Draw field" / "Add field" at Simple level too.** It's currently hidden below Moderate, and farmers need it.
+
+   Remove the old banner text "Factor analysis for drawn fields needs the analysis engine…".
+2. **(by 10:25) Visual-first tiles at every level** (PLAN.md §13 colour table).
+   - Each factor tile shows: colour band + icon + **status word** + the **headline number large and bold** (P2's `badges[].headline`, ~28 px) + one short sentence. Keep that same at Simple, Moderate and Complete.
+   - Moderate adds the chart; Complete adds the percentile bar and codes.
+   - Add a mini visual to Simple tiles: a small "this year vs normal" bar using `status.value` and `normal_median`, or the slider sparkline.
+   - The rotation table at Simple should use coloured cells: green = fewest shortfall years, red = most, neutral otherwise.
+3. **(by 10:35) Status icons on the map.** For each field, draw a small Leaflet `divIcon` badge row above the field with one icon per factor whose `level` is watch or concern, coloured amber or red, e.g. 💧 amber or 🌡 red.
+   - Hovering or tapping shows `headline`.
+   - The field outline colour is the worst level among its factors.
+   - Add a legend: "💧 water · 🌡 heat · 🟫 soil moisture · 🌱 greenness; amber = watch, red = concern".
+   - Don't show badges for good or normal factors, to keep the map clean.
+4. **(10:40) Merge P1, P2 and P4's round-4 PRs**, then freeze at 10:45. Run the QA list at 1440 px and on a phone. Make sure:
+   - a newly drawn field goes all the way to full cards;
+   - the panels collapse correctly;
+   - there's no `undefined`.
+
+   Give P4 the "go" or "use the safety take" by 10:50.
+
+---
+
+
 ## ▶ ROUND 3: start here (9:05 pm → 9:45 pm; freeze 10:00 pm)
 
 Read PLAN.md §8 (status), §11 (detail levels) and `team/QA_REVIEW.md`. Branch from the latest `main`: `p3-round3`. You keep merging; run `node --test dashboard/lib/*.test.mjs` before each merge. **Ownership change:** `ui/integrate.mjs` moves to P1 tonight.
