@@ -7,6 +7,7 @@ import { renderCards, renderDetail } from './ui/panels.mjs';
 import { renderActions, renderRotations, renderWhatIf } from './ui/recs.mjs';
 import * as integ from './ui/integrate.mjs'; // namespace import: P1's pullFieldData may not exist yet
 import { badgesOf, worstLevel, LEVEL_COLOR } from './ui/status.mjs';
+import { factorIcon } from './ui/icons.mjs';
 
 const state = { field: 'fld01', factor: 'water', view: 'field', focus: '', gridMode: 'percentile', live: null, liveError: null, analysis: null, rec: null };
 let ctx, farm, map, slider;
@@ -489,13 +490,19 @@ async function refreshField() {
   if (state.field === id) recompute();
 }
 
-/* ---------- map status badges (one icon per factor at watch or concern) ---------- */
+/* ---------- map status badges: all four factors per field, shown when the field is hovered ---------- */
 function drawBadges() {
   if (!map) return;
   const show = state.view === 'field';
-  const rows = show ? features().map(f => ({ feature: f, items: analyses.has(f.properties.field_id) ? badgesOf(analyses.get(f.properties.field_id)).filter(b => b.level === 'watch' || b.level === 'concern') : [] })) : [];
+  const rows = show ? features().map(f => ({ feature: f, items: analyses.has(f.properties.field_id) ? badgesOf(analyses.get(f.properties.field_id)) : [] })) : [];
   map.setBadges(rows);
-  $('badge-legend').hidden = !rows.some(r => r.items.length);
+  const legend = $('badge-legend');
+  if (!legend.dataset.built) {
+    legend.innerHTML = `<span class="bl-icons">${['water', 'temperature', 'soil_moisture', 'crop_condition'].map(id => `<span class="bl-item">${factorIcon(id, 'blicon')}${esc(factorName(id))}</span>`).join('')}</span>`
+      + `<span class="bl-key">${matchMedia('(hover: none)').matches ? 'Tap' : 'Hover'} a field to see each factor: <i class="bdot lv-good"></i>good <i class="bdot lv-normal"></i>normal <i class="bdot lv-watch"></i>watch <i class="bdot lv-concern"></i>concern</span>`;
+    legend.dataset.built = '1';
+  }
+  legend.hidden = !rows.some(r => r.items.length);
 }
 
 /* ---------- sample/data status ---------- */

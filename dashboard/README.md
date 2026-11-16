@@ -55,6 +55,7 @@ Delete `ui/_fixtures/` once every row above is real. The browser console shows 4
 | `ui/farmForm.mjs` | My farm records: record form with unit toggles, settings, table, trends, export and import. |
 | `ui/report.mjs` | Season report dialog; fallback `buildReport`. |
 | `ui/util.mjs` | Formatting, escaping, colour ramps. |
+| `ui/icons.mjs` | The four factor icons (inline SVG), shared by cards, actions, map badges and legend. |
 
 ## Visual direction
 
@@ -65,6 +66,8 @@ Redesigned Nov 16 as "Instrument keycaps", referencing linear.app (quiet, precis
 - Controls are pill "keycaps": segmented rails with a raised key for the quiet choices (detail level, map view, focus), lime for the main one (factor). Buttons step up on hover and press down on click; cards lift 2 px. Everything rests under reduced motion.
 - Inter for the interface and large readouts (tabular figures); Geist Mono for coordinates, dates and codes.
 - Desktop command bar in two rows: field and actions, then the lens (factor, map view, detail level). Map overlays are frosted glass.
+- Factor icons are drawn for this app (`ui/icons.mjs`): a drop with its water line, a thermometer with heat shimmer, a soil profile with root-zone water, and a sprout under a signal arc. Cards carry no coloured edges; status shows in the word pill.
+- Map badges: hovering a field rolls its four factor icons out above it, one by one from left to right with a spin, each filled with its status colour; hovering a badge lists all four. They sit in their own layer above the map overlays. Touch screens have no hover, so the selected field's row stays open.
 
 ## Guardrails shown in the UI
 
