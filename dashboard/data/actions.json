@@ -239,10 +239,12 @@
         "peak": "derived.capacity_peak_mm_day",
         "well": "derived.capacity_well_mm_day",
         "short": "derived.capacity_short_text",
-        "rot": "derived.current_rotation_name_inline"
+        "rot": "derived.current_rotation_name_inline",
+        "sf": "derived.capacity_shortfall_mm_day"
       },
       "why_template": [
         "Peak 7-day crop demand (about {peak} mm/day) is higher than what the well can deliver on this field (about {well} mm/day). A season total can look fine while July cannot be met.",
+        "This season, peak 7-day crop demand was about {sf} mm/day more than the well can deliver on this field. A season total can look fine while July cannot be met.",
         "In {short} seasons of the weather record, the simulated peak 7-day demand of {rot} was higher than this well can deliver. A season total can look fine while July cannot be met."
       ],
       "evidence_specs": [
@@ -292,6 +294,7 @@
       ],
       "short_template": [
         "This season, peak demand ({peak} mm/day) beat what your well delivers ({well} mm/day). Consider fewer irrigated acres.",
+        "This season, peak crop demand was {sf} mm/day more than your well can deliver. Consider fewer irrigated acres.",
         "In {short} past seasons, July demand was more than your well can pump. Consider fewer irrigated acres."
       ],
       "short_fallback": "July demand can be more than your well can pump. Consider fewer irrigated acres."

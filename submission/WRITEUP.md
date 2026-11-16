@@ -1,6 +1,6 @@
 # Kimchi: field risk and rotation explorer
 
-> **For the Space Apps project form.** Each `##` heading below is one form field; paste the text under it. Remaining **[[FILL]]** items only the team can supply: member names, the video link, and a final check of the numbers at 9:30 pm.
+> **For the Space Apps project form.** Each `##` heading below is one form field; paste the text under it. Two **[[FILL]]** items remain that only the team can supply: member names and the video link.
 >
 > **Rules (checked Nov 15, 8:40 pm ET; spaceappschallenge.org returned 503, so these come from search results of the official 2026 page and the 2025 guide — re-check on the form while submitting):**
 > - **Deadline: Sun Nov 15, 11:59 pm in the time zone of our team's Local Event.** Projects saved or submitted after it are not judged. If our Local Event is not on Eastern time, adjust.
@@ -22,10 +22,10 @@ Kimchi is a map-based decision-support dashboard for farmers on limited irrigati
 
 ## Project details
 
-> **What we found** (demo field fld01, an irrigated pivot in Sheridan 6, NASA POWER 1991–2025 plus 2026 through Nov 12; synthetic farm settings: 280 mm allocation, 600 gpm well) [[FILL: re-check against the live app at 9:30 pm]]
+> **What we found** (demo field fld01, an irrigated pivot in Sheridan 6; NASA POWER 1991–2025 plus 2026 through Nov 12; synthetic farm settings: 280 mm allocation, 600 gpm well; numbers checked against the engine at 9:20 pm)
 > - **Continuous corn would have run short of water in 28 of 35 seasons** under a 280 mm allocation (median shortfall 108 mm). Corn–sorghum was also short in 28 of 35 (median 67 mm), and corn–wheat in 30 of 35 (median 89 mm). **No rotation removes the shortfall**; they change when and by how much.
-> - **Peak 7-day corn demand exceeded what a 600 gpm well delivers on 50 ha (≈ 6.5 mm/day) in 35 of 35 seasons**, so the July bottleneck is the well, not just the annual allocation.
-> - **2026 had 38 days ≥ 35 °C so far (normal 26.5): more than 71% of years since 1981**, and 15 of 45 years reached that level. There is no statistically clear upward trend in hot days at this cell (Mann-Kendall p = 0.26), which is why the app reports recurrence instead of a trend claim.
+> - **Peak 7-day corn demand exceeded what a 600 gpm well delivers on 50 ha (≈ 6.5 mm/day) in 35 of 35 seasons**; in 2026 the peak was about 3.3 mm/day above it. The July bottleneck is the well, not just the annual allocation.
+> - **2026 had 38 days ≥ 35 °C (normal 26.5): more than 71% of years since 1981**, and 15 of 45 years reached that level. There is no statistically clear upward trend in hot days at this cell (Mann-Kendall p = 0.24), which is why the app reports how often, not a trend claim.
 
 ### The problem
 
@@ -45,6 +45,20 @@ In western Kansas, groundwater from the Ogallala aquifer is falling and allocati
 4. **Rotation comparison:** the current rotation (from the farmer's records, or USDA CDL satellite crop history flagged "please confirm") plus alternatives, each with fit indicators over the same weather years, why it was suggested, supporting evidence, benefits, risks, information gaps and prerequisites. There's also a **what-if** picker for any crop sequence and a slider for the water allocation.
 5. **My farm records:** crop, planting and harvest dates, irrigation, nitrogen, yield, well capacity, allocation, and the farmer's priorities (save water / protect soil / income). Records are stored **only in the farmer's browser**, with JSON export and import.
 6. **Season or quarter report**, printable, in 8 sections: at a glance; what is in danger; how often; top 3 actions; rotation outlook; your records; data and limits; "review with your agronomist".
+
+### Designed farmer-first: three detail levels
+
+A **View: Simple / Moderate / Complete** switch in the top bar sets how much the screen shows. It starts on **Simple**.
+- **Simple (any farmer):**
+  - four factor tiles, each with a status word ("Normal", "Watch", "Concern") and one plain sentence, with °F and inches next to °C and mm;
+  - the history slider;
+  - the top 3 actions, each as one plain sentence with a number. For example: "Continuous corn ran short of water in 28 of 35 past seasons under your 280 mm (11 in) allocation. Compare the alternatives below.";
+  - **one rotation comparison table**: the current rotation plus 2 alternatives, against how often each ran short of water, heat at pollination, months with no crop growing, the main benefit, the main risk, and what we don't know;
+  - "Check with your agronomist".
+- **Moderate (wants the reasons):** adds the values with their normals and "as of" dates, one chart per factor, why each action was suggested (benefits, risks, gaps), the rotation cards and the what-if builder.
+- **Complete (agronomist or judge):** shows every number, chart, score breakdown, source ID and data-quality note.
+
+The parts the challenge requires stay visible at Simple: the rotation comparison, one benefit and one risk per rotation, the low-green-cover months, the farmer's inputs, the expert-check line and the data-limits line.
 
 ### How it answers the challenge
 
@@ -83,6 +97,26 @@ Full formulas, units and citations are in [`dashboard/lib/ANALYSIS.md`](../dashb
 | Soil capacity × deficit | Depletion line with the "stress starts" threshold |
 | Farm records × conditions | The farmer's yield vs hot days or deficit, labelled "n years: pattern, not proof" |
 
+### Data coverage: what we use, what we deferred, and why
+
+We combine **2 NASA products** (POWER daily weather and soil wetness, 1981–now, live in the browser; and MODIS MOD13Q1 NDVI at 250 m, 2001–now) with **2 USDA products** (SSURGO soil water storage, live for any drawn field; and the Cropland Data Layer for the demo fields' crop history), plus FAO-56 methods and 21 K-State/USDA agronomy sources. These cover all four factors the tool reasons about.
+
+The challenge names about nine NASA datasets, and we use two. We chose depth over breadth: we'd rather show two datasets correctly, with honest labels, than many shallowly. Two consequences to be clear about:
+- **Soil moisture is model-based.** POWER root-zone wetness comes from the MERRA-2 reanalysis, and the app labels it as a model value.
+- **Crop water use is estimated, not observed.** It's FAO-56 ET₀ × Kc.
+- **Satellite gaps:** 12 MODIS NDVI composites, including Jul–Nov 2025, are missing from our copy. The app shows "no new data" for those dates instead of guessing. A gap-fill from NASA's ORNL DAAC service is written but wasn't run tonight.
+
+**Next datasets, in order:**
+1. **NASA SMAP** satellite soil moisture (9 km), to replace the model value. It needs an Earthdata login.
+2. **Observed ET**, to check our modelled demand:
+   - **MODIS MOD16** 500 m ET for the demo fields was already retrieved on a side branch;
+   - **OpenET** (30 m) needs only a free account, and our adapter exists.
+3. **NASA GPM IMERG** rain (10 km), for finer storms.
+4. **HLS** (Harmonized Landsat Sentinel-2, 30 m), for within-field zones. MODIS gives about 8 pixels per field.
+5. **USDA NASS QuickStats** county yields, so the "income" priority has data behind it. Today it has none, and we say so.
+
+GRACE-FO and USGS wells would add Ogallala decline context. The full list and reasons are in [`submission/DATA.md`](DATA.md).
+
 ### Limitations and guardrails
 
 1. Missing data stays missing ("unavailable"), never 0.
@@ -104,8 +138,9 @@ A farmer or advisor gets, in one view, how this season compares with 45 years of
 
 ### Next steps
 
-- **OpenET** field-scale actual ET. It needs only a free account (account.etdata.org), and our adapter already exists in `research/deliverables/weather-water/`.
-- **NASA SMAP** soil moisture (needs an Earthdata login) to check the model-based root-zone wetness.
+- **NASA SMAP** soil moisture (needs an Earthdata login) to replace the model-based root-zone wetness.
+- **Observed ET:** MODIS MOD16 (already retrieved for the demo fields) and **OpenET** field-scale ET. OpenET needs only a free account (account.etdata.org), and our adapter already exists in `research/deliverables/weather-water/`.
+- **USDA NASS QuickStats** county yields for the income priority, and running the written ORNL gap-fill for the 12 missing NDVI composites.
 - **NASA GPM IMERG** precipitation, at a finer resolution than POWER.
 - **HLS** (Harmonized Landsat Sentinel-2) at 30 m for within-field crop condition.
 - **Validation with farmers and K-State experts:** confirm crop histories, hybrid maturity, well output and allocation accounting, and test whether the top-3 actions are the ones advisors would raise.
@@ -115,7 +150,7 @@ A farmer or advisor gets, in one view, how this season compares with 45 years of
 | Dataset | How we used it |
 |---|---|
 | **NASA POWER daily point API** (Prediction Of Worldwide Energy Resources), AG community, 1981–present: `T2M_MAX`, `T2M_MIN`, `PRECTOTCORR`, `RH2M`, `WS2M`, `ALLSKY_SFC_SW_DWN`, `GWETROOT`, `GWETTOP` | Live this-season weather fetched in the browser (about 3-day lag), and 1981–now history for normals, recurrence and trends. Inputs to FAO-56 reference ET, growing degree days, hot days, frost dates, root-zone wetness percentiles, and the region slider grid across western Kansas |
-| **NASA MODIS Terra MOD13Q1 v061** NDVI, 250 m, 16-day (NASA LP DAAC product; retrieved from Microsoft Planetary Computer; any composites filled from the ORNL DAAC MODIS web service are listed in `DATA.md`) | Field-view greenness pixels with a time slider; crop condition vs the field's own 2001–2025 normal; the green-cover calendar that highlights low-cover months (about 7 a year on fld01) |
+| **NASA MODIS Terra MOD13Q1 v061** NDVI, 250 m, 16-day (NASA LP DAAC product, retrieved from Microsoft Planetary Computer; 583 composites 2001 – Oct 16, 2026, 12 missing, see `DATA.md`) | Field-view greenness pixels with a time slider; crop condition vs the field's own 2001–2025 normal; the green-cover calendar that highlights low-cover months (about 7 a year on fld01) |
 | NASA MODIS MOD16A2GF evapotranspiration | Pulled for fld01–fld03 on a side branch (`codex/et-pathway`); not yet in the dashboard: next step |
 
 ## Space agency partner and other data

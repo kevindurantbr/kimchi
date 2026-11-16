@@ -9,35 +9,39 @@ Rules for the recording:
 - Burn in the subtitles (the lines below), or upload them as an English caption track.
 - **[[28 of 35]]** is what the engine gives for fld01 on Nov 15 (corn, 280 mm). Check it on the live app at 9:30 pm and change it if the app shows something else. **Never read a number the app doesn't show.**
 
-## 30-second cut (primary)
+## 30-second cut (primary): record in **View: Simple**
+
+Record from the public URL https://kevindurantbr.github.io/kimchi/ at 1440 × 900 after P3's "go" (10:00 pm freeze).
 
 | Time | Screen | Subtitle / voice-over (≈ 75 words total) |
 |---|---|---|
-| 0–4 s | Title card: "Kimchi: field risk and rotation explorer". Map of western Kansas | "Western Kansas: the aquifer is shrinking and summers are hotter." |
-| 4–9 s | Click fld01; the four factor cards appear | "Pick a field. NASA POWER and MODIS data give four factors: now versus normal." |
-| 9–13 s | Drag the region slider 1981 → 2025 (hot days); flick the NDVI field slider | "Where it happens, and how often since 1981." |
-| 13–18 s | Water tab: supply vs demand, capacity gauge; rotation card "28 of 35" | "Continuous corn runs short of water in [[28 of 35]] seasons, and the well can't meet July peaks." |
-| 18–23 s | Right panel: top 3 actions; hover the score breakdown; tap a focus chip | "The top three actions, each with its score, evidence and risks." |
-| 23–27 s | Rotation cards: current + 2 alternatives; move the allocation slider | "Compare your rotation with corn–sorghum and corn–wheat. No 'best' label." |
-| 27–30 s | Season report, scrolled to "Review with your agronomist…" | "It supports your judgement. Check with K-State before acting." |
+| 0–4 s | Map of western Kansas pivots; title "Kimchi: field risk and rotation explorer" | "Western Kansas: the aquifer is shrinking and summers are hotter." |
+| 4–8 s | Field picker → North pivot (fld01); the 4 Simple tiles appear | "Pick your field. NASA satellite and weather data give four plain checks." |
+| 8–12 s | Press Play: slider runs 1981 → 2026 | "See how often each problem came back since 1981." |
+| 12–18 s | Right panel "What to consider": the 3 one-sentence actions | "Here: corn ran short of water in [[28 of 35]] seasons, and July demand beats the well." |
+| 18–24 s | Scroll to the rotation table (current + 2 alternatives) | "Compare your rotation with corn–sorghum and corn–wheat: water, heat, bare months, risks." |
+| 24–27 s | Switch View to **Complete** for 2 s | "Every number and source is one click away." |
+| 27–30 s | Back to Simple; the "Check with your agronomist" line | "It supports your judgement. Check with K-State before acting." |
 
-Shot list for recording (one take each, then cut):
-1. Title card (make it in the app header or a plain slide; no NASA logo).
-2. Map → click fld01 (2 s of the cards settling).
-3. Region view, hot-days indicator, drag the slider across years. Switch to field view, step the NDVI slider 3–4 periods.
-4. Water tab with the supply/demand chart and capacity gauge visible together.
-5. Right panel: hover one card's score; click the "Water" focus chip and back.
-6. Rotation cards; drag the allocation slider so the "X of N" indicators change.
-7. Season report, scroll to the end.
+Shot list (one take each, then cut):
+1. Title over the map (no NASA logo).
+2. Field picker → fld01; hold 2 s on the four tiles.
+3. Press Play; let it run about 4 s.
+4. Right panel, top 3 sentences visible.
+5. The rotation table, all three columns readable.
+6. View → Complete (2 s) → back to Simple.
+7. The expert-check / data-limits line.
+
+**Check before recording:** the numbers on screen. On Nov 15, 9:20 pm the engine gave: continuous corn short in **28 of 35** seasons under 280 mm; peak demand above the well in 35 of 35 seasons (3.3 mm/day in 2026); about **6.9** low-green-cover months a year (satellite). If the screen shows something else, say the screen's number.
 
 ## 7-slide fallback (if the video fails to upload)
 
 1. **Title:** Kimchi: field risk and rotation explorer. Team Kimchi, [[member names]]. Challenge: Field Shift: Adapting Farms with NASA Data.
 2. **Problem:** limited water on the Ogallala, hotter summers, scattered data. The farmer's question: "Keep continuous corn, or switch? What do I do this season?"
 3. **Data:** NASA POWER (1981–now, live) + NASA MODIS NDVI + USDA SSURGO + USDA CDL + the farmer's records → four factors (diagram from PLAN.md §4).
-4. **Screenshot:** factor cards + map with the time slider (`screenshots/02_factors.png`, `03_slider.png`).
+4. **Screenshot:** Simple view: four tiles + map with the time slider (`screenshots/02_factors.png`, `03_slider.png`).
 5. **Screenshot:** top 3 actions with the score breakdown and evidence (`05_actions.png`).
-6. **Screenshot:** rotation cards, current + 2 alternatives, with why suggested / benefits / risks / gaps (`06_rotations.png`).
+6. **Screenshot:** the rotation comparison table, current + 2 alternatives × water, heat, bare months, benefit, risk, unknowns (`06_rotations.png`).
 7. **Honesty and next steps:** data limits; no yield or profit predictions; "Review with your agronomist or K-State Research and Extension"; next: OpenET, SMAP, IMERG, HLS 30 m, farmer validation. Code and demo links.
 
 ## Screenshots to take (into `submission/screenshots/`, from the public URL)
@@ -48,8 +52,9 @@ Shot list for recording (one take each, then cut):
 | `02_factors.png` | Left panel: four factor cards for fld01 |
 | `03_slider.png` | Region slider mid-animation (hot days) or the NDVI field slider |
 | `04_water.png` | Water tab: supply vs demand + capacity gauge + recurrence |
-| `05_actions.png` | Right panel: top 3 with one score breakdown expanded |
-| `06_rotations.png` | Rotation cards + what-if / allocation slider |
+| `05_actions.png` | Right panel in Simple view: the top 3 one-sentence actions |
+| `06_rotations.png` | Rotation comparison table (Simple) |
+| `07_complete.png` | Same screen in Complete view: score parts, sources |
 | (optional) `07_report.png` | Printed season report |
 
 Use deviceScaleFactor 2 or a retina screen; crop to the app and hide bookmarks and personal tabs.
