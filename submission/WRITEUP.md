@@ -43,6 +43,9 @@ In western Kansas, groundwater from the Ogallala aquifer is falling and allocati
 3. **Top 3 actions** (right panel) from a library of 12 sourced actions, ranked by a rule-based score that's shown on every card:
    `score = severity × farmer priority × evidence strength × timing`.
    The farmer can **focus** on one factor. If fewer than 3 actions apply, the list is filled with "watch" items that say why they didn't trigger.
+   - Each action is a **collapsed one-line card**: factor icon, status colour and word (green / amber / red, always with the word), the problem in a few words, and the result in bold, e.g. "**28 of 35 seasons short of water**".
+   - A click or Enter expands it, showing a chart first: the water shortfall by year against the normal, the days the well couldn't keep up, months with little green cover, or the current rotation against the alternatives. Then the plain explanation and "Ask your agronomist".
+   - The rotation card links straight to the comparison table.
 4. **Rotation comparison:** the current rotation (from the farmer's records, or USDA CDL satellite crop history flagged "please confirm") plus alternatives, each with fit indicators over the same weather years, why it was suggested, supporting evidence, benefits, risks, information gaps and prerequisites. There's also a **what-if** picker for any crop sequence and a slider for the water allocation.
 5. **My farm records:** crop, planting and harvest dates, irrigation, nitrogen, yield, well capacity, allocation, and the farmer's priorities (save water / protect soil / income). Records are stored **only in the farmer's browser**, with JSON export and import.
 6. **Season or quarter report**, printable, in 8 sections: at a glance; what is in danger; how often; top 3 actions; rotation outlook; your records; data and limits; "review with your agronomist".
@@ -53,7 +56,7 @@ A **View: Simple / Moderate / Complete** switch in the top bar sets how much the
 - **Simple (any farmer):**
   - four factor tiles, each with a status word ("Normal", "Watch", "Concern") and one plain sentence, with °F and inches next to °C and mm;
   - the history slider;
-  - the top 3 actions, each as one plain sentence with a number. For example: "Continuous corn ran short of water in 28 of 35 past seasons under your 280 mm (11 in) allocation. Compare the alternatives below.";
+  - the top 3 actions as collapsed cards with a bold result. Opening one shows a chart and one plain sentence, for example: "Continuous corn ran short of water in 28 of 35 past seasons under your 280 mm (11 in) allocation. Compare the alternatives below.";
   - **one rotation comparison table**: the current rotation plus 2 alternatives, against how often each ran short of water, heat at pollination, months with no crop growing, the main benefit, the main risk, and what we don't know;
   - "Check with your agronomist".
 - **Moderate (wants the reasons):** adds the values with their normals and "as of" dates, one chart per factor, why each action was suggested (benefits, risks, gaps), the rotation cards and the what-if builder.
@@ -100,18 +103,20 @@ Full formulas, units and citations are in [`dashboard/lib/ANALYSIS.md`](../dashb
 
 ### Data coverage: what we use, what we deferred, and why
 
-We combine **2 NASA products** (POWER daily weather and soil wetness, 1981–now, live in the browser; and MODIS MOD13Q1 NDVI at 250 m, 2001–now) with **2 USDA products** (SSURGO soil water storage, live for any drawn field; and the Cropland Data Layer for the demo fields' crop history), plus FAO-56 methods and 21 K-State/USDA agronomy sources. These cover all four factors the tool reasons about.
+We combine **3 NASA products** with **2 USDA products**, plus FAO-56 methods and 21 K-State/USDA agronomy sources. Together they cover all four factors the tool reasons about.
+- **NASA POWER** daily weather and soil wetness, 1981–now, fetched live in the browser.
+- **NASA MODIS MOD13Q1 NDVI** at 250 m, 2001–now: 594 composites per field. The 11 missing from our main copy, including Jul–Nov 2025, were filled from NASA's ORNL DAAC service, and each composite records which copy it came from.
+- **NASA MODIS MOD16 actual ET** for the demo fields, 2021–2025. It's shown at the Complete level as a satellite check on our modelled crop water use.
+- **USDA SSURGO** soil water storage, live for any drawn field.
+- **USDA Cropland Data Layer**, for the demo fields' crop history.
 
-The challenge names about nine NASA datasets, and we use two. We chose depth over breadth: we'd rather show two datasets correctly, with honest labels, than many shallowly. Two consequences to be clear about:
+The challenge names about nine NASA datasets, and we use three. We chose depth over breadth: we'd rather show a few datasets correctly, with honest labels, than many shallowly. Two consequences to be clear about:
 - **Soil moisture is model-based.** POWER root-zone wetness comes from the MERRA-2 reanalysis, and the app labels it as a model value.
-- **Crop water use is estimated, not observed.** It's FAO-56 ET₀ × Kc.
-- **Satellite gaps:** 12 MODIS NDVI composites, including Jul–Nov 2025, are missing from our copy. The app shows "no new data" for those dates instead of guessing. A gap-fill from NASA's ORNL DAAC service is written but wasn't run tonight.
+- **Crop water use is estimated.** It's FAO-56 ET₀ × Kc. MOD16 is one 500 m pixel per field and has no irrigation input, so it is a comparison, not a replacement.
 
 **Next datasets, in order:**
 1. **NASA SMAP** satellite soil moisture (9 km), to replace the model value. It needs an Earthdata login.
-2. **Observed ET**, to check our modelled demand:
-   - **MODIS MOD16** 500 m ET for the demo fields was already retrieved on a side branch;
-   - **OpenET** (30 m) needs only a free account, and our adapter exists.
+2. **Field-scale observed ET:** **OpenET** (30 m, irrigation-aware) needs only a free account, and our adapter exists. MOD16 at 500 m is already in the app as a coarse check.
 3. **NASA GPM IMERG** rain (10 km), for finer storms.
 4. **HLS** (Harmonized Landsat Sentinel-2, 30 m), for within-field zones. MODIS gives about 8 pixels per field.
 5. **USDA NASS QuickStats** county yields, so the "income" priority has data behind it. Today it has none, and we say so.
@@ -133,17 +138,30 @@ GRACE-FO and USGS wells would add Ogallala decline context. The full list and re
 11. The demo farm's records are **synthetic** and labelled so. Demo field boundaries are approximate, and their crop history is satellite-inferred and needs farmer confirmation.
 12. Several crop parameters are null where we couldn't source them tonight (for example sorghum GDD to flowering). Null means "not evaluated", never a guessed value.
 
+### How it works under the hood (no AI at runtime)
+
+- **The analysis is ordinary code, not AI.** It runs in the visitor's browser on every visit:
+  - `dashboard/lib/analysis.mjs` computes the four factors, normals, recurrence and rotation fit;
+  - `dashboard/lib/recommend.mjs` scores the actions and builds the rotation table.
+
+  Each page load fetches this year's NASA POWER data live, reads the precomputed history, and recomputes every number and recommendation. **No AI model is called while the app runs.** AI assistants helped write the code once (see "Use of Artificial Intelligence").
+- **The data stays current on its own.** A scheduled GitHub Action re-runs the precompute every day at about 4 am Eastern: NASA POWER history daily, and new MODIS NDVI composites weekly. It commits any changes and redeploys the site, with no person or AI involved.
+- **Any new field gets its own data.** When a farmer draws or types a field, the browser pulls **45 years of NASA POWER daily data (1981 → today) for that spot in about 2 seconds** (one ~2 MB request), plus USDA soil for the polygon. Then it runs the same analysis as for the demo fields. The result is cached in that browser.
+  - Satellite greenness for a new field still needs a server-side download (about 1,200 requests for 2001–now), so that card says it isn't available yet.
+- **Private by design.** Fields and records stay in the farmer's browser, with Export and Import. Nothing is sent to us.
+
 ### Benefits and intended impact
 
 A farmer or advisor gets, in one view, how this season compares with 45 years of weather on their field, which risks keep coming back, and a short, explained list of things to check, all traceable to NASA data and K-State research. Groundwater districts and extension agents could use the same view to discuss rotation options with growers under LEMA allocations.
 
 ### Next steps
 
+- **Farmer accounts:** each farmer's fields and records sync across their own devices, through a hosted database. Each farmer sees only their own farm; these are private records. Today they live in one browser, with Export/Import.
 - **NASA SMAP** soil moisture (needs an Earthdata login) to replace the model-based root-zone wetness.
-- **Observed ET:** MODIS MOD16 (already retrieved for the demo fields) and **OpenET** field-scale ET. OpenET needs only a free account (account.etdata.org), and our adapter already exists in `research/deliverables/weather-water/`.
-- **USDA NASS QuickStats** county yields for the income priority, and running the written ORNL gap-fill for the 12 missing NDVI composites.
+- **Observed ET:** MODIS MOD16 for any field, not only the demo fields, and **OpenET** field-scale ET. OpenET needs only a free account (account.etdata.org), and our adapter already exists in `research/deliverables/weather-water/`.
 - **NASA GPM IMERG** precipitation, at a finer resolution than POWER.
-- **HLS** (Harmonized Landsat Sentinel-2) at 30 m for within-field crop condition.
+- **HLS** (Harmonized Landsat Sentinel-2) at 30 m for within-field crop condition, and NDVI history for newly drawn fields via a server-side download.
+- **USDA NASS QuickStats** county yields for the income priority.
 - **Validation with farmers and K-State experts:** confirm crop histories, hybrid maturity, well output and allocation accounting, and test whether the top-3 actions are the ones advisors would raise.
 
 ## NASA data
@@ -151,8 +169,8 @@ A farmer or advisor gets, in one view, how this season compares with 45 years of
 | Dataset | How we used it |
 |---|---|
 | **NASA POWER daily point API** (Prediction Of Worldwide Energy Resources), AG community, 1981–present: `T2M_MAX`, `T2M_MIN`, `PRECTOTCORR`, `RH2M`, `WS2M`, `ALLSKY_SFC_SW_DWN`, `GWETROOT`, `GWETTOP` | Live this-season weather fetched in the browser (about 3-day lag), and 1981–now history for normals, recurrence and trends. Inputs to FAO-56 reference ET, growing degree days, hot days, frost dates, root-zone wetness percentiles, and the region slider grid across western Kansas |
-| **NASA MODIS Terra MOD13Q1 v061** NDVI, 250 m, 16-day (NASA LP DAAC product, retrieved from Microsoft Planetary Computer; 583 composites 2001 – Oct 16, 2026, 12 missing, see `DATA.md`) | Field-view greenness pixels with a time slider; crop condition vs the field's own 2001–2025 normal; the green-cover calendar that highlights low-cover months (about 7 a year on fld01) |
-| NASA MODIS MOD16A2GF evapotranspiration | Pulled for fld01–fld03 on a side branch (`codex/et-pathway`); not yet in the dashboard: next step |
+| **NASA MODIS Terra MOD13Q1 v061** NDVI, 250 m, 16-day (NASA LP DAAC product; 583 composites from Microsoft Planetary Computer + 11 gap fills from the ORNL DAAC MODIS web service, 2001 – Oct 16, 2026; see `DATA.md`) | Field-view greenness pixels with a time slider; crop condition vs the field's own 2001–2025 normal; the green-cover calendar that highlights low-cover months (about 7 a year on fld01); the "% of years with little green cover by month" chart on the action cards |
+| **NASA MODIS MOD16A2GF v061** actual ET, 500 m, 8-day summed to months (ORNL DAAC MODIS web service), fld01–fld03, 2021–2025 | Shown at the Complete level beside our estimated crop water use (ET₀ × Kc), as a satellite comparison. One pixel per field and no irrigation input, so it may under-read irrigated crops |
 
 ## Space agency partner and other data
 
