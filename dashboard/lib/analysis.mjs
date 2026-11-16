@@ -383,7 +383,34 @@ export function percentileRank(value, sample) {
   );
 }
 
-/** Percentile status with adverse-tail severity, source IDs and an explicit unknown state. */
+// Opposite comparison words, so the label follows the side of the median the value is on.
+const OPPOSITE = {
+  Drier: "Wetter",
+  Wetter: "Drier",
+  "More hot days": "Fewer hot days",
+  "Fewer hot days": "More hot days",
+  "Less green": "Greener",
+  Greener: "Less green",
+  Lower: "Higher",
+  Higher: "Lower",
+};
+/** Plain status word for the Simple view (PLAN.md §11). */
+function plainWord(st) {
+  if (!finite(st?.percentile)) return "No new data";
+  if (st.direction === "favourable") return "Good";
+  if (Math.abs(st.percentile - 50) <= 25) return "Normal";
+  return st.severity <= 0.5 ? "Watch" : "Concern";
+}
+const fmtPlain = (v) =>
+  !finite(v) ? "unavailable" : Math.abs(v) >= 10 ? String(Math.round(v)) : String(Math.round(v * 100) / 100);
+
+/**
+ * Percentile status with adverse-tail severity, source IDs and an explicit unknown state.
+ * `label` is the word for the adverse side ("Drier"); `opposite` is the word for the other side
+ * ("Wetter"). The label uses whichever side of the median the value is on, so p72 for a
+ * low-adverse factor reads "Wetter than 72% of years", never "Drier than 28%".
+ * `plain` = { word, sentence, freq } for the Simple view; analyzeField refines sentence and freq.
+ */
 export function status(value, sample, options = {}) {
   const {
     adverseWhen = "low",
@@ -391,6 +418,9 @@ export function status(value, sample, options = {}) {
     label = "Lower",
     source_ids = [],
   } = options ?? {};
+  const opposite = options?.opposite ?? OPPOSITE[label] ?? `Not ${label.toLowerCase()}`;
+  const highWord = adverseWhen === "high" ? label : opposite,
+    lowWord = adverseWhen === "high" ? opposite : label;
   const percentile = percentileRank(value, sample);
   const result = {
     value: finite(value) ? value : null,
@@ -404,16 +434,39 @@ export function status(value, sample, options = {}) {
   };
   if (percentile === null) {
     result.direction = null;
+    result.plain = {
+      word: "No new data",
+      sentence: finite(value)
+        ? "Too few past years to compare with."
+        : "No new reading for this date yet.",
+      freq: null,
+    };
     return result;
   }
   const adverse = adverseWhen === "low" ? percentile < 25 : percentile > 75;
   const favourable = adverseWhen === "low" ? percentile > 75 : percentile < 25;
-  return {
+  const rounded = Math.round(percentile);
+  const out = {
     ...result,
     direction: adverse ? "adverse" : favourable ? "favourable" : "normal",
     severity: adverse ? clamp((Math.abs(percentile - 50) - 25) / 25, 0, 1) : 0,
-    label: `${label} than ${Math.round(adverseWhen === "low" ? 100 - percentile : percentile)}% of years for this date`,
+    label:
+      rounded === 50
+        ? "Near the median for this date"
+        : rounded >= 100
+          ? `${highWord} than every past year for this date`
+          : rounded <= 0
+            ? `${lowWord} than every past year for this date`
+            : percentile > 50
+          ? `${highWord} than ${rounded}% of years for this date`
+          : `${lowWord} than ${100 - rounded}% of years for this date`,
   };
+  out.plain = {
+    word: plainWord(out),
+    sentence: `${fmtPlain(value)}${unit ? " " + unit : ""}; normal is ${fmtPlain(out.normal_median)}.`,
+    freq: null,
+  };
+  return out;
 }
 
 const calendarDay = (s) => doy(`2000-${s.slice(5)}`);
@@ -1126,18 +1179,70 @@ function frostNormal(history, key) {
   return n === null ? null : iso(Date.UTC(2000, 0, Math.round(n))).slice(5);
 }
 
-function comparisonRecurrence(values, years, current, adverseWhen) {
+/**
+ * How often past years were at least as extreme as this one, on the side of the median this year
+ * is on. `phrases` = { high, low } completes "In X of N years (1981–2025), ...".
+ * `text` stays "X of N years (span)" so parsers that read "X of N" keep working.
+ */
+function comparisonRecurrence(values, years, current, phrases) {
+  const pairs = annualPairs(values, years),
+    span = pairs.length ? `${pairs[0].year}–${pairs.at(-1).year}` : "";
   if (!finite(current))
     return {
       count: null,
-      n: clean(values).length,
+      n: pairs.length,
       years_matching: [],
-      text: `Unavailable of ${clean(values).length} years`,
+      text: `unavailable (${pairs.length} past years)`,
       reason: "Current indicator unavailable",
     };
-  return recurrence(values, years, (v) =>
-    adverseWhen === "high" ? v >= current : v <= current,
+  const side = current >= median(pairs.map((p) => p.value)) ? "high" : "low";
+  const r = recurrence(values, years, (v) =>
+    side === "high" ? v >= current : v <= current,
   );
+  const phrase = phrases?.[side] ?? (side === "high" ? "the value was at least this high" : "the value was at least this low");
+  return {
+    ...r,
+    side,
+    span,
+    text: `${r.text} (${span})`,
+    label: `Years when ${phrase}`,
+    sentence: `In ${r.count} of ${r.n} years (${span}), ${phrase}.`,
+    definition: `Counts past years (${span}) whose value for the same dates was ${side === "high" ? "at least" : "at most"} this year's value.`,
+  };
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+/** "mid-November" style phrase for an ISO date. */
+function timeOfYear(s) {
+  const day = Number(s.slice(8, 10)),
+    m = MONTHS[Number(s.slice(5, 7)) - 1];
+  return `${day <= 10 ? "early" : day <= 20 ? "mid" : "late"}-${m}`;
+}
+const inches = (mm) => (mm / 25.4).toFixed(1);
+const waterPhrase = (v) =>
+  v < 0
+    ? `${Math.round(-v)} mm (${inches(-v)} in) short`
+    : `${Math.round(v)} mm (${inches(v)} in) to spare`;
+/** "This happens about N years in 10." from a recurrence. */
+function freqText(r) {
+  if (!finite(r?.count) || !r?.n) return null;
+  const n = Math.round((10 * r.count) / r.n);
+  return n < 1
+    ? "This happens less than 1 year in 10."
+    : n >= 10
+      ? "This happens almost every year."
+      : `This happens about ${n} year${n === 1 ? "" : "s"} in 10.`;
+}
+/** Replace the generic plain sentence with a factor-specific one, and attach the frequency. */
+function withPlain(st, sentence, rec) {
+  if (!st) return st;
+  const word = st.plain?.word ?? plainWord(st);
+  st.plain = {
+    word,
+    sentence: word === "No new data" ? (st.plain?.sentence ?? sentence) : sentence,
+    freq: word === "No new data" ? null : freqText(rec),
+  };
+  return st;
 }
 
 /** Four factors and interactions for a field, with reproducible as-of date and missing-data notes. */
@@ -1252,8 +1357,25 @@ export function analyzeField({
       visibleNdvi.field_mean.push(fieldNdvi.field_mean?.[i] ?? null);
     }
   });
-  const cropStatus = ndviStatus(visibleNdvi, today),
-    ndviCurrent = visibleNdvi.dates.flatMap((s, i) =>
+  // As-of rule: if no composite covers today, use the newest composite up to 32 days old
+  // (one 16-day composite plus processing lag), compared with the same period in past years.
+  let cropStatus = ndviStatus(visibleNdvi, today),
+    ndviAsOf = finite(cropStatus.percentile) ? today : null;
+  if (!finite(cropStatus.percentile)) {
+    const latest = visibleNdvi.dates.findLast(
+      (s, i) => finite(visibleNdvi.field_mean[i]) && daysBetween(s, today) <= 32,
+    );
+    if (latest) {
+      const st = ndviStatus(visibleNdvi, latest);
+      if (finite(st.percentile)) {
+        cropStatus = { ...st, label: st.label.replace("for this date", `for ${MONTHS[Number(latest.slice(5, 7)) - 1].slice(0, 3)} ${Number(latest.slice(8, 10))}`) };
+        ndviAsOf = latest;
+      }
+    } else if (visibleNdvi.dates.length)
+      cropStatus.reason = `latest value is older than 32 days (${visibleNdvi.dates.at(-1)})`;
+  }
+  cropStatus.as_of = ndviAsOf;
+  const ndviCurrent = visibleNdvi.dates.flatMap((s, i) =>
       yearOf(s) === year ? [i] : [],
     );
   const ndviNormals = ndviCurrent.map((i) =>
@@ -1318,7 +1440,62 @@ export function analyzeField({
               : finite(crop.gdd_to_silking_c)
                 ? "vegetative"
                 : null;
+  const waterRec = comparisonRecurrence(
+    historical.map((h) => h.balance),
+    years,
+    current.balance,
+    { high: "the season was at least this wet", low: "the season was at least this dry" },
+  );
+  const heatRec = comparisonRecurrence(
+    historical.map((h) => h.hot_days),
+    years,
+    current.hot_days,
+    { high: "there were at least this many hot days", low: "there were this few hot days or fewer" },
+  );
+  const soilRec = comparisonRecurrence(
+    years.map((y) => {
+      const i = d.date.indexOf(`${y}-${today.slice(5)}`);
+      return i < 0 ? null : (d.gwetroot[i] ?? null);
+    }),
+    years,
+    soilValue,
+    { high: "the root zone was at least this wet on this date", low: "the root zone was at least this dry on this date" },
+  );
+  // Plain sentences for the Simple view (PLAN.md §11): units, °F / inches, no percentiles or codes.
+  const when = timeOfYear(today),
+    thr = crop?.heat_threshold_c ?? 35;
+  if (!crop && waterStatus.plain)
+    waterStatus.plain.sentence = "Enter this season's crop in My farm records to see crop water use.";
+  withPlain(
+    waterStatus,
+    `Rain minus crop water use this season: ${waterPhrase(current.balance)}; a normal season is ${waterPhrase(waterStatus.normal_median)}.`,
+    waterRec,
+  );
+  withPlain(
+    heatStatus,
+    `${Math.round(current.hot_days)} days above ${thr} °C (${Math.round(thr * 1.8 + 32)} °F) this season; normal is ${Math.round(heatStatus.normal_median)}.`,
+    heatRec,
+  );
+  withPlain(
+    soilStatus,
+    `Root-zone wetness is ${Math.round(soilValue * 100)}%; usually ${Math.round(soilStatus.normal_median * 100)}% in ${when}.`,
+    soilRec,
+  );
+  if (cropStatus && !finite(cropStatus.percentile) && cropStatus.plain)
+    cropStatus.plain.sentence = visibleNdvi.dates.length
+      ? `No satellite greenness image for this period yet; the newest is from ${visibleNdvi.dates.at(-1)}.`
+      : "No satellite greenness images for this field.";
+  withPlain(
+    cropStatus,
+    `Field greenness${ndviAsOf && ndviAsOf !== today ? ` in ${timeOfYear(ndviAsOf)} was` : " is"} ${finite(cropStatus?.value) ? cropStatus.value.toFixed(2) : "unavailable"}; usually ${finite(cropStatus?.normal_median) ? cropStatus.normal_median.toFixed(2) : "unavailable"} for that time of year.`,
+    null,
+  );
+  waterStatus.as_of = finite(waterStatus.value) ? end : null;
+  heatStatus.as_of = finite(heatStatus.value) ? end : null;
+  soilStatus.as_of = finite(soilValue) ? today : null;
+  const annual = annualSeries(d, [...historical, { year, ...current }]);
   return {
+    annual,
     factors: {
       water: {
         status: waterStatus,
@@ -1331,12 +1508,7 @@ export function analyzeField({
           normal_p50: normalsSeries.map((s) => s.p50),
           normal_p75: normalsSeries.map((s) => s.p75),
         },
-        recurrence: comparisonRecurrence(
-          historical.map((h) => h.balance),
-          years,
-          current.balance,
-          "low",
-        ),
+        recurrence: waterRec,
         trend: trend(
           historical.map((h) => h.balance),
           years,
@@ -1365,12 +1537,7 @@ export function analyzeField({
           normal_first_fall: frostNormal(frostHistory, "first_fall"),
         },
         stage_heat: stage,
-        recurrence: comparisonRecurrence(
-          historical.map((h) => h.hot_days),
-          years,
-          current.hot_days,
-          "high",
-        ),
+        recurrence: heatRec,
         trend: trend(
           historical.map((h) => h.hot_days),
           years,
@@ -1386,15 +1553,7 @@ export function analyzeField({
           p50: soilIndices.map((i) => soilNormals.p50[i - 1]),
           p75: soilIndices.map((i) => soilNormals.p75[i - 1]),
         },
-        recurrence: comparisonRecurrence(
-          years.map((y) => {
-            const i = d.date.indexOf(`${y}-${today.slice(5)}`);
-            return d.gwetroot[i] ?? null;
-          }),
-          years,
-          soilValue,
-          "low",
-        ),
+        recurrence: soilRec,
         source_ids: POWER,
       },
       crop_condition: {
@@ -1442,6 +1601,47 @@ export function analyzeField({
       notes,
     },
   };
+}
+
+/**
+ * Year-by-year series for the field-view slider, using the same crop calendar as this season.
+ * water_deficit_mm = crop demand minus rain (positive = short), null when no crop is entered.
+ */
+function annualSeries(d, rows) {
+  const years = rows.map((r) => r.year);
+  const water_deficit_mm = rows.map((r) =>
+    finite(r.balance) ? Math.round(-r.balance) : null,
+  );
+  const hot_days = rows.map((r) => (finite(r.hot_days) ? r.hot_days : null));
+  const gwetroot_jul = years.map((y) => {
+    const v = clean(
+      d.date.flatMap((s, i) => (s.startsWith(`${y}-07`) ? [d.gwetroot?.[i]] : [])),
+    );
+    return v.length >= 25 ? Math.round(mean(v) * 100) / 100 : null;
+  });
+  const first = years[0];
+  let maxHot = -Infinity,
+    maxDef = -Infinity;
+  const caption = years.map((y, i) => {
+    const h = hot_days[i],
+      w = water_deficit_mm[i];
+    if (!finite(h) && !finite(w)) return `${y}: data incomplete.`;
+    const parts = [];
+    if (finite(h)) {
+      parts.push(`${h} hot day${h === 1 ? "" : "s"}${i > 0 && h > maxHot ? `, the most since ${first}` : ""}`);
+      maxHot = Math.max(maxHot, h);
+    }
+    if (finite(w)) {
+      parts.push(
+        w > 0
+          ? `${w} mm short of crop demand${i > 0 && w > maxDef ? `, the driest since ${first}` : ""}`
+          : "rain covered crop demand",
+      );
+      maxDef = Math.max(maxDef, w);
+    }
+    return `${y}: ${parts.join("; ")}.`;
+  });
+  return { years, water_deficit_mm, hot_days, gwetroot_jul, caption };
 }
 
 function rotationCalendar(sequence) {
