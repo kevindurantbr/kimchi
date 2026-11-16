@@ -326,14 +326,22 @@ export function peakDemand(demand, window = 7) {
 
 /** Gross well-capacity comparison; unknown capacity is not a passing result. */
 export function capacityCheck(peakDemandMmDay, wellMmDay) {
+  // Rounded for display (P4 interpolates these); the comparison uses the unrounded inputs.
+  const peak_mm_day = finite(peakDemandMmDay) ? Math.round(peakDemandMmDay * 10) / 10 : null,
+    well_mm_day = finite(wellMmDay) ? Math.round(wellMmDay * 10) / 10 : null;
   if (![peakDemandMmDay, wellMmDay].every((v) => finite(v) && v >= 0))
     return {
+      peak_mm_day,
+      well_mm_day,
       shortfall_mm_day: null,
       ok: null,
       text: "Capacity comparison unavailable",
     };
-  const shortfall_mm_day = Math.max(0, peakDemandMmDay - wellMmDay);
+  const shortfall_mm_day =
+    Math.round(Math.max(0, peakDemandMmDay - wellMmDay) * 100) / 100;
   return {
+    peak_mm_day,
+    well_mm_day,
     shortfall_mm_day,
     ok: shortfall_mm_day === 0,
     text:
@@ -403,6 +411,28 @@ function plainWord(st) {
 }
 const fmtPlain = (v) =>
   !finite(v) ? "unavailable" : Math.abs(v) >= 10 ? String(Math.round(v)) : String(Math.round(v * 100) / 100);
+const ROUNDED_UNITS = ["mm", "days", "NDVI", "0–1"];
+/** Round for display: 2 decimals for NDVI and 0–1 wetness, 1 decimal otherwise (mm, days). */
+export function roundFor(v, unit) {
+  if (!finite(v)) return null;
+  const f = unit === "NDVI" || unit === "0–1" ? 100 : 10;
+  return Math.round(v * f) / f;
+}
+/** Display string, e.g. "108.5 mm", "12 days", "0.45"; unavailable values say so. */
+function displayValue(v, unit) {
+  const r = roundFor(v, unit);
+  if (r === null) return "unavailable";
+  const n = String(r === 0 ? 0 : r);
+  return unit && unit !== "NDVI" && unit !== "0–1" ? `${n} ${unit}` : n;
+}
+function withDisplay(st) {
+  st.display = {
+    value: displayValue(st.value, st.unit),
+    normal_median: displayValue(st.normal_median, st.unit),
+    percentile: finite(st.percentile) ? String(Math.round(st.percentile)) : "unavailable",
+  };
+  return st;
+}
 
 /**
  * Percentile status with adverse-tail severity, source IDs and an explicit unknown state.
@@ -417,15 +447,19 @@ export function status(value, sample, options = {}) {
     unit = "",
     label = "Lower",
     source_ids = [],
+    when = "for this date",
   } = options ?? {};
   const opposite = options?.opposite ?? OPPOSITE[label] ?? `Not ${label.toLowerCase()}`;
   const highWord = adverseWhen === "high" ? label : opposite,
     lowWord = adverseWhen === "high" ? opposite : label;
   const percentile = percentileRank(value, sample);
+  // Values the UI shows are rounded (1 decimal for mm/days, 2 for NDVI/wetness); ranks use raw values.
+  const shown = (v) =>
+    ROUNDED_UNITS.includes(unit) ? roundFor(v, unit) : finite(v) ? v : null;
   const result = {
-    value: finite(value) ? value : null,
+    value: shown(value),
     unit,
-    normal_median: median(sample),
+    normal_median: shown(median(sample)),
     percentile,
     direction: "normal",
     severity: null,
@@ -441,7 +475,7 @@ export function status(value, sample, options = {}) {
         : "No new reading for this date yet.",
       freq: null,
     };
-    return result;
+    return withDisplay(result);
   }
   const adverse = adverseWhen === "low" ? percentile < 25 : percentile > 75;
   const favourable = adverseWhen === "low" ? percentile > 75 : percentile < 25;
@@ -452,21 +486,21 @@ export function status(value, sample, options = {}) {
     severity: adverse ? clamp((Math.abs(percentile - 50) - 25) / 25, 0, 1) : 0,
     label:
       rounded === 50
-        ? "Near the median for this date"
+        ? `Near the median ${when}`
         : rounded >= 100
-          ? `${highWord} than every past year for this date`
+          ? `${highWord} than every past year ${when}`
           : rounded <= 0
-            ? `${lowWord} than every past year for this date`
+            ? `${lowWord} than every past year ${when}`
             : percentile > 50
-          ? `${highWord} than ${rounded}% of years for this date`
-          : `${lowWord} than ${100 - rounded}% of years for this date`,
+          ? `${highWord} than ${rounded}% of years ${when}`
+          : `${lowWord} than ${100 - rounded}% of years ${when}`,
   };
   out.plain = {
     word: plainWord(out),
     sentence: `${fmtPlain(value)}${unit ? " " + unit : ""}; normal is ${fmtPlain(out.normal_median)}.`,
     freq: null,
   };
-  return out;
+  return withDisplay(out);
 }
 
 const calendarDay = (s) => doy(`2000-${s.slice(5)}`);
@@ -738,17 +772,24 @@ export function greenCoverCalendar(fieldNdvi, threshold = 0.3) {
     ndvi: fieldNdvi?.field_mean ?? [],
   });
   const years = [...new Set(groups.map((g) => g.year))].sort((a, b) => a - b);
+  const low_cover = years.map((y) =>
+    months.map((m) => {
+      const g = groups.find((g) => g.year === y && g.month === m),
+        v = mean(g?.daily.ndvi);
+      return v === null || !finite(threshold) ? null : v < threshold;
+    }),
+  );
+  // Only years with all 12 months observed count, so a missing month is never a green month.
+  const fullYears = low_cover.filter((row) => row.every((v) => v !== null));
   return {
     label: "low green cover",
     years,
     months: [...months],
-    low_cover: years.map((y) =>
-      months.map((m) => {
-        const g = groups.find((g) => g.year === y && g.month === m),
-          v = mean(g?.daily.ndvi);
-        return v === null || !finite(threshold) ? null : v < threshold;
-      }),
-    ),
+    low_cover,
+    years_complete: fullYears.length,
+    mean_low_months_per_year: fullYears.length
+      ? Math.round((10 * sum(fullYears.map((row) => row.filter(Boolean).length))) / fullYears.length) / 10
+      : null,
   };
 }
 
@@ -920,6 +961,59 @@ function stageWindow(
   };
 }
 
+/**
+ * How often the full sensitive window had above-normal heat: years whose hot days in the window
+ * exceed the window's 1991–2020 median. Past years only, each over its complete window.
+ */
+function stageRecurrence(daily, crop, plantDate, year) {
+  const name = crop?.sensitive_window?.name ?? "the sensitive window",
+    thr = crop?.heat_threshold_c;
+  const unavailable = (reason, n = 0) => ({
+    count: null,
+    n,
+    share: null,
+    years_matching: [],
+    median_hot_days: null,
+    text: null,
+    sentence: null,
+    definition: `Years with more days ≥ ${finite(thr) ? thr : 35} °C during ${name} than the 1991–2020 median for that window.`,
+    reason,
+  });
+  if (!crop || !plantDate || !finite(year))
+    return unavailable("No crop with a sensitive window for this season");
+  const first = daily?.date?.[0] ? yearOf(daily.date[0]) : null,
+    rows = [];
+  if (first !== null)
+    for (let y = first; y < year; y++) {
+      const pd = `${y - (year - yearOf(plantDate))}-${plantDate.slice(5)}`,
+        h = stageWindow(daily, crop, pd);
+      if (h.complete && finite(h.hot_days)) rows.push({ year: y, hot_days: h.hot_days });
+    }
+  const baseline = rows.filter((r) => r.year >= 1991 && r.year <= 2020);
+  if (baseline.length < 10)
+    return unavailable(
+      rows.length
+        ? `Only ${baseline.length} complete 1991–2020 windows; need 10`
+        : "Sensitive-window dates or crop parameters unavailable",
+      rows.length,
+    );
+  const med = median(baseline.map((r) => r.hot_days)),
+    r = recurrence(
+      rows.map((x) => x.hot_days),
+      rows.map((x) => x.year),
+      (v) => v > med,
+    ),
+    span = `${rows[0].year}–${rows.at(-1).year}`;
+  return {
+    ...r,
+    share: r.n ? r.count / r.n : null,
+    median_hot_days: med,
+    span,
+    sentence: `Above-normal heat during ${name} in ${r.count} of ${r.n} years (${span}).`,
+    definition: `Years (${span}) with more days ≥ ${thr} °C during ${name} than the 1991–2020 median (${roundFor(med, "days")} days).`,
+  };
+}
+
 /** Heat within crop GDD window versus 1991–2020 at equivalent GDD progress. */
 export function stageHeat(daily, crop, plantDate, year) {
   const current = stageWindow(daily, crop, plantDate),
@@ -948,6 +1042,7 @@ export function stageHeat(daily, crop, plantDate, year) {
     ),
     normal_heat_degree_days: median(historical.map((h) => h.heat_degree_days)),
     historical,
+    recurrence: stageRecurrence(daily, crop, plantDate, year),
   };
 }
 
@@ -1104,12 +1199,39 @@ function seasonDates(crop, harvestYear, plantOverride) {
     harvest: `${harvestYear}-${harvest}`,
   };
 }
+/**
+ * Crop-independent stand-in used when no crop is entered for the season: rain minus ET₀ with
+ * Kc = 1.0 from May 1 to Sep 30, GDD 10/30 °C from May 1, and hot days counted Jun 1–Aug 31.
+ */
+const REFERENCE = {
+  id: "reference",
+  name: "Reference (no crop selected)",
+  season: { plant: "05-01", harvest: "09-30" },
+  gdd_base_c: 10,
+  gdd_cap_c: 30,
+  heat_threshold_c: 35,
+  heat_window: ["06-01", "08-31"],
+};
+/** Hot days in the season, or only inside crop.heat_window (season-to-date); null before it opens. */
+function windowHotDays(s, crop, end) {
+  const thr = crop?.heat_threshold_c ?? 35;
+  if (!crop?.heat_window) return hotDays(s.t2m_max, thr);
+  const y = yearOf(end),
+    start = `${y}-${crop.heat_window[0]}`,
+    stop = `${y}-${crop.heat_window[1]}` < end ? `${y}-${crop.heat_window[1]}` : end;
+  if (stop < start) return null;
+  const w = between(s, start, stop);
+  return complete(w, start, stop) ? hotDays(w.t2m_max, thr) : null;
+}
+const shortDate = (s) => `${MONTHS[Number(s.slice(5, 7)) - 1].slice(0, 3)} ${Number(s.slice(8, 10))}`;
 function seasonalSummary(d, crop, plant, end) {
   const s = between(d, plant, end),
     kc =
       crop?.id === "fallow"
         ? s.date.map(() => (finite(crop.kc?.ini) ? crop.kc.ini : null))
-        : kcCurve(crop, plant, s.date),
+        : crop?.id === REFERENCE.id
+          ? s.date.map(() => 1)
+          : kcCurve(crop, plant, s.date),
     demand = cropDemand(s.et_values ?? [], kc);
   const full = complete(s, plant, end),
     rain = full ? sum(s.prectotcorr) : null,
@@ -1123,7 +1245,7 @@ function seasonalSummary(d, crop, plant, end) {
     rain,
     demand_mm: total,
     balance: finite(rain) && finite(total) ? rain - total : null,
-    hot_days: full ? hotDays(s.t2m_max, crop?.heat_threshold_c ?? 35) : null,
+    hot_days: full ? windowHotDays(s, crop, end) : null,
     gdd: full ? (gd?.at(-1) ?? null) : null,
     rain_cum: full ? cumulative(s.prectotcorr) : s.date.map(() => null),
     demand_cum: full ? cumulative(demand) : s.date.map(() => null),
@@ -1263,7 +1385,9 @@ export function analyzeField({
     throw new TypeError(
       "analyzeField requires an ISO today date or dated daily input",
     );
-  const year = yearOf(today),
+  const calendarYear = yearOf(today),
+    // Jan–Mar is out of season: the headline is last year's completed season.
+    year = today.slice(5) <= "03-31" ? calendarYear - 1 : calendarYear,
     d = mergeDaily(daily, liveDaily, today),
     lat = site?.lat ?? daily?.lat ?? fieldLatitude(farmField);
   d.units = liveDaily?.units ?? site?.units ?? d.units;
@@ -1279,15 +1403,41 @@ export function analyzeField({
     farmField?.records?.find(
       (r) => r.year === year && (r.period ?? "season") === "season",
     ) ?? (farmField?.crop ? farmField : null);
-  const crop = cropList(crops).find((c) => c.id === record?.crop),
-    bounds = seasonDates(crop, year, record?.planting_date);
+  const crop = cropList(crops).find((c) => c.id === record?.crop) ?? null,
+    mode = crop ? "crop_specific" : "crop_independent",
+    seasonCrop = crop ?? REFERENCE,
+    bounds = seasonDates(
+      seasonCrop,
+      year,
+      crop ? record?.planting_date : undefined,
+    );
   if (!crop)
     notes.push(
-      "Current crop is unconfirmed; crop demand and stage calculations are unavailable.",
+      `${record?.crop ? `Crop "${record.crop}" is not in the crop library` : `No crop entered for ${year}`}; showing a reference water balance (rain − ET₀ with Kc = 1.0, May 1–Sep 30), hot days Jun–Aug and GDD from May 1. Crop demand, well capacity and stage heat need a crop.`,
     );
   const plant = bounds?.plant ?? `${year}-01-01`,
-    end = bounds?.harvest && bounds.harvest < today ? bounds.harvest : today;
-  const current = seasonalSummary(d, crop, plant, end),
+    harvest =
+      crop && record?.harvest_date && record.harvest_date > plant
+        ? record.harvest_date
+        : bounds?.harvest;
+  let end = harvest && harvest < today ? harvest : today;
+  // As-of rule: POWER lags a few days, so use the last day with weather if it is ≤ 7 days old.
+  const weatherKeys = ["t2m_max", "t2m_min", "prectotcorr"];
+  const lastWeather = d.date.findLast(
+    (s, i) => s <= end && weatherKeys.every((k) => finite(d[k]?.[i])),
+  );
+  if (lastWeather && lastWeather < end && lastWeather >= plant && daysBetween(lastWeather, end) <= 7)
+    end = lastWeather;
+  const completed =
+      year < calendarYear || (harvest && harvest < today) || today.slice(5) >= "11-01",
+    started = today >= plant;
+  const period = completed
+    ? `${year} season (completed)`
+    : started
+      ? `${year} season to date`
+      : `${year} season (not started; begins ${shortDate(plant)})`;
+  const when = completed ? "for the full season" : "for this date";
+  const current = seasonalSummary(d, seasonCrop, plant, end),
     dates = current.daily.date;
   const irrigation = irrigationSeries(record, dates, today);
   if (!irrigation.timed)
@@ -1304,7 +1454,7 @@ export function analyzeField({
       year: y,
       ...seasonalSummary(
         d,
-        crop,
+        seasonCrop,
         `${py}-${plant.slice(5)}`,
         `${ey}-${end.slice(5)}`,
       ),
@@ -1315,7 +1465,7 @@ export function analyzeField({
   const waterStatus = status(
     current.balance,
     normals.map((h) => h.balance),
-    { unit: "mm", label: "Drier", source_ids: WATER },
+    { unit: "mm", label: "Drier", source_ids: WATER, when },
   );
   const heatStatus = status(
     current.hot_days,
@@ -1325,24 +1475,33 @@ export function analyzeField({
       unit: "days",
       label: "More hot days",
       source_ids: POWER,
+      when,
     },
   );
   const soilNormals = climatology(d, "gwetroot"),
     soilIndices = dates.map(calendarDay);
-  const soilSample = years
-    .filter((y) => y >= 1991 && y <= 2020)
-    .map((y) => {
-      const target = `${y}-${today.slice(5)}`,
-        i = d.date.indexOf(target);
-      return i < 0 ? null : d.gwetroot[i];
-    });
-  const todayIndex = d.date.indexOf(today),
-    soilValue = todayIndex < 0 ? null : d.gwetroot[todayIndex];
+  // As-of rule for soil moisture: the last non-null root-zone value up to 7 days before today,
+  // compared with past years on that same calendar date.
+  const soilLatest = d.date.findLast((s, i) => s <= today && finite(d.gwetroot?.[i])) ?? null,
+    soilAsOf = soilLatest && daysBetween(soilLatest, today) <= 7 ? soilLatest : null,
+    soilValue = soilAsOf ? d.gwetroot[d.date.indexOf(soilAsOf)] : null,
+    soilYears = [...new Set(d.date.map(yearOf))].filter(
+      (y) => y < yearOf(soilAsOf ?? today),
+    ),
+    soilDay = (soilAsOf ?? today).slice(5);
+  const soilAt = (y) => {
+    const i = d.date.indexOf(`${y}-${soilDay}`);
+    return i < 0 ? null : (d.gwetroot[i] ?? null);
+  };
+  const soilSample = soilYears.filter((y) => y >= 1991 && y <= 2020).map(soilAt);
   const soilStatus = status(soilValue, soilSample, {
     unit: "0–1",
     label: "Drier",
     source_ids: POWER,
+    when: soilAsOf && soilAsOf !== today ? `for ${shortDate(soilAsOf)}` : "for this date",
   });
+  if (!soilAsOf && soilLatest)
+    soilStatus.reason = `latest value is older than 7 days (${soilLatest})`;
   const fieldNdvi = ndvi?.fields
     ? ndvi.fields.find((f) => f.field_id === farmField?.field_id)
     : ndvi;
@@ -1368,7 +1527,7 @@ export function analyzeField({
     if (latest) {
       const st = ndviStatus(visibleNdvi, latest);
       if (finite(st.percentile)) {
-        cropStatus = { ...st, label: st.label.replace("for this date", `for ${MONTHS[Number(latest.slice(5, 7)) - 1].slice(0, 3)} ${Number(latest.slice(8, 10))}`) };
+        cropStatus = { ...st, label: st.label.replace("for this date", `for ${shortDate(latest)}`) };
         ndviAsOf = latest;
       }
     } else if (visibleNdvi.dates.length)
@@ -1381,11 +1540,13 @@ export function analyzeField({
   const ndviNormals = ndviCurrent.map((i) =>
     distribution(ndviSample(visibleNdvi, visibleNdvi.dates[i])),
   );
+  // Peak demand needs a crop: the reference ET₀ is not a pumping requirement.
   const capacity = capacityCheck(
-    peakDemand(current.demand),
+    crop ? peakDemand(current.demand) : null,
     wellCapacityMmDay(farmField?.well_capacity_gpm, farmField?.area_ha),
   );
-  const stage = stageHeat(d, crop, bounds?.plant, year);
+  if (!crop) capacity.reason = "Needs this season's crop for peak crop demand";
+  const stage = stageHeat(d, crop, crop ? bounds?.plant : undefined, year);
   const frostHistory = years
     .filter((y) => y >= 1991 && y <= 2020)
     .map((y) => frostDates(d, y));
@@ -1405,10 +1566,10 @@ export function analyzeField({
       };
     });
   const currentYearIndices = d.date.flatMap((s, i) =>
-    yearOf(s) === year ? [i] : [],
+    yearOf(s) === calendarYear ? [i] : [],
   );
   const required = ["t2m_max", "t2m_min", "prectotcorr", "gwetroot"];
-  const missing = dateRange(`${year}-01-01`, today).filter((s) => {
+  const missing = dateRange(`${calendarYear}-01-01`, today).filter((s) => {
     const i = d.date.indexOf(s);
     return i < 0 || required.some((k) => !finite(d[k]?.[i]));
   }).length;
@@ -1453,32 +1614,29 @@ export function analyzeField({
     { high: "there were at least this many hot days", low: "there were this few hot days or fewer" },
   );
   const soilRec = comparisonRecurrence(
-    years.map((y) => {
-      const i = d.date.indexOf(`${y}-${today.slice(5)}`);
-      return i < 0 ? null : (d.gwetroot[i] ?? null);
-    }),
-    years,
+    soilYears.map(soilAt),
+    soilYears,
     soilValue,
     { high: "the root zone was at least this wet on this date", low: "the root zone was at least this dry on this date" },
   );
   // Plain sentences for the Simple view (PLAN.md §11): units, °F / inches, no percentiles or codes.
-  const when = timeOfYear(today),
-    thr = crop?.heat_threshold_c ?? 35;
-  if (!crop && waterStatus.plain)
-    waterStatus.plain.sentence = "Enter this season's crop in My farm records to see crop water use.";
+  const thr = seasonCrop.heat_threshold_c ?? 35,
+    seasonWord = completed ? `in the ${year} season` : "this season";
   withPlain(
     waterStatus,
-    `Rain minus crop water use this season: ${waterPhrase(current.balance)}; a normal season is ${waterPhrase(waterStatus.normal_median)}.`,
+    crop
+      ? `Rain minus crop water use ${seasonWord}: ${waterPhrase(current.balance)}; a normal season is ${waterPhrase(waterStatus.normal_median)}.`
+      : `Rain minus reference water use (no crop selected) from May 1 ${completed ? "to Sep 30" : "to date"}: ${waterPhrase(current.balance)}; normal is ${waterPhrase(waterStatus.normal_median)}.`,
     waterRec,
   );
   withPlain(
     heatStatus,
-    `${Math.round(current.hot_days)} days above ${thr} °C (${Math.round(thr * 1.8 + 32)} °F) this season; normal is ${Math.round(heatStatus.normal_median)}.`,
+    `${Math.round(current.hot_days)} days above ${thr} °C (${Math.round(thr * 1.8 + 32)} °F) ${crop ? seasonWord : `in June–August${completed ? "" : " so far"}`}; normal is ${Math.round(heatStatus.normal_median)}.`,
     heatRec,
   );
   withPlain(
     soilStatus,
-    `Root-zone wetness is ${Math.round(soilValue * 100)}%; usually ${Math.round(soilStatus.normal_median * 100)}% in ${when}.`,
+    `Root-zone wetness ${soilAsOf && soilAsOf !== today ? `on ${shortDate(soilAsOf)} was` : "is"} ${Math.round(soilValue * 100)}%; usually ${Math.round(soilStatus.normal_median * 100)}% in ${timeOfYear(soilAsOf ?? today)}.`,
     soilRec,
   );
   if (cropStatus && !finite(cropStatus.percentile) && cropStatus.plain)
@@ -1492,13 +1650,38 @@ export function analyzeField({
   );
   waterStatus.as_of = finite(waterStatus.value) ? end : null;
   heatStatus.as_of = finite(heatStatus.value) ? end : null;
-  soilStatus.as_of = finite(soilValue) ? today : null;
+  soilStatus.as_of = finite(soilValue) ? soilAsOf : null;
+  const waterBasis = crop
+    ? "crop water balance (rain minus ET₀ × Kc, before irrigation)"
+    : "reference water balance (no crop selected)";
+  waterStatus.period = period;
+  waterStatus.basis = waterBasis;
+  heatStatus.period = crop ? period : `${period}, hot days Jun 1–Aug 31`;
+  if (!crop && !completed && end < `${year}-06-01`) {
+    heatStatus.reason = "The hot-day count without a crop runs Jun 1–Aug 31; it has not started yet.";
+    if (heatStatus.plain) heatStatus.plain.sentence = "Hot days are counted from June 1 when no crop is entered.";
+  }
+  soilStatus.period = "Latest daily value";
+  cropStatus.period = "Latest 16-day satellite image";
+  const crop_context = {
+    crop: crop?.id ?? null,
+    mode,
+    season_year: year,
+    period,
+    completed,
+    prompt: crop
+      ? null
+      : "Enter this season's crop in My farm records for crop-specific demand and stage heat.",
+  };
   const annual = annualSeries(d, [...historical, { year, ...current }]);
   return {
+    crop_context,
     annual,
     factors: {
       water: {
         status: waterStatus,
+        basis: waterBasis,
+        period,
         series: {
           dates,
           rain_cum: current.rain_cum,
@@ -1527,8 +1710,9 @@ export function analyzeField({
       temperature: {
         status: heatStatus,
         gdd: {
-          to_date: gdd,
-          normal_p50: median(normals.map((h) => h.gdd)),
+          from: plant,
+          to_date: roundFor(gdd, "°C·days"),
+          normal_p50: roundFor(median(normals.map((h) => h.gdd)), "°C·days"),
           stage_now: stageNow,
         },
         frost: {
@@ -1701,6 +1885,7 @@ export function rotationFit({
       median_irrigation_need_mm: null,
       peak_capacity_short_years: null,
       sensitive_heat_years: null,
+      sensitive_heat_above_normal_years: null,
       frost_risk_years: null,
       low_cover_months_per_year: null,
       demand_by_month: Array(12).fill(null),
@@ -1800,6 +1985,33 @@ export function rotationFit({
         demand_by_month: monthly,
       });
     });
+  // Above-normal sensitive-window heat: more hot days than that phase's 1991–2020 median window.
+  const windowHeat = new Map(
+    seasons.map((s) => [`${s.phase}:${s.year}`, s.sensitive_hot_days]),
+  );
+  const heatMedian = sequence.map((crop, phase) => {
+    const values = [];
+    for (let y = 1991; y <= 2020; y++) {
+      const key = `${phase}:${y}`;
+      if (!windowHeat.has(key)) {
+        const h = stageWindow(d, crop, seasonDates(crop, y).plant);
+        windowHeat.set(key, h.complete ? h.hot_days : null);
+      }
+      values.push(windowHeat.get(key));
+    }
+    return clean(values).length >= 10 ? median(values) : null;
+  });
+  if (heatMedian.some((m) => m === null))
+    notes.push(
+      "sensitive_heat_above_normal_years: a phase has fewer than 10 complete 1991–2020 sensitive windows (or no window), so above-normal heat is not evaluated for it.",
+    );
+  for (const s of seasons) {
+    const m = heatMedian[s.phase];
+    s.sensitive_heat_above_normal =
+      finite(s.sensitive_hot_days) && finite(m)
+        ? Number(s.sensitive_hot_days > m)
+        : null;
+  }
   const annual = evaluationYears.map((y) => {
     const phases = seasons.filter((s) => s.year === y);
     return {
@@ -1810,6 +2022,9 @@ export function rotationFit({
         phases.map((s) => s.capacity_shortfall_days),
       ),
       sensitive_hot_days: mean(phases.map((s) => s.sensitive_hot_days)),
+      sensitive_heat_above_normal: mean(
+        phases.map((s) => s.sensitive_heat_above_normal),
+      ),
       frost_risk: mean(phases.map((s) => s.frost_risk)),
       demand_by_month: months.map((_, m) =>
         mean(phases.map((s) => s.demand_by_month[m])),
@@ -1826,6 +2041,7 @@ export function rotationFit({
     "shortfall_mm",
     "capacity_shortfall_days",
     "sensitive_hot_days",
+    "sensitive_heat_above_normal",
     "frost_risk",
   ]) {
     const n = annual.filter((a) => finite(a[key])).length;
@@ -1848,17 +2064,21 @@ export function rotationFit({
     rotation_id: rotation.id,
     metrics: {
       shortfall_years: recur("shortfall_mm"),
-      median_shortfall_mm: median(annual.map((a) => a.shortfall_mm)),
-      median_irrigation_need_mm: median(
-        annual.map((a) => a.irrigation_need_mm),
+      median_shortfall_mm: roundFor(median(annual.map((a) => a.shortfall_mm)), "mm"),
+      median_irrigation_need_mm: roundFor(
+        median(annual.map((a) => a.irrigation_need_mm)),
+        "mm",
       ),
       peak_capacity_short_years: recur("capacity_shortfall_days"),
+      // Years with at least one hot day in the window (any heat, not above normal).
       sensitive_heat_years: recur("sensitive_hot_days"),
+      // Years when some phase had more window hot days than its 1991–2020 median.
+      sensitive_heat_above_normal_years: recur("sensitive_heat_above_normal"),
       frost_risk_years: recur("frost_risk"),
-      low_cover_months_per_year: lowCoverMonths(sequence),
+      low_cover_months_per_year: roundFor(lowCoverMonths(sequence), "months"),
       demand_by_month: months.map((_, m) => {
         const values = annual.map((a) => a.demand_by_month[m]);
-        return mean(clean(values));
+        return roundFor(mean(clean(values)), "mm");
       }),
     },
     calendar,

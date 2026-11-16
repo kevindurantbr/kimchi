@@ -61,7 +61,8 @@ test("invalid crop calendars and missing model parameters remain unavailable", (
 test("unknown current indicators are not reported as zero recurrence and future season totals are withheld", () => {
   const r = a.analyzeField({
     daily: weather("1981-01-01", "2026-07-15"),
-    liveDaily: { date: ["2026-07-15"], prectotcorr: [null] },
+    // A mid-season live gap: the as-of rule cannot step past it, so the season total is unknown.
+    liveDaily: { date: ["2026-06-15"], prectotcorr: [null] },
     crops: [corn],
     farmField: {
       records: [
@@ -228,8 +229,11 @@ test("field totals reject truncated seasons and live nulls override historical o
     daily: weather("2026-01-01", "2026-07-16"),
     liveDaily,
   });
-  assert.equal(withLive.factors.water.status.value, null);
-  assert.equal(withLive.factors.soil_moisture.status.value, null);
+  // The live null on today is not filled: the as-of rule reports the last complete day instead.
+  assert.equal(withLive.factors.water.status.as_of, "2026-07-14");
+  assert.equal(withLive.factors.water.series.dates.at(-1), "2026-07-14");
+  assert.equal(withLive.factors.soil_moisture.status.as_of, "2026-07-14");
+  assert.equal(withLive.factors.soil_moisture.status.value, 0.5);
   assert.equal(withLive.data_quality.missing_days, 1);
   assert.equal(withLive.data_quality.live_through, "2026-07-14");
   assert.equal(withLive.factors.water.recurrence.n, 0);
@@ -708,3 +712,210 @@ test("real data: plain sentences, direction-aware recurrence and the annual seri
   assert.match(r.annual.caption.at(-1), /^2025: /);
 });
 const finite = (v) => typeof v === "number" && Number.isFinite(v);
+
+// Round 2 (team/ROUND2.md, P2 tasks 1-7)
+function seasonWeather(start, end, hot = () => false) {
+  const d = weather(start, end);
+  d.t2m_max = d.date.map((s) => (hot(s) ? 36 : 30));
+  return d;
+}
+
+test("no crop for the season: crop-independent reference water balance, Jun-Aug hot days and GDD from May 1", () => {
+  // 36 °C on May 10-14 (outside Jun-Aug) and Jul 1-10 (inside) every year.
+  const hot = (s) =>
+    (s.slice(5) >= "05-10" && s.slice(5) <= "05-14") ||
+    (s.slice(5) >= "07-01" && s.slice(5) <= "07-10");
+  const d = seasonWeather("1981-01-01", "2026-07-20", hot);
+  const r = a.analyzeField({
+    daily: d,
+    site: { lat: 39.4 },
+    crops: [corn],
+    farmField: { field_id: "new", records: [] },
+    today: "2026-07-20",
+  });
+  assert.deepEqual(
+    { crop: r.crop_context.crop, mode: r.crop_context.mode },
+    { crop: null, mode: "crop_independent" },
+  );
+  assert.match(r.crop_context.prompt, /Enter this season's crop in My farm records/);
+  const w = r.factors.water.status;
+  assert.equal(w.basis, "reference water balance (no crop selected)");
+  assert.equal(r.factors.water.basis, w.basis);
+  // Rain minus ET₀ (Kc = 1.0) from May 1 through today.
+  const i0 = d.date.indexOf("2026-05-01"),
+    i1 = d.date.indexOf("2026-07-20"),
+    et = a.et0(d, 39.4).values.slice(i0, i1 + 1),
+    expected = 2 * (i1 - i0 + 1) - et.reduce((s, v) => s + v, 0);
+  assert.equal(w.value, Math.round(expected * 10) / 10);
+  assert.ok(Number.isFinite(w.percentile));
+  assert.equal(r.factors.water.series.dates[0], "2026-05-01");
+  // Hot days only inside Jun 1-Aug 31: the May heat is excluded.
+  assert.equal(r.factors.temperature.status.value, 10);
+  assert.equal(r.factors.temperature.status.as_of, "2026-07-20");
+  assert.equal(r.factors.temperature.gdd.from, "2026-05-01");
+  assert.ok(r.factors.temperature.gdd.to_date > 0);
+  assert.equal(r.factors.temperature.gdd.stage_now, null);
+  assert.ok(Number.isFinite(r.factors.soil_moisture.status.percentile));
+  // Crop-specific pieces stay unavailable rather than guessed.
+  assert.equal(r.interactions.capacity.ok, null);
+  assert.equal(r.interactions.stage_heat.recurrence.count, null);
+  assert.equal(r.interactions.stage_heat.recurrence.text, null);
+
+  const withCrop = a.analyzeField({
+    daily: d,
+    site: { lat: 39.4 },
+    crops: [corn],
+    farmField: { records: [{ year: 2026, crop: "corn", planting_date: "2026-04-25" }] },
+    today: "2026-07-20",
+  });
+  assert.equal(withCrop.crop_context.mode, "crop_specific");
+  assert.equal(withCrop.crop_context.crop, "corn");
+  assert.equal(withCrop.crop_context.prompt, null);
+  assert.match(withCrop.factors.water.basis, /^crop water balance/);
+  // Before Jun 1 the reference hot-day count has not started: unavailable, with a reason.
+  const may = a.analyzeField({ daily: d, site: { lat: 39.4 }, crops: [corn], today: "2026-05-20" });
+  assert.equal(may.factors.temperature.status.value, null);
+  assert.match(may.factors.temperature.status.reason, /Jun 1/);
+});
+
+test("as-of rule: soil moisture uses the last value up to 7 days old, else null with a reason", () => {
+  const d = weather("1981-01-01", "2026-07-20");
+  d.gwetroot = d.date.map((s) => (s > "2026-07-17" ? null : 0.5));
+  const r = a.analyzeField({ daily: d, site: { lat: 39.4 }, crops: [corn], today: "2026-07-20" });
+  const st = r.factors.soil_moisture.status;
+  assert.equal(st.as_of, "2026-07-17");
+  assert.equal(st.value, 0.5);
+  assert.match(st.label, /for Jul 17$/);
+  d.gwetroot = d.date.map((s) => (s > "2026-07-10" ? null : 0.5));
+  const old = a.analyzeField({ daily: d, site: { lat: 39.4 }, crops: [corn], today: "2026-07-20" })
+    .factors.soil_moisture.status;
+  assert.equal(old.value, null);
+  assert.equal(old.as_of, null);
+  assert.equal(old.reason, "latest value is older than 7 days (2026-07-10)");
+  // Weather lag: water and heat use the last complete weather day (≤ 7 days) and say so.
+  const lag = weather("1981-01-01", "2026-07-20");
+  for (const k of ["t2m_max", "t2m_min", "prectotcorr"])
+    lag[k] = lag[k].map((v, i) => (lag.date[i] > "2026-07-17" ? null : v));
+  const lr = a.analyzeField({
+    daily: lag,
+    site: { lat: 39.4 },
+    crops: [corn],
+    farmField: { crop: "corn", planting_date: "2026-04-25" },
+    today: "2026-07-20",
+  });
+  assert.equal(lr.factors.water.status.as_of, "2026-07-17");
+  assert.ok(Number.isFinite(lr.factors.water.status.value));
+  for (const k of ["water", "temperature", "soil_moisture", "crop_condition"])
+    assert.ok("as_of" in lr.factors[k].status && "period" in lr.factors[k].status, k);
+});
+
+test("out of season: after harvest or Nov-Mar the headline is the completed season", () => {
+  const d = weather("1981-01-01", "2026-11-12");
+  const farmField = {
+    records: [
+      { year: 2025, crop: "corn", planting_date: "2025-04-25", harvest_date: "2025-10-05" },
+      { year: 2026, crop: "corn", planting_date: "2026-04-28", harvest_date: "2026-10-08" },
+    ],
+  };
+  const r = a.analyzeField({ daily: d, site: { lat: 39.4 }, crops: [corn], farmField, today: "2026-11-12" });
+  assert.equal(r.crop_context.period, "2026 season (completed)");
+  assert.equal(r.crop_context.completed, true);
+  const w = r.factors.water.status;
+  assert.equal(w.period, "2026 season (completed)");
+  assert.equal(w.as_of, "2026-10-08");
+  assert.equal(r.factors.water.series.dates.at(-1), "2026-10-08");
+  assert.match(w.label, /for the full season$/);
+  assert.doesNotMatch(w.label, /for this date/);
+  assert.equal(r.factors.temperature.status.period, "2026 season (completed)");
+  // In season it is "to date" and compares this date.
+  const mid = a.analyzeField({ daily: d, site: { lat: 39.4 }, crops: [corn], farmField, today: "2026-07-15" });
+  assert.equal(mid.factors.water.status.period, "2026 season to date");
+  assert.match(mid.factors.water.status.label, /for this date$/);
+  // January: last year's season, completed.
+  const jan = a.analyzeField({ daily: d, site: { lat: 39.4 }, crops: [corn], farmField, today: "2026-01-20" });
+  assert.equal(jan.crop_context.season_year, 2025);
+  assert.equal(jan.factors.water.status.period, "2025 season (completed)");
+  assert.equal(jan.factors.water.status.as_of, "2025-10-05");
+});
+
+test("above-normal heat: years with more window hot days than the 1991-2020 median, not any hot day", () => {
+  // Constant 30/10 °C gives 10 GDD/day, so corn's 700-900 GDD window is Jul 4-Jul 24.
+  // Year y gets (y % 4) days at 36 °C from Jul 10 (cap 30 °C keeps GDD unchanged).
+  const k = (y) => y % 4;
+  const hot = (s) => {
+    const y = Number(s.slice(0, 4)),
+      day = Number(s.slice(8, 10));
+    return s.slice(5, 7) === "07" && day >= 10 && day < 10 + k(y);
+  };
+  const d = { ...seasonWeather("1981-01-01", "2026-11-12", hot), lat: 39.4 };
+  const fit = a.rotationFit({
+    rotation: { id: "cc", sequence: ["corn"] },
+    crops: [corn],
+    daily: d,
+    years: [1991, 2025],
+  });
+  const ys = Array.from({ length: 35 }, (_, i) => 1991 + i);
+  // 1991-2020 values are 0-3, median 1.5: above normal means 2 or 3 hot days.
+  assert.equal(fit.metrics.sensitive_heat_above_normal_years, `${ys.filter((y) => k(y) >= 2).length} of 35 years`);
+  assert.equal(fit.metrics.sensitive_heat_years, `${ys.filter((y) => k(y) >= 1).length} of 35 years`);
+  const r = a.analyzeField({
+    daily: d,
+    site: { lat: 39.4 },
+    crops: [corn],
+    farmField: { records: [{ year: 2026, crop: "corn", planting_date: "2026-04-25" }] },
+    today: "2026-11-12",
+  });
+  const rec = r.interactions.stage_heat.recurrence;
+  const past = Array.from({ length: 45 }, (_, i) => 1981 + i);
+  assert.equal(rec.median_hot_days, 1.5);
+  assert.equal(rec.count, past.filter((y) => k(y) >= 2).length);
+  assert.equal(rec.n, 45);
+  assert.equal(rec.text, `${rec.count} of 45 years`);
+  assert.equal(rec.share, rec.count / 45);
+  assert.match(rec.definition, /1991–2020 median/);
+  assert.equal(r.factors.temperature.stage_heat.recurrence, rec);
+});
+
+test("P4 contract on real data for today: every path exists, all four cards filled, numbers rounded", async () => {
+  const fs = await import("node:fs");
+  const J = (f) =>
+    JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url), "utf8"));
+  const site = J("site_history.json").sites[0],
+    farm = J("demo_farm.json"),
+    crops = J("crops.json"),
+    ndvi = J("fields_ndvi.json"),
+    fields = J("demo_fields.geojson");
+  const f = fields.features.find((x) => x.properties.field_id === "fld01");
+  const today = site.daily.date.at(-1);
+  const r = a.analyzeField({
+    daily: site.daily,
+    soil: f.properties.soil,
+    ndvi: ndvi.fields.find((x) => x.field_id === "fld01"),
+    farmField: farm.fields.find((x) => x.field_id === "fld01"),
+    crops,
+    today,
+    site,
+    rotation: [{ id: "corn_corn", sequence: ["corn"] }],
+    farm,
+  });
+  const cap = r.interactions.capacity;
+  for (const k of ["peak_mm_day", "well_mm_day", "shortfall_mm_day", "ok", "text"])
+    assert.ok(k in cap, k);
+  assert.ok(Number.isFinite(cap.peak_mm_day) && Number.isFinite(cap.well_mm_day));
+  const rec = r.interactions.stage_heat.recurrence;
+  assert.match(rec.text, /^\d+ of \d+ years$/);
+  assert.ok(rec.share > 0 && rec.share < 1 && rec.definition);
+  assert.ok(Number.isFinite(r.factors.crop_condition.green_cover_calendar.mean_low_months_per_year));
+  assert.equal(r.rotation_fit[0].rotation_id, "corn_corn");
+  assert.match(r.rotation_fit[0].metrics.sensitive_heat_above_normal_years, /^\d+ of 35 years$/);
+  assert.equal(r.crop_context.mode, "crop_specific");
+  for (const k of ["water", "temperature", "soil_moisture", "crop_condition"]) {
+    const st = r.factors[k].status;
+    assert.ok(Number.isFinite(st.percentile), `${k} is unavailable`);
+    assert.ok(st.as_of && st.period, k);
+    assert.doesNotMatch(JSON.stringify([st.value, st.normal_median]), /\.\d{3,}/, k);
+    assert.doesNotMatch(st.display.value, /\.\d{3,}|NaN|undefined/, k);
+  }
+  for (const v of Object.values(r.rotation_fit[0].metrics))
+    assert.doesNotMatch(JSON.stringify(v), /\.\d{2,}/);
+});
