@@ -2,7 +2,9 @@
 
 **Written Nov 15, 2026, 5:45 pm Eastern. Submission deadline: Nov 15, 11:59 pm.** The time zone of the deadline was not confirmed. The checkpoints below assume Eastern time. If your event uses an earlier zone, move every checkpoint earlier by the difference.
 
-> **Status update, 9:05 pm.** See §8 for progress against the timeline, the new round-3 timeline, and the new freeze at **10:00 pm**. §11 adds the **three detail levels** (Simple / Moderate / Complete), and §12 covers **data coverage and the risk from unused resources**. Each person's file in `team/` now starts with their **round 3** tasks. Live site: https://kevindurantbr.github.io/kimchi/
+> **Status update, 9:55 pm: ROUND 4.** See §13 for the new tasks and timeline (**feature freeze 10:45 pm, submit by 11:35 pm**), and the answers on data pulling for new fields, sharing, and how the analysis runs. Each `team/` file now starts with **ROUND 4**.
+>
+> **Earlier, 9:05 pm.** See §8 for progress against the timeline, the new round-3 timeline, and the new freeze at **10:00 pm**. §11 adds the **three detail levels** (Simple / Moderate / Complete), and §12 covers **data coverage and the risk from unused resources**. Each person's file in `team/` now starts with their **round 3** tasks. Live site: https://kevindurantbr.github.io/kimchi/
 
 This file replaces the earlier "evidence viewer only" direction. Each teammate's AI prompt is in [`team/`](team/). Give your AI this file **and** your own prompt.
 
@@ -390,3 +392,53 @@ So we are **not only using POWER**: there are 2 NASA products and 2 USDA product
 | NAIP, NLCD, LANDFIRE, GEDI, GAEZ, CoCoRaHS, Ag Data Commons | Context or validation | Low | Listed as deferred in DATA.md |
 
 **Bottom line:** the decisions we support (the 4 factors → actions and rotation fit) are covered by real, verified data. The risks are (1) **judging on breadth of NASA data use**, and (2) **soil moisture and ET being modelled, not observed**. Mitigation tonight: honest labels, MOD16 if it lands by 9:45, and a clear "next datasets" section in the write-up. Don't start SMAP tonight, because the Earthdata login plus processing is too risky in under an hour.
+
+## 13. Round 4 (added 9:55 pm): new fields pull their own data, visual-first view levels, collapsible actions
+
+### Round-3 result
+All round-3 PRs merged by 9:18 pm (#20–#23):
+- detail levels, field-history slider, error cards, panel-collapse fix;
+- direction-aware labels and `status.plain`;
+- `card.short` and `rotationTable()`;
+- write-up data coverage.
+
+Still open from round 3: the ORNL NDVI gap fill (Jul–Nov 2025), and the browser check of ORNL CORS.
+
+### Owner feedback driving round 4
+1. **A field the farmer adds gets no analysis.** Root cause: `loadUserFieldData()` (`app.js`) fetches only **this year's** POWER plus soil and never runs `analyzeField`, because there is no 1981→today history for that location. A full POWER pull (1981→today, 8 parameters) takes **~1.8 s and 2.2 MB** (measured), so it can run automatically.
+2. **The Simple view is all text.** It needs big bold key numbers, **green / yellow / red** colour coding, and visuals. The colours should also show **on the map**, as status icons over each field (💧 short on water, 🌡 heat, 🌱 greenness low…).
+3. **Top-3 actions are long and force scrolling.** Make each one a **collapsed card**: icon + factor + problem + one bold result. **Click to expand** to see a chart (bar or comparison) plus the text and evidence. This applies at **all three levels**; the level only changes how much is inside the expansion.
+4. **Sharing (owner decision, 9:52 pm): roadmap only tonight.** Fields and records stay in the farmer's browser, with Export/Import. The write-up describes the real design: **farmer accounts**, so each farmer sees *their own* farm on all their devices, backed by a hosted database. Not everyone sees everyone's farm, because these are private records.
+5. **"Is the analysis done by AI?" No.** AI assistants *wrote the code once*. The analysis is ordinary JavaScript (`lib/analysis.mjs`, `lib/recommend.mjs`) that **runs in each visitor's browser on every page load**:
+   - it pulls this year's NASA POWER live;
+   - it reads the precomputed history;
+   - it recomputes every number and recommendation, with no AI calls at runtime.
+
+   **What isn't continuous yet:** the precomputed files (`site_history.json`, `fields_ndvi.json`, `region_grid.json`) only change when someone re-runs `scripts/precompute.mjs`. Round 4 adds a **scheduled GitHub Action** that re-runs it daily, so the site updates itself with no human or AI involved.
+
+### Colour and status rules (shared by P2, P3 and P4)
+
+| Status word (from P2's `status.plain.word`) | Colour | Meaning |
+|---|---|---|
+| Good | green `#2e9e5b` | Better than normal |
+| Normal | green-grey `#7a9a86` | Within the usual range (p25–p75) |
+| Watch | amber `#e0a100` | Worse than normal, severity ≤ 0.5 |
+| Concern | red `#d64545` | Severity > 0.5 |
+| No new data | grey with hatching | Missing or stale; never coloured as good |
+
+Always show the word next to the colour, so the status never relies on colour alone.
+
+### Round-4 timeline
+
+| Time | Checkpoint |
+|---|---|
+| **9:55 pm** | Read the ROUND 4 block in your `team/` file. **P4 records a safety video of the current site now** (it's already presentable). |
+| **10:30 pm** | Round-4 PRs open; P3 merges them as tests pass. |
+| **10:45 pm** | **Feature freeze.** |
+| **10:45–11:20 pm** | P4 re-records the video if round 4 landed cleanly; otherwise uses the safety take. Everyone else does QA. |
+| **11:35 pm** | **Submit.** The time after that is buffer. |
+
+### File ownership changes for round 4
+- **P4 now owns `dashboard/ui/recs.mjs`** (the action and rotation cards).
+- **P1 owns the new `.github/workflows/refresh-data.yml`** and keeps `ui/integrate.mjs`.
+- Everything else is unchanged.

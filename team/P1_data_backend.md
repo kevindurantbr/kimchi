@@ -4,6 +4,32 @@
 
 ---
 
+## ▶ ROUND 4: start here (9:55 pm → PR by 10:30; freeze 10:45)
+
+Read PLAN.md §13. Branch from the latest `main`: `p1-round4`. You own `ui/integrate.mjs` and the new `.github/workflows/refresh-data.yml`.
+
+1. **(by 10:20) `pullFieldData(geometry)` in `ui/integrate.mjs`**, so a new field gets the same analysis as the demo fields.
+   - Compute the centroid, then call `fetchPowerDaily({lat, lon, start: '19810101', end: today})` once. This takes ~1.8 s and 2.2 MB (measured).
+   - Run `fetchSoilForPolygon(geometry)` in parallel.
+   - Build a `site` object in the same shape as `site_history.sites[0]` (`site_id`, `lat`, `lon`, `elevation_m` if known, `daily`, `units`).
+   - **Cache it** under key `kimchi.fielddata.<field_id>` with `retrieved_at` (IndexedDB if you can, else try/catch localStorage; 2.2 MB fits but may hit quota, so on quota error keep it in memory and set `cached: false`).
+   - Return `{ site, soil, ndvi: null, retrieved_at, errors: [] }`.
+   - Use `fetchModisNdvi` only if the ORNL browser check passes (step 2); otherwise `ndvi: null` with the reason "Crop greenness for new fields needs a server-side download (next step)".
+   - Never invent values; any failed part goes in `errors` and P3 shows it.
+2. **(by 10:25) ORNL from your laptop.**
+   - Run `node scripts/precompute.mjs ndvi --fill-gaps --ndvi-source=ornl` and commit `fields_ndvi.json` if Jul–Nov 2025 fill in.
+   - Open the ORNL browser check page to see whether drawn fields can get NDVI live.
+3. **(by 10:30) Automatic daily refresh: `.github/workflows/refresh-data.yml`.**
+   - Run on `schedule: cron '17 9 * * *'` (daily, ~4 am Eastern) and on `workflow_dispatch`.
+   - Use `actions/checkout@v4`, `actions/setup-node@v4` with Node 20.
+   - Run `node scripts/precompute.mjs site` daily, and `node scripts/precompute.mjs ndvi --fill-gaps` on Mondays only. Then `git diff --quiet || git commit -am "Daily data refresh" && git push`, with `permissions: contents: write`.
+   - The push to `main` triggers the existing Pages deploy, so the site updates itself with no human or AI involved.
+   - Trigger it once by hand (Actions → Run workflow) and confirm it succeeds.
+4. **(10:45–11:20)** QA on the phone. Add "Automatic daily refresh" and "how a new field gets its data" to `submission/DATA.md`.
+
+---
+
+
 ## ▶ ROUND 3: start here (9:05 pm → 9:45 pm PRs; freeze 10:00 pm)
 
 Read PLAN.md §8 (status), §11 (detail levels) and §12 (data coverage). Branch from the latest `main`: `p1-round3`.
