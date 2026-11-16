@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORNL browser check</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 24px; max-width: 760px; background: #fff; color: #111; }
+  pre { background: #f4f4f4; padding: 12px; white-space: pre-wrap; }
+  .yes { color: #0a6b2d; font-weight: 700; } .no { color: #a40000; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>Can the browser call the ORNL MODIS service?</h1>
+<p>From the repo root: <code>python3 -m http.server 8000</code>, then open
+<code>http://localhost:8000/scripts/ornl_browser_check.html</code>. The page calls
+<code>fetchModisNdvi</code> for fld01, July 2025 (2 composites).</p>
+<p id="answer">Running…</p>
+<pre id="log"></pre>
+<script type="module">
+  import { fetchModisNdvi } from '../dashboard/lib/sources.mjs';
+  const log = (t) => { document.getElementById('log').textContent += t + '\n'; };
+  const answer = document.getElementById('answer');
+  try {
+    const t0 = performance.now();
+    const n = await fetchModisNdvi({ lat: 39.39758, lon: -100.67829, startDate: '2025-07-01', endDate: '2025-07-31' });
+    answer.innerHTML = '<span class="yes">YES</span>: ORNL allows browser calls. Drawn fields can show crop condition.';
+    log(`${n.nrows} x ${n.ncols} pixels, ${n.pixel_size_m} m, dates ${n.dates.join(', ')}, reliability ${n.reliability_applied}`);
+    log(`centre pixel NDVI: ${n.pixels.map((r) => r[Math.floor(r.length / 2)]).join(', ')}`);
+    log(`xllcorner ${n.xllcorner}, yllcorner ${n.yllcorner} (file fld01: see fields_ndvi.json)`);
+    log(`${Math.round(performance.now() - t0)} ms`);
+  } catch (e) {
+    answer.innerHTML = '<span class="no">NO</span>: keep "crop condition: unavailable for new fields tonight".';
+    log(e.message);
+    log('If this says "Failed to fetch", open the DevTools console: a CORS error there confirms the browser is blocked; a network error means the service itself is down.');
+  }
+</script>
+</body>
+</html>

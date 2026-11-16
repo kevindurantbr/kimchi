@@ -11,11 +11,16 @@ node scripts/precompute.mjs site      # → site_history.json        (~5 s)
 node scripts/precompute.mjs fields    # → demo_fields.geojson      (<1 s, offline)
 node scripts/precompute.mjs grid      # → region_grid.json         (~1.5 min, 25 POWER requests)
 node scripts/precompute.mjs ndvi      # → fields_ndvi.json         (ORNL: unknown; Planetary Computer: ~6 min)
+node scripts/precompute.mjs ndvi --fill-gaps --ndvi-source=ornl   # add ONLY missing composites (keeps existing values)
 node scripts/precompute.mjs sources   # → sources.json             (<1 s, offline)
 node scripts/precompute.mjs all
 ```
 
 Options: `--end=YYYY-MM-DD` (default: today, UTC), `--ndvi-start=YYYY-MM-DD` (default 2001-01-01), and `--ndvi-source=auto|ornl|pc`. The default is `auto`: try ORNL first, then fall back to Planetary Computer.
+
+**Filling NDVI gaps (round 2).** `--fill-gaps` reads the existing `fields_ndvi.json`, lists the MOD13Q1 composites missing between `--ndvi-start` and today, and fetches only those, in runs of consecutive dates, from `--ndvi-source=ornl` or `pc`. It merges them in date order. Existing composites are never changed. New pixels must sit on the file's 9 × 9 grid; a window offset by whole pixels is realigned (cells outside it become null), and anything else is refused. The source of each composite is recorded in `fields[].composite_sources`, aligned with `dates`, and each run is logged in `gap_fills`. This was tested by deleting and refilling composites from Planetary Computer: the refilled values were identical, including after a forced one-pixel offset.
+
+**ORNL browser check.** Run `python3 -m http.server 8000` from the repo root, then open `http://localhost:8000/scripts/ornl_browser_check.html`. The page answers YES or NO.
 
 `demo_farm.json` is hand-made synthetic data. It is not produced by a script; see below.
 
@@ -23,12 +28,12 @@ Options: `--end=YYYY-MM-DD` (default: today, UTC), `--ndvi-start=YYYY-MM-DD` (de
 
 | File | What it holds | Retrieved |
 |---|---|---|
-| `site_history.json` | NASA POWER daily data for the demo site (centre of fld01, 39.39758, −100.67829), which is POWER cell (39.5, −100.625) and covers all three demo fields. Range 1981‑01‑01 to 2026‑11‑12. Parameters `t2m_max`, `t2m_min`, `prectotcorr`, `rh2m`, `ws2m`, `allsky_sw_dwn`, `gwetroot`, `gwettop`, as equal-length arrays aligned with `date`. Also `units` (as the API reports them), `elevation_m`, and `last_valid` per parameter. 0.9 MB. | 2026‑11‑15, POWER API v2.10.3 |
+| `site_history.json` | NASA POWER daily data for the demo site (centre of fld01, 39.39758, −100.67829), which is POWER cell (39.5, −100.625) and covers all three demo fields. Range 1981‑01‑01 to 2026‑11‑12 (refreshed 2026‑11‑16 01:33 UTC; POWER had not yet published later days). Parameters `t2m_max`, `t2m_min`, `prectotcorr`, `rh2m`, `ws2m`, `allsky_sw_dwn`, `gwetroot`, `gwettop`, as equal-length arrays aligned with `date`. Also `units` (as the API reports them), `elevation_m`, and `last_valid` per parameter. 0.9 MB. | 2026‑11‑15, POWER API v2.10.3 |
 | `demo_fields.geojson` | fld01–fld03 outlines, copied from `research/deliverables/fields-soils/fields.geojson`, plus `name`, `area_ha`, `center`, `site_id`, `soil`, `crop_history`, `boundary_status: "approximate"` and `history_status: "satellite_inferred_needs_farmer_confirmation"`. `soil` holds AWS for 0–25/50/100/150 cm, coverage, and dominant drainage and hydrologic group with their area shares. `crop_history` is the dominant CDL crop per year, using P4's ids `corn`, `sorghum`, `winter_wheat`. | SSURGO and CDL research records of 2026‑11‑14 |
 | `region_grid.json` | 25 native POWER cells (5 × 5, centres from lat 38.5 to 40.5 and lon −101.875 to −99.375) × 45 years (1981–2025). Five annual indicators: `season_precip_mm`, `season_deficit_mm`, `hot_days_35c`, `gdd_may_sep`, `gwetroot_jul`. 40 KB. | 2026‑11‑15 |
 | `fields_ndvi.json` | MOD13Q1 v061 NDVI per demo field: a 9 × 9 pixel window (231.66 m pixels), 583 composites from 2001‑01‑01 to 2026‑10‑16. Includes `pixel_polygons` (lon/lat), `pixel_centers`, `pixels_in_field`, `field_mean` and `pixels`. Pixels are row-major from the north-west corner. 1.1 MB. | 2026‑11‑15, via Planetary Computer |
 | `sources.json` | `{generated_at, sources: [...], deferred: [...]}`. Holds 7 data sources, the 8 `T2_*` field research records, the KSU and 21 `T1_*` agronomy sources, the 15 `T1_R*` agronomy rules, and 19 deferred resources, each with a reason. Every `source_ids` entry in the other data files resolves here. | n/a |
-| `demo_farm.json` | **Synthetic** farm (`"synthetic": true`, "Demo farm (synthetic)") in schema `kimchi.farm.1`. Contains fld01–fld03 with 2021–2025 records whose crops match `crop_history`. Every value is invented and every record says `"notes": "synthetic demo value"`. | n/a |
+| `demo_farm.json` | **Synthetic** farm (`"synthetic": true`, "Demo farm (synthetic)") in schema `kimchi.farm.1`. Contains fld01–fld03 with 2021–2026 records (2026: corn on all three, yield not entered) whose crops match `crop_history`. Every value is invented and every record says `"notes": "synthetic demo value"`. | n/a |
 
 ## Methods
 
