@@ -4,6 +4,8 @@ Prepared November 14, 2026, America/Detroit. This packet starts an evidence-base
 
 ## Integration update
 
+**Superseded Nov 15, 6:00 pm:** the current build plan is [PLAN.md](../PLAN.md). This file and the numbered handoffs are task history; the deliverables in `deliverables/` are still used.
+
 **Current orientation:** [Project context and collaborator guide](../PROJECT_CONTEXT.md) consolidates the state of the project, exact contracts, run commands, known issues and active follow-up PRs. The original design below is historical: the first interface compares three unranked candidates with an unconfirmed baseline, and priorities change questions only. PR #5 proposes a necessary correction to 2022–2023 crop fractions and verifies the current SD-6 designated sections; PRs #6–#8 propose recent weather, scenarios and ET ingestion. Check their merge/deployment status before relying on those capabilities.
 
 The three teammate contributions have been reviewed and integrated. See [integration review](integration_review.md) for findings, fixes, verification limits, and the next work packages. The [offline comparison layer](../prototype/README.md) joins field, weather, and agronomy evidence. The original handoffs below are retained as task history.
