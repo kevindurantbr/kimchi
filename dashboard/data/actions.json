@@ -7,7 +7,8 @@
     "Triggers are evaluated by recommend.mjs against the analysis output plus a 'derived' block (see recommend.mjs deriveContext). A missing value never triggers an action.",
     "evidence_level: A = regional field trial / extension research; B = general extension guidance; C = rule of thumb.",
     "No action promises a yield, profit or water saving. Corn, sorghum and wheat are all grasses: no family-break credit (T1_R10).",
-    "rotation_candidates copy the agronomy package (research/deliverables/agronomy/agronomy.json, reviewed 2026-11-14) so the deployed dashboard is self-contained."
+    "rotation_candidates copy the agronomy package (research/deliverables/agronomy/agronomy.json, reviewed 2026-11-14) so the deployed dashboard is self-contained.",
+    "why_template may be a list: recommend.mjs uses the first one whose placeholders all have values."
   ],
   "source_ids": [
     "FAO56",
@@ -197,11 +198,16 @@
       "category": "planning",
       "title": "Your well may not keep up with peak demand: consider fewer irrigated acres or a lower-peak crop on part of the pivot",
       "trigger": {
-        "all": [
+        "any": [
           {
             "path": "derived.capacity_ok",
             "op": "==",
             "value": false
+          },
+          {
+            "path": "derived.capacity_short_share",
+            "op": ">=",
+            "value": 0.333
           }
         ]
       },
@@ -221,9 +227,14 @@
       "evidence_level": "B",
       "vars": {
         "peak": "derived.capacity_peak_mm_day",
-        "well": "derived.capacity_well_mm_day"
+        "well": "derived.capacity_well_mm_day",
+        "short": "derived.capacity_short_text",
+        "rot": "derived.current_rotation_name_inline"
       },
-      "why_template": "Peak 7-day crop demand (about {peak} mm/day) is higher than what the well can deliver on this field (about {well} mm/day). A season total can look fine while July cannot be met.",
+      "why_template": [
+        "Peak 7-day crop demand (about {peak} mm/day) is higher than what the well can deliver on this field (about {well} mm/day). A season total can look fine while July cannot be met.",
+        "In {short} seasons of the weather record, the simulated peak 7-day demand of {rot} was higher than this well can deliver. A season total can look fine while July cannot be met."
+      ],
       "evidence_specs": [
         {
           "path": "derived.capacity_text",
@@ -235,8 +246,8 @@
           ]
         },
         {
-          "path": "derived.current_rotation.peak_capacity_short_years",
-          "text": "Years when peak demand exceeded the well: {value}",
+          "path": "derived.capacity_short_text",
+          "text": "Seasons when simulated peak demand exceeded the well: {value}",
           "kind": "historical",
           "source_ids": [
             "FAO56",
@@ -297,14 +308,14 @@
       ],
       "evidence_level": "A",
       "vars": {
-        "short": "derived.current_rotation.shortfall_years",
+        "short": "derived.current_rotation_shortfall_text",
         "alloc": "derived.allocation_mm",
-        "rot": "derived.current_rotation_name"
+        "rot": "derived.current_rotation_name_inline"
       },
       "why_template": "Under a {alloc} mm allocation, {rot} would have run short of water in {short} seasons of the weather record.",
       "evidence_specs": [
         {
-          "path": "derived.current_rotation.shortfall_years",
+          "path": "derived.current_rotation_shortfall_text",
           "text": "Seasons with a shortfall under your allocation: {value}",
           "kind": "historical",
           "source_ids": [
@@ -361,7 +372,7 @@
           }
         ]
       },
-      "severity_path": "derived.stage_heat_share",
+      "severity_path": "derived.stage_heat_severity",
       "priority_tags": [
         "income"
       ],
@@ -375,15 +386,13 @@
       ],
       "evidence_level": "B",
       "vars": {
-        "years": "derived.stage_heat_text",
-        "thr": "derived.crop.heat_threshold_c",
-        "window": "derived.crop.sensitive_window_name"
+        "sentence": "derived.stage_heat_sentence"
       },
-      "why_template": "Days at or above {thr} °C fell inside the {window} window more often than normal in {years}.",
+      "why_template": "{sentence}. Moving silking by a week or two (planting date or hybrid maturity) changes which days it meets.",
       "evidence_specs": [
         {
-          "path": "derived.stage_heat_text",
-          "text": "Above-normal heat in the sensitive window: {value}",
+          "path": "derived.stage_heat_sentence",
+          "text": "{value}",
           "kind": "historical",
           "source_ids": [
             "NASA_POWER_DAILY",
@@ -437,7 +446,7 @@
           }
         ]
       },
-      "severity_path": "factors.temperature.status.severity",
+      "severity_path": null,
       "priority_tags": [
         "income"
       ],
@@ -666,7 +675,8 @@
         },
         {
           "status": "factors.soil_moisture.status",
-          "kind": "live"
+          "kind": "live",
+          "only_if_adverse": true
         }
       ],
       "benefits": [
@@ -798,7 +808,8 @@
         },
         {
           "status": "factors.water.status",
-          "kind": "live"
+          "kind": "live",
+          "only_if_adverse": true
         }
       ],
       "benefits": [
