@@ -1958,7 +1958,7 @@ export function analyzeField({
             annual.gwetroot_jul.filter((_, i) => annual.years[i] < calendarYear || today.slice(5) > "07-31"),
             annual.years.filter((y) => y < calendarYear || today.slice(5) > "07-31"),
           ),
-          "0–1 (July mean)",
+          "wetness (July mean)",
         ),
         source_ids: POWER,
       },
