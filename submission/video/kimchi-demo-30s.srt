@@ -1,0 +1,33 @@
+1
+00:00:00,000 --> 00:00:03,100
+Western Kansas, Ogallala aquifer: keep the corn, or switch?
+Kimchi answers with NASA data, field by field.
+
+2
+00:00:03,400 --> 00:00:07,300
+Pick your field. Live NASA POWER weather and MODIS satellite data.
+
+3
+00:00:07,500 --> 00:00:11,500
+Four plain checks: water, heat, soil moisture, crop condition.
+
+4
+00:00:11,700 --> 00:00:15,300
+Press play: how often each problem came back since 1981.
+
+5
+00:00:15,500 --> 00:00:19,800
+Top 3 actions with evidence: July peak 9.8 vs well 6.5 mm/day.
+
+6
+00:00:20,000 --> 00:00:23,400
+Compare rotations on the same past weather. None is ranked "best".
+
+7
+00:00:23,600 --> 00:00:26,100
+Every number sourced, in a season report you can print.
+
+8
+00:00:26,100 --> 00:00:29,500
+Kimchi: field risk & rotation console. kevindurantbr.github.io/kimchi
+Supports your judgement. Check with K-State Extension before acting.

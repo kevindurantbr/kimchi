@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+  Kimchi: 29.5-second product demo, 16:9, built on the marketing-skill page conventions
+  (templates/promo.html): CSS animations timed with --in / --out, clips as <video class="bg-media">
+  turned into frame sequences by render.js, music from <body data-*>.
+  Every clip is a real recording of the live app (https://kevindurantbr.github.io/kimchi/),
+  made with Playwright on 2026-11-16. No AI images, no AI voice. Subtitles are burned in.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=block">
+<style>
+  :root {
+    --bg: #08090a; --panel: #0f1011; --line: #2f3236;
+    --text: #f7f8f8; --muted: #a3a8b0;
+    --accent: #e4ff3a; --on-accent: #0b0c00;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  body { font-family: "Inter", "Liberation Sans", sans-serif; color: var(--text); position: relative; }
+
+  @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeOut { to { opacity: 0; } }
+  @keyframes riseIn  { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+  @keyframes popIn   { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }
+  @keyframes nowIn   { from { transform: scale(1.04); } to { transform: none; } }
+
+  /* the hook's full-bleed background */
+  .bg { position: absolute; inset: 0; overflow: hidden; background: #000;
+        animation: fadeOut .5s ease-in var(--out) forwards; }
+  .bg .bg-media { position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover;
+                  filter: blur(14px) brightness(.42) saturate(.9); }
+  .bg::after { content: ''; position: absolute; inset: 0;
+               background: radial-gradient(ellipse at 50% 50%, rgba(8,9,10,.35), rgba(8,9,10,.85)); }
+
+  /* the hook */
+  .hook { position: absolute; left: 160px; right: 160px; top: 0; bottom: 0; display: flex; flex-direction: column;
+          justify-content: center; align-items: center; text-align: center; gap: 30px;
+          animation: nowIn .6s cubic-bezier(.2,.8,.2,1) 0s both, fadeOut .35s ease-in var(--out) forwards; }
+  .kicker { font-family: "JetBrains Mono", monospace; font-size: 30px; font-weight: 700; letter-spacing: 5px; color: var(--accent); }
+  .hook h1 { font-size: 132px; font-weight: 800; line-height: 1.02; letter-spacing: -4.5px; }
+  .hook p { font-size: 44px; font-weight: 600; color: var(--muted); animation: riseIn .5s cubic-bezier(.2,.8,.2,1) var(--in) both; }
+  .hook p b { color: var(--text); }
+
+  /* the app window */
+  .window { position: absolute; left: 192px; top: 22px; width: 1536px; height: 960px; border-radius: 22px; overflow: hidden;
+            background: var(--panel); box-shadow: 0 0 0 1px var(--line), 0 30px 80px rgba(0,0,0,.6);
+            animation: winIn .7s cubic-bezier(.2,.8,.2,1) var(--in) both, fadeOut .45s ease-in var(--out) forwards; }
+  @keyframes winIn { from { opacity: 0; transform: translateY(40px) scale(.94); } to { opacity: 1; transform: none; } }
+  .shot { position: absolute; inset: 0; opacity: 0;
+          animation: fadeIn .3s ease-out var(--in) forwards, fadeOut .3s ease-in var(--out) forwards; }
+  .shot .bg-media { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* the subtitle row under the window */
+  .sub { position: absolute; left: 192px; right: 192px; top: 1000px; height: 64px; display: flex; align-items: center; gap: 24px;
+         opacity: 0; animation: riseIn .35s cubic-bezier(.2,.8,.2,1) var(--in) forwards, fadeOut .25s ease-in var(--out) forwards; }
+  .tag { flex: none; font-family: "JetBrains Mono", monospace; font-size: 24px; font-weight: 700; letter-spacing: 2px;
+         padding: 9px 16px; border-radius: 999px; background: var(--accent); color: var(--on-accent); }
+  .line { font-size: 36px; font-weight: 600; line-height: 1.15; letter-spacing: -.3px; white-space: nowrap; }
+  .line b { color: var(--accent); font-weight: 700; }
+
+  /* end card */
+  .end { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center;
+         opacity: 0; animation: fadeIn .45s ease-out var(--in) forwards; }
+  .end img { width: 190px; height: 190px; animation: popIn .6s cubic-bezier(.2,.9,.3,1.25) var(--in) both; }
+  .end h2 { font-size: 112px; font-weight: 800; letter-spacing: -4px; line-height: 1; animation: riseIn .5s cubic-bezier(.2,.8,.2,1) calc(var(--in) + .12s) both; }
+  .end .what { font-size: 40px; font-weight: 600; color: var(--muted); animation: riseIn .5s cubic-bezier(.2,.8,.2,1) calc(var(--in) + .22s) both; }
+  .end .url { font-family: "JetBrains Mono", monospace; font-size: 38px; font-weight: 700; color: var(--accent); margin-top: 10px;
+              animation: riseIn .5s cubic-bezier(.2,.8,.2,1) calc(var(--in) + .35s) both; }
+  .end .fine { font-size: 28px; font-weight: 500; color: var(--muted); max-width: 1300px; margin-top: 18px;
+               animation: fadeIn .5s ease-out calc(var(--in) + .5s) both; }
+</style>
+</head>
+<body data-size="1920x1080" data-duration="29.5"
+      data-music="tech" data-bpm="112" data-key="D" data-mode="minor" data-energy="3" data-motif="1 3 5 6 | 5 3 2 -" data-drop="3.2">
+
+  <!-- 0–3.2s: the hook, on screen from frame 0 -->
+  <div class="bg" style="--in:0s; --out:3.0s"><video class="bg-media" src="assets/s0_hook.mp4" data-loop="false"></video></div>
+  <div class="hook" style="--in:.6s; --out:3.0s">
+    <div class="kicker">WESTERN KANSAS · OGALLALA AQUIFER</div>
+    <h1>Keep the corn, or&nbsp;switch?</h1>
+    <p>Kimchi answers with <b>NASA data</b>, field by field.</p>
+  </div>
+
+  <!-- 3.2–26.3s: the live app -->
+  <div class="window" style="--in:3.1s; --out:26.0s">
+    <div class="shot" style="--in:3.2s;  --out:7.4s"><video class="bg-media" src="assets/s1_map.mp4" data-loop="false"></video></div>
+    <div class="shot" style="--in:7.3s;  --out:11.6s"><video class="bg-media" src="assets/s2_factors.mp4" data-loop="false"></video></div>
+    <div class="shot" style="--in:11.5s; --out:15.4s"><video class="bg-media" src="assets/s3_play.mp4" data-loop="false"></video></div>
+    <div class="shot" style="--in:15.3s; --out:19.9s"><video class="bg-media" src="assets/s4_actions.mp4" data-loop="false"></video></div>
+    <div class="shot" style="--in:19.8s; --out:23.5s"><video class="bg-media" src="assets/s5_rotations.mp4" data-loop="false"></video></div>
+    <div class="shot" style="--in:23.4s; --out:30s"><video class="bg-media" src="assets/s6_report.mp4" data-loop="false"></video></div>
+  </div>
+
+  <div class="sub" style="--in:3.4s;  --out:7.3s"  data-sfx="swish"><span class="tag">01 MAP</span><span class="line">Pick your field. Live <b>NASA POWER</b> weather and <b>MODIS</b> satellite data.</span></div>
+  <div class="sub" style="--in:7.5s;  --out:11.5s" data-sfx="swish"><span class="tag">02 FACTORS</span><span class="line">Four plain checks: <b>water, heat, soil moisture, crop condition.</b></span></div>
+  <div class="sub" style="--in:11.7s; --out:15.3s" data-sfx="swish"><span class="tag">03 HISTORY</span><span class="line">Press play: how often each problem came back <b>since 1981.</b></span></div>
+  <div class="sub" style="--in:15.5s; --out:19.8s" data-sfx="swish"><span class="tag">04 ACTIONS</span><span class="line">Top 3 actions with evidence: July peak <b>9.8</b> vs well <b>6.5 mm/day.</b></span></div>
+  <div class="sub" style="--in:20.0s; --out:23.4s" data-sfx="swish"><span class="tag">05 ROTATIONS</span><span class="line">Compare rotations on the same past weather. <b>None is ranked “best”.</b></span></div>
+  <div class="sub" style="--in:23.6s; --out:26.1s" data-sfx="swish"><span class="tag">06 REPORT</span><span class="line">Every number sourced, in a <b>season report</b> you can print.</span></div>
+
+  <!-- 26.3–29.5s: end card -->
+  <div class="end" style="--in:26.1s" data-sfx="chime">
+    <img src="assets/kimchi-logo-512.png" alt="">
+    <h2>Kimchi</h2>
+    <div class="what">Field risk &amp; rotation console</div>
+    <div class="url">kevindurantbr.github.io/kimchi</div>
+    <div class="fine">Supports your judgement. Check with K-State Extension before acting.</div>
+  </div>
+</body>
+</html>
