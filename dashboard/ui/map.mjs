@@ -23,6 +23,7 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
   const ndviLayer = L.layerGroup().addTo(map);
   const fieldLayer = L.featureGroup().addTo(map);
   const drawn = new L.FeatureGroup().addTo(map);
+  const badgeLayer = L.layerGroup().addTo(map);
   let reticle = null;
 
   map.on('mousemove', e => onCursor?.(e.latlng));
@@ -50,7 +51,7 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
       const id = f.properties.field_id, sel = id === selectedId;
       const lyr = L.geoJSON(f, {
         pane: 'fields',
-        style: () => ({ ...styleFor(f), weight: sel ? 3 : 1.5, color: sel ? '#f2b33d' : '#e8eef1', dashArray: f.properties.boundary_status === 'approximate' ? '6 4' : null }),
+        style: () => { const st = styleFor(f); return { ...st, weight: sel ? 3.5 : 2, color: st.color ?? (sel ? '#f2b33d' : '#e8eef1'), dashArray: f.properties.boundary_status === 'approximate' ? '6 4' : null }; },
       });
       lyr.on('click', () => onFieldClick?.(id));
       lyr.bindTooltip(esc(f.properties.label_short ?? id.toUpperCase()), { permanent: true, direction: 'center', className: 'fld-tip' });
@@ -93,10 +94,24 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
 
   function fitTo(feature, region) {
     if (region) { map.fitBounds(region, { padding: [20, 20] }); return; }
-    const b = L.geoJSON(feature).getBounds(); map.fitBounds(b.pad(feature ? 2.2 : 0.2), { maxZoom: 15 });
+    // Not animated: a banner resize (invalidateSize) during the zoom animation would cancel it and leave the old view.
+    const b = L.geoJSON(feature).getBounds(); map.fitBounds(b.pad(feature ? 2.2 : 0.2), { maxZoom: 15, animate: false });
   }
   function fitAll() { if (fieldLayer.getLayers().length) map.fitBounds(fieldLayer.getBounds().pad(.35)); }
 
+  /** Status badges above each field: [{ feature, items: [{ icon, level, headline, name, word }] }]. Only watch/concern items are passed in. */
+  function setBadges(rows) {
+    badgeLayer.clearLayers();
+    for (const { feature, items } of rows ?? []) {
+      if (!items?.length) continue;
+      const b = L.geoJSON(feature).getBounds(), lat = b.getNorth(), lon = (b.getWest() + b.getEast()) / 2;
+      const html = `<div class="fbadges">${items.map(i => `<span class="fbadge lv-${i.level}" tabindex="0" title="${esc(`${i.name}: ${i.word}. ${i.headline}`)}" aria-label="${esc(`${i.name}: ${i.word}, ${i.headline}`)}">${i.icon}</span>`).join('')}</div>`;
+      L.marker([lat, lon], { keyboard: false, icon: L.divIcon({ className: 'fbadge-wrap', html, iconSize: [items.length * 30, 28], iconAnchor: [items.length * 15, 34] }) })
+        .bindTooltip(items.map(i => `${esc(i.icon)} <b>${esc(i.word)}</b> · ${esc(i.headline)}`).join('<br>'), { direction: 'top', className: 'val-tip' })
+        .addTo(badgeLayer);
+    }
+  }
+
   const stopDraw = () => { drawer?.disable(); drawer = null; };
-  return { map, setFields, setGrid, setNdvi, fitTo, fitAll, startDraw, stopDraw, invalidate: () => map.invalidateSize() };
+  return { map, setFields, setGrid, setNdvi, setBadges, fitTo, fitAll, startDraw, stopDraw, invalidate: () => map.invalidateSize() };
 }

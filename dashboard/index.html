@@ -49,6 +49,8 @@
       <span class="lbl">Field</span>
       <select id="field-select" aria-label="Select field"></select>
     </label>
+    <button type="button" class="btn" id="btn-refresh" hidden title="Pull this field's NASA weather and USDA soil again">↻ Refresh data</button>
+    <span id="pulled-at" hidden></span>
 
     <div class="seg level-seg" role="group" aria-label="Detail level">
       <span class="lbl">View</span>
@@ -70,7 +72,7 @@
     </div>
 
     <div class="bar-actions">
-      <button type="button" class="btn" id="btn-draw" data-min-level="2">Draw field</button>
+      <button type="button" class="btn" id="btn-draw">Add field</button>
       <button type="button" class="btn" id="btn-records" aria-haspopup="dialog">My farm records</button>
       <button type="button" class="btn" id="btn-report" aria-haspopup="dialog">Season report</button>
       <span class="bar-div" aria-hidden="true" data-min-level="2"></span>
@@ -95,6 +97,7 @@
       <div class="hud hud-tl">
         <div id="map-title" class="hud-title"></div>
         <div id="map-note" class="hud-note"></div>
+        <div id="badge-legend" class="hud-note badge-legend" hidden>💧 water · 🌡 heat · 🟫 soil moisture · 🌱 greenness; amber = watch, red = concern</div>
       </div>
       <div class="hud hud-br mono" data-min-level="3" id="cursor-readout" aria-hidden="true">LAT --.-----  LON ---.-----</div>
       <div id="legend" class="legend" aria-live="polite"></div>
