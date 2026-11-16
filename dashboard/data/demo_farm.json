@@ -3,7 +3,7 @@
  "farm_name": "Demo farm (synthetic)",
  "synthetic": true,
  "synthetic_note": "SYNTHETIC: every management and yield value in this file is invented for the demo. Crops follow the satellite-inferred USDA CDL history of fld01–fld03; field outlines are approximate pivot circles. Not a real farm and not real farmer records.",
- "generated_at": "2026-11-15T23:11:10.168Z",
+ "generated_at": "2026-11-16T01:31:01.539Z",
  "priorities": {
   "water": 0.5,
   "soil": 0.3,
@@ -1049,6 +1049,18 @@
      "yield": 226,
      "yield_unit": "bu/ac",
      "notes": "synthetic demo value"
+    },
+    {
+     "year": 2026,
+     "period": "season",
+     "crop": "corn",
+     "planting_date": "2026-04-28",
+     "harvest_date": "2026-10-08",
+     "irrigation_mm": 255,
+     "nitrogen_kg_ha": 205,
+     "yield": null,
+     "yield_unit": "bu/ac",
+     "notes": "synthetic demo value; 2026 yield not entered yet"
     }
    ]
   },
@@ -2078,6 +2090,18 @@
      "yield": 74,
      "yield_unit": "bu/ac",
      "notes": "synthetic demo value; harvest year 2025, sown the previous autumn"
+    },
+    {
+     "year": 2026,
+     "period": "season",
+     "crop": "corn",
+     "planting_date": "2026-05-02",
+     "harvest_date": "2026-10-12",
+     "irrigation_mm": 265,
+     "nitrogen_kg_ha": 215,
+     "yield": null,
+     "yield_unit": "bu/ac",
+     "notes": "synthetic demo value; 2026 yield not entered yet"
     }
    ]
   },
@@ -3051,6 +3075,18 @@
      "yield": 71,
      "yield_unit": "bu/ac",
      "notes": "synthetic demo value; harvest year 2025, sown the previous autumn"
+    },
+    {
+     "year": 2026,
+     "period": "season",
+     "crop": "corn",
+     "planting_date": "2026-04-30",
+     "harvest_date": "2026-10-10",
+     "irrigation_mm": 250,
+     "nitrogen_kg_ha": 210,
+     "yield": null,
+     "yield_unit": "bu/ac",
+     "notes": "synthetic demo value; 2026 yield not entered yet"
     }
    ]
   }
