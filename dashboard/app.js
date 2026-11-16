@@ -260,7 +260,7 @@ function drawMapLayers() {
     // Weather factors: colour by severity of this field's status. Same regional cell for all demo fields.
     const st = (f.properties.field_id === state.field || a.sample) ? a.factors?.[state.factor]?.status : null;
     const c = st ? sevClass(st.severity) : null;
-    return { fillColor: c == null ? '#000' : [cssVar('--sev0'), cssVar('--acc'), cssVar('--alert')][c], fillOpacity: c == null ? 0.05 : 0.38 };
+    return { fillColor: c == null ? '#000' : [cssVar('--sev0'), cssVar('--watch'), cssVar('--alert')][c], fillOpacity: c == null ? 0.05 : 0.38 };
   };
   map.setFields(features(), state.field, fieldColour);
   drawBadges();
@@ -294,7 +294,7 @@ function drawMapLayers() {
         return;
       }
       slider.setDomain([]);
-      $('legend').innerHTML = `<div class="ttl">Field colour = severity</div><div class="ends" style="margin-top:6px;gap:8px;justify-content:flex-start"><span style="color:var(--sev0)">■ normal</span><span style="color:var(--acc)">■ watch</span><span style="color:var(--alert)">■ high</span></div>`;
+      $('legend').innerHTML = `<div class="ttl">Field colour = severity</div><div class="ends" style="margin-top:6px;gap:8px;justify-content:flex-start"><span style="color:var(--sev0)">■ normal</span><span style="color:var(--watch)">■ watch</span><span style="color:var(--alert)">■ high</span></div>`;
       noHistoryHint();
     }
   }

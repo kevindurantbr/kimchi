@@ -41,7 +41,7 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
   });
   function startDraw() {
     drawer?.disable();
-    drawer = new L.Draw.Polygon(map, { shapeOptions: { color: '#f2b33d', weight: 2 }, showArea: true, metric: true, allowIntersection: false });
+    drawer = new L.Draw.Polygon(map, { shapeOptions: { color: '#e4ff3a', weight: 2 }, showArea: true, metric: true, allowIntersection: false });
     drawer.enable();
   }
 
@@ -51,7 +51,7 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
       const id = f.properties.field_id, sel = id === selectedId;
       const lyr = L.geoJSON(f, {
         pane: 'fields',
-        style: () => { const st = styleFor(f); return { ...st, weight: sel ? 3.5 : 2, color: st.color ?? (sel ? '#f2b33d' : '#e8eef1'), dashArray: f.properties.boundary_status === 'approximate' ? '6 4' : null }; },
+        style: () => { const st = styleFor(f); return { ...st, weight: sel ? 3.5 : 2, color: st.color ?? (sel ? '#e4ff3a' : '#e8eef1'), dashArray: f.properties.boundary_status === 'approximate' ? '6 4' : null }; },
       });
       lyr.on('click', () => onFieldClick?.(id));
       lyr.bindTooltip(esc(f.properties.label_short ?? id.toUpperCase()), { permanent: true, direction: 'center', className: 'fld-tip' });
@@ -62,7 +62,7 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
     if (s) {
       const [lon, lat] = centroid(s.geometry);
       reticle = L.marker([lat, lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: 'reticle', iconSize: [64, 64], iconAnchor: [32, 32],
-        html: '<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2b33d" stroke-width="1.5"><circle cx="32" cy="32" r="10"/><path d="M32 0v18M32 46v18M0 32h18M46 32h18"/></g></svg>' }) }).addTo(map);
+        html: '<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#e4ff3a" stroke-width="1.5"><circle cx="32" cy="32" r="10"/><path d="M32 0v18M32 46v18M0 32h18M46 32h18"/></g></svg>' }) }).addTo(map);
     }
   }
 
@@ -72,7 +72,7 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
     for (const c of cells) {
       const fill = colorFor(c);
       const poly = L.polygon(c.polygon.map(([lon, lat]) => [lat, lon]), {
-        pane: 'grid', color: '#0a0e11', weight: 1, fillColor: fill ?? '#000', fillOpacity: fill ? .62 : .15,
+        pane: 'grid', color: '#08090a', weight: 1, fillColor: fill ?? '#000', fillOpacity: fill ? .62 : .15,
         dashArray: fill ? null : '3 3',
       });
       poly.bindTooltip(() => tipFor(c), { sticky: true, className: 'val-tip' });
@@ -87,7 +87,7 @@ export function createMap(el, { onCursor, onFieldClick, onDrawn }) {
     fieldNdvi.pixel_polygons.forEach((poly, i) => {
       const v = vals[i], fill = colorFor(v);
       L.polygon(poly.map(([lon, lat]) => [lat, lon]), {
-        pane: 'ndvi', weight: .5, color: '#0a0e11', fillColor: fill ?? '#000', fillOpacity: fill ? .78 : .2,
+        pane: 'ndvi', weight: .5, color: '#08090a', fillColor: fill ?? '#000', fillOpacity: fill ? .78 : .2,
       }).bindTooltip(() => `NDVI ${v == null ? 'unavailable (bad QA)' : v.toFixed(2)}`, { sticky: true, className: 'val-tip' }).addTo(ndviLayer);
     });
   }

@@ -44,7 +44,7 @@ export function renderCards(el, analysis, selected, onSelect) {
       </div>
       <div data-min-level="3">
         <div class="pbar" role="img" aria-label="Percentile ${p == null ? 'unavailable' : Math.round(p)} versus 1991 to 2020; ${esc(sevText(st.severity))}">
-          <span class="b90"></span><span class="b75"></span><span class="med"></span>${p == null ? '' : `<span class="dot" style="left:${p}%;background:${sc === 2 ? 'var(--alert)' : sc === 1 ? 'var(--acc)' : 'var(--sev0)'}"></span>`}
+          <span class="b90"></span><span class="b75"></span><span class="med"></span>${p == null ? '' : `<span class="dot" style="left:${p}%;background:${sc === 2 ? 'var(--alert)' : sc === 1 ? 'var(--watch)' : 'var(--sev0)'}"></span>`}
         </div>
         <div class="pbar-scale"><span>p0</span><span>p25</span><span>p50 normal</span><span>p75</span><span>p100</span></div>
         <div class="rec"><span class="sev sev-${sc}">${esc(sevText(st.severity))}</span> ${esc(pct(st.percentile))} · ${rec?.sentence ? esc(rec.sentence) : rec?.text ? esc(rec.text) : 'recurrence unavailable'}</div>
