@@ -1,8 +1,8 @@
 // Right panel: top 3 actions (P4 recommend output), rotation comparison, what-if builder.
-import { esc, finite, num, factorName } from './util.mjs';
+import { esc, finite, num, factorName, fmtVal } from './util.mjs';
 
-const list = (k, items) => items?.length ? `<div class="k">${k}</div><ul>${items.map(i => typeof i === 'string' ? `<li>${esc(i)}</li>`
-  : `<li>${esc(i.text ?? JSON.stringify(i))}${i.source_ids?.length ? ' ' + i.source_ids.map(s => `<span class="src">${esc(s)}</span>`).join(' ') : ''}</li>`).join('')}</ul>` : '';
+const list = (k, items) => items?.length ? `<div class="k">${k}</div><ul>${items.map(i => typeof i === 'string' ? `<li>${esc(fmtVal(i))}</li>`
+  : `<li>${esc(fmtVal(i.text ?? JSON.stringify(i)))}${i.source_ids?.length ? ' ' + i.source_ids.map(s => `<span class="src">${esc(s)}</span>`).join(' ') : ''}</li>`).join('')}</ul>` : '';
 const srcChips = ids => (ids ?? []).map(s => `<span class="src">${esc(s)}</span>`).join(' ');
 
 export function renderActions(el, rec, { focus }) {
@@ -25,7 +25,7 @@ export function renderActions(el, rec, { focus }) {
         <tr><td>× Evidence strength</td><td class="num">${num(sp.evidence, 2)}</td></tr><tr><td>× Timing</td><td class="num">${num(sp.timing, 2)}</td></tr>
         <tr><td><b>= Score</b></td><td class="num"><b>${num(c.score, 2)}</b></td></tr></tbody></table></details>
       ${list('Why', c.why)}
-      ${c.evidence?.length ? `<div class="k">Evidence</div>${c.evidence.map(e => `<div class="ev"><span>${esc(e.text)}</span>${e.value != null ? `<span class="v">${esc(e.value)}</span>` : ''}${e.kind ? `<span class="kind">${esc(e.kind.replace('_', ' '))}</span>` : ''}${srcChips(e.source_ids)}</div>`).join('')}` : ''}
+      ${c.evidence?.length ? `<div class="k">Evidence</div>${c.evidence.map(e => `<div class="ev"><span>${esc(fmtVal(e.text))}</span>${e.value != null ? `<span class="v">${esc(fmtVal(e.value))}</span>` : ''}${e.kind ? `<span class="kind">${esc(e.kind.replace('_', ' '))}</span>` : ''}${srcChips(e.source_ids)}</div>`).join('')}` : ''}
       <details><summary>Benefits, risks and information gaps</summary>${list('Benefits', c.benefits)}${list('Risks', c.risks)}${list('Information gaps', c.gaps)}</details>
       <div class="expert">${esc(c.expert_check ?? 'Check with your agronomist / K-State Extension before acting.')}</div>
     </article>`;
@@ -50,9 +50,9 @@ export function renderRotations(el, rots) {
     <div class="seq">${esc((r.sequence ?? []).map(s => String(s).replace('_', ' ')).join(' → ') || 'sequence not known')}</div>
     ${r.why_suggested ? `<p class="cap">${esc(r.why_suggested)}</p>` : ''}
     ${r.metrics ? metricRows(r.metrics, max) : `<div class="unavail">Fit metrics need the analysis engine (P2 rotationFit); not shown until then.</div>`}
-    ${r.comparison_to_current?.length ? `<ul class="cap">${r.comparison_to_current.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+    ${r.comparison_to_current?.length ? `<ul class="cap">${r.comparison_to_current.map(t => `<li>${esc(fmtVal(t))}</li>`).join('')}</ul>` : ''}
     <details><summary>Benefits, risks, gaps and evidence</summary>${r.note ? `<p class="cap">${esc(r.note)}</p>` : ''}${list('Benefits', r.benefits)}${list('Risks', r.risks)}${list('Information gaps', r.gaps)}${list('Prerequisites', r.prerequisites)}${list('Residue', r.residue)}
-      ${r.evidence?.length ? `<div class="k">Evidence</div>${r.evidence.map(e => `<div class="ev"><span>${esc(e.text)}</span>${srcChips(e.source_ids)}</div>`).join('')}` : ''}</details>
+      ${r.evidence?.length ? `<div class="k">Evidence</div>${r.evidence.map(e => `<div class="ev"><span>${esc(fmtVal(e.text))}</span>${srcChips(e.source_ids)}</div>`).join('')}` : ''}</details>
     <div class="expert">${esc(r.expert_check ?? 'Check with your agronomist / K-State Extension before acting.')}</div>
   </article>`; }).join('');
 }
@@ -79,13 +79,19 @@ export function renderWhatIf(el, { crops, allocation, onRun }) {
     el.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { seq.splice(+b.dataset.rm, 1); draw(); }));
     el.querySelector('#wi-addbtn').addEventListener('click', () => { if (seq.length < 6) seq.push(el.querySelector('#wi-add').value); draw(); });
     const r = el.querySelector('#wi-alloc');
-    r.addEventListener('input', () => { alloc = +r.value; el.querySelector('#wi-alloc-v').textContent = `${alloc} mm/yr`; run(); });
+    // Each run is a full rotationFit (~0.3 s): update the label at once, compute when the slider rests.
+    let t = null;
+    r.addEventListener('input', () => { alloc = +r.value; el.querySelector('#wi-alloc-v').textContent = `${alloc} mm/yr`; clearTimeout(t); t = setTimeout(run, 250); });
     run();
   };
-  const run = () => {
-    const out = el.querySelector('#wi-out');
+  let runId = 0;
+  const run = async () => {
+    const out = el.querySelector('#wi-out'), my = ++runId;
+    if (!out) return;
     if (!seq.length) { out.innerHTML = ''; return; }
-    const fit = onRun({ id: 'whatif', name: 'Your sequence', sequence: seq }, alloc);
+    out.innerHTML = '<p class="state" role="status">Computing your sequence over the same weather years…</p>';
+    const fit = await onRun({ id: 'whatif', name: 'Your sequence', sequence: [...seq] }, alloc);
+    if (my !== runId || !out.isConnected) return; // a newer request replaced this one
     if (!fit) { out.innerHTML = '<p class="state">What-if metrics need the analysis engine (P2 rotationFit) and the NASA POWER history file. They will appear here when both are connected. No estimate is shown until then.</p>'; return; }
     const max = Object.fromEntries(METRICS.map(([k]) => [k, Math.max(toNum(fit.metrics?.[k]) ?? 0, 1e-9)]));
     out.innerHTML = `<article class="rot"><h3>Your sequence <span class="tag">What-if</span></h3><div class="seq">${esc(seq.map(name).join(' → '))}</div>${metricRows(fit.metrics, max)}

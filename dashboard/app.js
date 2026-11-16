@@ -1,6 +1,6 @@
 // Kimchi dashboard orchestrator (P3). State, data loading and wiring between the map, panels and dialogs.
 import { $, esc, FACTORS, factorName, finite, num, fmtDate, centroid, ramp, rampCSS, sevClass, cssVar } from './ui/util.mjs';
-import { loadAll, dataStatus, runAnalysis, runRecommend, runRotationFit, fetchLive, fetchSoil } from './ui/integrate.mjs';
+import { loadAll, dataStatus, runRecommend, fetchLive, fetchSoil, lastDataDate, startEngineWorker, runAnalysisAsync, runRotationFitAsync, engineInWorker } from './ui/integrate.mjs';
 import { createMap } from './ui/map.mjs';
 import { createSlider } from './ui/slider.mjs';
 import { renderCards, renderDetail } from './ui/panels.mjs';
@@ -8,6 +8,32 @@ import { renderActions, renderRotations, renderWhatIf } from './ui/recs.mjs';
 
 const state = { field: 'fld01', factor: 'water', view: 'field', focus: '', gridMode: 'percentile', live: null, liveError: null, analysis: null, rec: null };
 let ctx, farm, map, slider;
+
+// Speed: the analysis engine takes 0.5-2 s per field and rotationFit 0.2-1.2 s per rotation on 45 years of
+// daily data. It runs in a background worker (ui/engine.worker.mjs) so the map and controls stay responsive,
+// and results (promises) are cached per field, farm version and live-data version, so switching tabs,
+// fields back and forth, focus chips or the theme does not recompute them.
+let farmVersion = 0, liveVersion = 0, computeToken = 0;
+const cache = { analysis: new Map(), fit: new Map() };
+const nextPaint = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+const analysisKey = id => `${id}|${farmVersion}|${liveVersion}`;
+function cachedAnalysis(field, ff) {
+  const key = analysisKey(field.properties.field_id);
+  if (!cache.analysis.has(key)) cache.analysis.set(key, runAnalysisAsync(ctx, { field, farmField: ff, liveDaily: state.live?.daily ?? null }));
+  return cache.analysis.get(key);
+}
+function cachedFit(rotation, field, ff, f) {
+  const key = `${field.properties.field_id}|${farmVersion}|${liveVersion}|${rotation.id}|${(rotation.sequence ?? []).join('>')}|${f?.constraints?.annual_allocation_mm}`;
+  if (!cache.fit.has(key)) cache.fit.set(key, runRotationFitAsync(ctx, { rotation, field, farmField: ff, farm: f }));
+  return cache.fit.get(key);
+}
+function showComputing(what) {
+  $('cards').innerHTML = `<p class="state" role="status">${esc(what)}</p>`;
+  $('detail').innerHTML = '';
+  $('actions').innerHTML = '<p class="state">Scoring actions…</p>';
+  $('rotations').innerHTML = '<p class="state">Comparing rotations over the same weather years…</p>';
+  $('whatif').innerHTML = '';
+}
 
 /* ---------- boot ---------- */
 async function boot() {
@@ -27,9 +53,31 @@ async function boot() {
   slider = createSlider({ onChange: i => drawTime(i) });
 
   fillFieldSelect();
-  await selectField(state.field, { fit: true });
-  updateSampleChip();
+  // Paint the map and field outlines first, so imagery loads while the engine starts in its worker.
+  map.setFields(features(), state.field, () => ({ fillColor: '#000', fillOpacity: 0.05 }));
+  map.fitTo(fieldById(state.field));
+  startEngineWorker(ctx);
+  await nextPaint();
   loadLive();
+  await selectField(state.field, { fit: false });
+  updateSampleChip();
+  prewarm();
+}
+
+/** After the first field is ready, compute the other demo fields in the background workers, so switching
+ *  fields during the demo is instant. Only with workers: in the page thread this would freeze the UI. */
+async function prewarm() {
+  if (!(await engineInWorker())) return;
+  for (const f of features()) {
+    const id = f.properties.field_id;
+    if (id === state.field || f.properties.user) continue;
+    const ff = farmField(id);
+    await cachedAnalysis(f, ff).catch(() => null);
+    if (ctx.libRecommend?.rotationsToEvaluate) {
+      const list = ctx.libRecommend.rotationsToEvaluate({ farm, field_id: id, field: f, actions: ctx.actions });
+      await Promise.all(list.map(r => cachedFit(r, f, ff, farm))).catch(() => null);
+    }
+  }
 }
 
 function tickClock() {
@@ -67,53 +115,72 @@ function fillFieldSelect() {
 async function selectField(id, { fit = false } = {}) {
   if (!fieldById(id)) return;
   state.field = id; $('field-select').value = id;
-  recompute();
+  const done = recompute();
   if (fit || state.view === 'field') map.fitTo(fieldById(id));
   if (fieldById(id).properties.user) loadUserFieldData(id);
+  return done;
 }
 
 /* ---------- compute + render ---------- */
-function recompute() {
-  const field = fieldById(state.field), ff = farmField(state.field);
-  state.analysis = runAnalysis(ctx, { field, farmField: ff, liveDaily: state.live?.daily ?? null });
-  let rotationsFit = state.analysis.rotation_fit?.length ? state.analysis.rotation_fit : null;
+async function recompute() {
+  const token = ++computeToken, fid = state.field;
+  const field = fieldById(fid), ff = farmField(fid);
+  if (!cache.analysis.has(analysisKey(fid))) showComputing(`Computing ${fid.toUpperCase()} from 45 years of NASA POWER data…`);
+  const analysis = await cachedAnalysis(field, ff);
+  if (token !== computeToken) return; // the user picked another field meanwhile
+  state.analysis = analysis;
+  renderFactor();                     // factor cards first; rotations follow
+  let rotationsFit = analysis.rotation_fit?.length ? analysis.rotation_fit : null;
   // With the real engine: evaluate the rotations P4 asks for (current + candidates) with P2's rotationFit.
-  if (!rotationsFit && !state.analysis.sample && ctx.libRecommend?.rotationsToEvaluate) {
-    const list = ctx.libRecommend.rotationsToEvaluate({ farm, field_id: state.field, field, actions: ctx.actions });
-    const fits = list.map(rotation => runRotationFit(ctx, { rotation, field, farmField: ff, farm })).filter(Boolean);
+  if (!rotationsFit && !analysis.sample && ctx.libRecommend?.rotationsToEvaluate) {
+    const list = ctx.libRecommend.rotationsToEvaluate({ farm, field_id: fid, field, actions: ctx.actions });
+    const fits = (await Promise.all(list.map(rotation => cachedFit(rotation, field, ff, farm)))).filter(Boolean);
+    if (token !== computeToken) return;
     if (fits.length) rotationsFit = fits;
   }
   state.rotationsFit = rotationsFit;
-  state.rec = runRecommend(ctx, { analysis: state.analysis, farm, field_id: state.field, field, focus: state.focus, rotationsFit });
+  state.rec = runRecommend(ctx, { analysis, farm, field_id: fid, field, focus: state.focus, rotationsFit });
   render();
+  // The what-if panel runs its own rotationFit; draw it after the main panels have painted.
+  nextPaint().then(() => { if (token === computeToken) renderWhatIfPanel(); });
 }
 
-function render() {
+/** Left panel and map only (what changes with the factor tab). */
+function renderFactor() {
   const a = state.analysis;
+  if (!a) { drawMapLayers(); return; } // still computing
   $('left-meta').textContent = a.sample ? 'SAMPLE · FLD01' : (state.field.toUpperCase());
   renderCards($('cards'), a, state.factor, f => setFactor(f));
   renderDetail($('detail'), state.factor, a, ctx);
+  drawMapLayers();
+}
+
+function render() {
+  renderFactor();
+  if (!state.analysis) return;
   renderActions($('actions'), state.rec, { focus: state.focus });
-  renderRotations($('rotations'), state.rec?.rotations ?? a.rotation_fit);
+  renderRotations($('rotations'), state.rec?.rotations ?? state.analysis.rotation_fit);
+  updateSampleChip();
+}
+
+function renderWhatIfPanel() {
   renderWhatIf($('whatif'), { crops: ctx.crops, allocation: farm?.constraints?.annual_allocation_mm, onRun: (rotation, alloc) => {
     const f = farm ? structuredClone(farm) : null; if (f) f.constraints = { ...(f.constraints ?? {}), annual_allocation_mm: alloc };
-    return runRotationFit(ctx, { rotation, field: fieldById(state.field), farmField: farmField(state.field), farm: f });
+    return cachedFit(rotation, fieldById(state.field), farmField(state.field), f);
   } });
-  drawMapLayers();
-  updateSampleChip();
 }
 
 function setFactor(f) {
   state.factor = f;
   document.querySelectorAll('.tabs [role="tab"]').forEach(t => t.setAttribute('aria-selected', String(t.dataset.factor === f)));
-  render();
+  renderFactor();
 }
 
 /* ---------- map layers + time slider ---------- */
 const REGION_IND = { water: ['season_deficit_mm', 'drywet', false], temperature: ['hot_days_35c', 'heat', false], soil_moisture: ['gwetroot_jul', 'drywet', false] };
 
 function drawMapLayers() {
-  const a = state.analysis;
+  const a = state.analysis ?? { factors: {} };
   const fieldColour = f => {
     if (state.view === 'region' || state.factor === 'crop_condition') return { fillOpacity: 0.05, fillColor: '#000' };
     // Weather factors: colour by severity of this field's status. Same regional cell for all demo fields.
@@ -193,7 +260,9 @@ async function loadLive() {
     state.live = await fetchLive(ctx, { lat, lon });
     const d = state.live.daily, last = lastNonNull(d.date, d.t2m_max);
     chip.className = 'chip live'; chip.textContent = `LIVE NASA POWER THROUGH ${last ? fmtDate(last).toUpperCase() : 'UNKNOWN'} (~3-DAY DELAY)`;
-    if (!state.analysis?.sample) recompute();
+    // Recompute only when the live feed adds days the precomputed history does not have.
+    const histLast = lastDataDate(ctx.site?.sites?.[0]?.daily), liveLast = lastDataDate(d);
+    if (!state.analysis?.sample && liveLast && (!histLast || liveLast > histLast)) { liveVersion++; recompute(); }
   } catch (e) {
     state.liveError = e.message; chip.className = 'chip down'; chip.textContent = 'LIVE POWER UNAVAILABLE';
     const through = state.analysis?.data_quality?.live_through;
@@ -222,6 +291,7 @@ function saveNewField(name, geometry) {
   const res = ctx.farmStore.addField(farm, { name, geometry });
   if (res?.fields) farm = res;
   const ff = farm.fields.find(f => !before.has(f.field_id)) ?? res;
+  farmVersion++;
   ctx.farmStore.saveFarm(farm);
   ctx.fields.features.push({ type: 'Feature', geometry, properties: { field_id: ff.field_id, label: ff.name, label_short: ff.name.slice(0, 18).toUpperCase(), area_ha: ff.area_ha, boundary_status: 'drawn by farmer', soil: null, user: true } });
   fillFieldSelect();
@@ -309,6 +379,7 @@ function wireChrome() {
   document.querySelectorAll('.chips [data-focus]').forEach(b => b.addEventListener('click', () => {
     state.focus = b.dataset.focus;
     document.querySelectorAll('.chips [data-focus]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    if (!state.analysis) return; // still computing; the focus is applied when results arrive
     state.rec = runRecommend(ctx, { analysis: state.analysis, farm, field_id: state.field, field: fieldById(state.field), focus: state.focus, rotationsFit: state.rotationsFit });
     renderActions($('actions'), state.rec, { focus: state.focus });
   }));
@@ -329,8 +400,8 @@ function wireChrome() {
     b.addEventListener('click', openCoordsDialog);
     $('banner').append(b); b.focus();
   });
-  $('btn-records').addEventListener('click', async () => { const m = await import('./ui/farmForm.mjs'); m.openRecords({ ctx, getFarm: () => farm, setFarm: f => { farm = f; ctx.farmStore.saveFarm(farm); mergeUserFields(); fillFieldSelect(); recompute(); }, fieldId: state.field, analysis: state.analysis }); });
-  $('btn-report').addEventListener('click', async () => { const m = await import('./ui/report.mjs'); m.openReport({ ctx, analysis: state.analysis, rec: state.rec, farm, field: fieldById(state.field), farmField: farmField(state.field) }); });
+  $('btn-records').addEventListener('click', async () => { const m = await import('./ui/farmForm.mjs'); m.openRecords({ ctx, getFarm: () => farm, setFarm: f => { farm = f; farmVersion++; ctx.farmStore.saveFarm(farm); mergeUserFields(); fillFieldSelect(); recompute(); }, fieldId: state.field, analysis: state.analysis }); });
+  $('btn-report').addEventListener('click', async () => { if (!state.analysis || !state.rec) { showBanner('The season report is ready as soon as the field analysis finishes computing.'); return; } const m = await import('./ui/report.mjs'); m.openReport({ ctx, analysis: state.analysis, rec: state.rec, farm, field: fieldById(state.field), farmField: farmField(state.field) }); });
   $('btn-print').addEventListener('click', () => window.print());
   $('sample-chip').addEventListener('click', () => $('dlg-sample').showModal());
   document.querySelectorAll('.dlg-close').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));

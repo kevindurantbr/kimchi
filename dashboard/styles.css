@@ -36,6 +36,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 var(--font-ui); -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; overflow: hidden; }
 .mono, output, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
