@@ -267,10 +267,12 @@ export async function loadCachedFieldData(field_id) {
 /**
  * Pull NASA POWER 1981 -> today and USDA soil for a farmer's field.
  * @param {object} geometry GeoJSON Polygon/MultiPolygon (or Feature)
- * @param {{field_id?: string, today?: Date}} [opts]
+ * @param {{field_id?: string, today?: Date, force?: boolean}} [opts]
  * @returns {Promise<{field_id, site, soil, ndvi: null, ndvi_reason, retrieved_at, cached, cache, errors: Array}>}
  */
-export async function pullFieldData(geometry, { field_id = null, today = new Date() } = {}) {
+export async function pullFieldData(geometry, { field_id = null, today = new Date(), force = false } = {}) {
+  // Cache first (reload is instant); `force: true` (the Refresh button) always pulls again.
+  if (field_id && !force) { const c = await loadCachedFieldData(field_id); if (c?.site) return { ...c, from_cache: true }; }
   const errors = [];
   const lib = await import('../lib/sources.mjs').catch(e => { errors.push({ ok: false, part: 'lib_sources', file: 'lib/sources.mjs', what: 'the NASA/USDA data fetchers (sources.mjs)', message: 'The request failed', error: String(e?.message ?? e) }); return null; });
   const retrieved_at = new Date().toISOString();
