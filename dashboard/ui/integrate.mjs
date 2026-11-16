@@ -206,3 +206,105 @@ export async function buildReport(ctx, args) {
   const { buildReport } = await import('./report.mjs');
   return buildReport(args);
 }
+
+/* ---------- new fields: pull their own NASA/USDA data (round 4) ---------- */
+// A field the farmer draws or types gets the same inputs as the demo fields: NASA POWER daily 1981 -> today at
+// the field centroid (~1.8 s, ~2.2 MB) and USDA SSURGO soil for the polygon, in parallel. The result has the
+// same shape as site_history.sites[0], so P2's analyzeField runs on it unchanged. Nothing is invented: a part
+// that fails is null and listed in `errors` (shown as the round-3 red cards).
+
+export const NDVI_NEW_FIELD_REASON = 'Crop greenness for new fields needs a server-side download (next step). ORNL answers browser calls, but a 2001-to-now NDVI history is about 1,200 requests per field.';
+const FIELD_CACHE_PREFIX = 'kimchi.fielddata.';
+const memCache = new Map();
+
+function trimTrailing(daily) {
+  const keys = Object.keys(daily).filter(k => k !== 'date');
+  let n = daily.date.length;
+  while (n > 0 && keys.every(k => daily[k][n - 1] === null)) n--;
+  const out = {};
+  for (const k of Object.keys(daily)) out[k] = daily[k].slice(0, n);
+  return out;
+}
+
+// IndexedDB first (no 5 MB localStorage limit), then localStorage, then memory only.
+function idb() {
+  return new Promise((res, rej) => {
+    if (typeof indexedDB === 'undefined') return rej(new Error('no IndexedDB'));
+    const r = indexedDB.open('kimchi', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('fielddata');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function cachePut(key, value) {
+  try {
+    const db = await idb();
+    await new Promise((res, rej) => { const tx = db.transaction('fielddata', 'readwrite'); tx.objectStore('fielddata').put(value, key); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    return 'indexeddb';
+  } catch { /* fall through */ }
+  try { localStorage.setItem(key, JSON.stringify(value)); return 'localstorage'; } catch { /* quota or blocked */ }
+  return null;
+}
+async function cacheGet(key) {
+  try {
+    const db = await idb();
+    const v = await new Promise((res, rej) => { const r = db.transaction('fielddata').objectStore('fielddata').get(key); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+    if (v) return v;
+  } catch { /* fall through */ }
+  try { const s = localStorage.getItem(key); if (s) return JSON.parse(s); } catch { /* ignore */ }
+  return null;
+}
+
+/** The last pulled data for a field (memory, then IndexedDB, then localStorage), or null. Use it on reload, then refresh. */
+export async function loadCachedFieldData(field_id) {
+  const key = FIELD_CACHE_PREFIX + field_id;
+  if (memCache.has(key)) return memCache.get(key);
+  const v = await cacheGet(key);
+  if (v) memCache.set(key, v);
+  return v;
+}
+
+/**
+ * Pull NASA POWER 1981 -> today and USDA soil for a farmer's field.
+ * @param {object} geometry GeoJSON Polygon/MultiPolygon (or Feature)
+ * @param {{field_id?: string, today?: Date}} [opts]
+ * @returns {Promise<{field_id, site, soil, ndvi: null, ndvi_reason, retrieved_at, cached, cache, errors: Array}>}
+ */
+export async function pullFieldData(geometry, { field_id = null, today = new Date() } = {}) {
+  const errors = [];
+  const lib = await import('../lib/sources.mjs').catch(e => { errors.push({ ok: false, part: 'lib_sources', file: 'lib/sources.mjs', what: 'the NASA/USDA data fetchers (sources.mjs)', message: 'The request failed', error: String(e?.message ?? e) }); return null; });
+  const retrieved_at = new Date().toISOString();
+  if (!lib) return { field_id, site: null, soil: null, ndvi: null, ndvi_reason: NDVI_NEW_FIELD_REASON, retrieved_at, cached: false, cache: null, errors };
+
+  const { lat, lon } = lib.polygonCenter(geometry);
+  const end = today.toISOString().slice(0, 10).replace(/-/g, '');
+  const [power, soil] = await Promise.allSettled([
+    lib.fetchPowerDaily({ lat: +lat.toFixed(5), lon: +lon.toFixed(5), start: '19810101', end, timeoutMs: 90000 }),
+    lib.fetchSoilForPolygon(geometry),
+  ]);
+
+  let site = null;
+  if (power.status === 'fulfilled') {
+    const p = power.value, daily = trimTrailing(p.daily);
+    const last_valid = {};
+    for (const k of Object.keys(daily)) if (k !== 'date') last_valid[k] = lib.lastValidDate(daily, k);
+    site = { site_id: p.site_id, lat: p.lat, lon: p.lon, field_ids: field_id ? [field_id] : [],
+      start: daily.date[0] ?? null, end: daily.date[daily.date.length - 1] ?? null, elevation_m: p.elevation_m,
+      last_valid, units: p.units, api_version: p.api_version, power_sources: p.sources,
+      retrieved_at: p.retrieved_at, request_url: p.request_url, source_ids: p.source_ids, daily };
+  } else {
+    errors.push({ ok: false, part: 'field_power', file: 'NASA POWER API', what: 'NASA POWER history for this field', message: 'The request failed', error: String(power.reason?.message ?? power.reason) });
+  }
+  let soilOut = null;
+  if (soil.status === 'fulfilled' && soil.value) soilOut = soil.value;
+  else errors.push({ ok: false, part: 'field_soil', file: 'USDA Soil Data Access', what: 'USDA soil data for this field', message: soil.status === 'rejected' ? 'The request failed' : 'No soil map units returned', error: String(soil.reason?.message ?? soil.reason ?? 'empty result') });
+
+  const out = { field_id, site, soil: soilOut, ndvi: null, ndvi_reason: NDVI_NEW_FIELD_REASON, retrieved_at, cached: false, cache: null, errors };
+  if (field_id && site) {
+    const key = FIELD_CACHE_PREFIX + field_id;
+    memCache.set(key, out);
+    const where = await cachePut(key, { ...out, cached: true });
+    out.cached = !!where; out.cache = where;
+  }
+  return out;
+}
