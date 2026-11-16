@@ -44,7 +44,7 @@ Delete `ui/_fixtures/` once every row above is real. The browser console shows 4
 | File | Role |
 |---|---|
 | `index.html` | Layout: top strip, command bar, left panel, map, right panel, dialogs. Pinned CDN libraries: Leaflet 1.9.4, Leaflet.draw 1.0.4, Chart.js 4.4.1. |
-| `styles.css` | Theme tokens (dark and light), layout, mobile bottom sheets (< 800 px), print styles for the report. |
+| `styles.css` | Theme tokens (dark and light), layout, keycap controls, mobile bottom sheets (< 800 px), print styles for the report. |
 | `app.js` | State, boot, wiring, map layers and time slider logic, live data, drawing a field. |
 | `ui/integrate.mjs` | Loads teammates' modules and data with sample fallbacks; records data status. |
 | `ui/map.mjs` | Leaflet map: imagery and OSM basemaps, fields, region cells, NDVI pixels, drawing, cursor readout. |
@@ -55,15 +55,19 @@ Delete `ui/_fixtures/` once every row above is real. The browser console shows 4
 | `ui/farmForm.mjs` | My farm records: record form with unit toggles, settings, table, trends, export and import. |
 | `ui/report.mjs` | Season report dialog; fallback `buildReport`. |
 | `ui/util.mjs` | Formatting, escaping, colour ramps. |
+| `ui/icons.mjs` | The four factor icons (inline SVG), shared by cards, actions, map badges and legend. |
 
 ## Visual direction
 
-Chosen by the team on Nov 15 from three options: "Satellite instrument", refined to an analyst-workstation look.
+Redesigned Nov 16 as "Instrument keycaps", referencing linear.app (quiet, precise app chrome) and worklouder.cc (tactile hardware, one electric accent). It replaces the Nov 15 "Satellite instrument" look; the data colours and guardrails are unchanged.
 
-- Slate chrome (dark by default, light mode in the toolbar) so imagery and data colours carry the screen.
-- One accent, amber, for selection, live state and the first-ranked action. Red-orange only for high severity. Data colours are separate ramps: brown to blue for dry to wet, yellow to red for heat, tan to green for NDVI.
-- IBM Plex Mono for coordinates, dates and readouts so digits align. IBM Plex Sans Condensed for labels to fit narrow panels.
-- Square corners, hairlines and corner brackets as the identity motif. Motion is limited to the slider's Play.
+- Near-black graphite surfaces in tight steps (light mode in the toolbar), hairline borders, rounded modules (16 px panels and map, 12 px cards) inside a framed page, so imagery and data colours carry the screen.
+- One accent, electric lime, for selection and the single focal value only: the active factor, the selected field, the first-ranked action, the current rotation, the slider. Status keeps its own colours (green, grey-green, amber "watch", red "concern") through `--watch`, `--alert` and the `--lv-*` tokens; lime never means a status. Data colours stay separate ramps: brown to blue for dry to wet, yellow to red for heat, tan to green for NDVI.
+- Controls are pill "keycaps": segmented rails with a raised key for the quiet choices (detail level, map view, focus), lime for the main one (factor). Buttons step up on hover and press down on click; cards lift 2 px. Everything rests under reduced motion.
+- Inter for the interface and large readouts (tabular figures); Geist Mono for coordinates, dates and codes.
+- Desktop command bar in two rows: field and actions, then the lens (factor, map view, detail level). Map overlays are frosted glass.
+- Factor icons are drawn for this app (`ui/icons.mjs`): a drop with its water line, a thermometer with heat shimmer, a soil profile with root-zone water, and a sprout under a signal arc. Cards carry no coloured edges; status shows in the word pill.
+- Map badges: hovering a field rolls its four factor icons out above it, one by one from left to right with a spin, each filled with its status colour; hovering a badge lists all four. They sit in their own layer above the map overlays. Touch screens have no hover, so the selected field's row stays open.
 
 ## Guardrails shown in the UI
 

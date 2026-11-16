@@ -1,5 +1,6 @@
 // Right panel: top 3 actions (P4 recommend output), rotation comparison, what-if builder.
 import { esc, finite, num, factorName, fmtVal } from './util.mjs';
+import { factorIcon } from './icons.mjs';
 import { makeChart } from './charts.mjs';
 import { rotationTable } from '../lib/recommend.mjs';
 
@@ -12,7 +13,7 @@ const srcChips = ids => (ids ?? []).map(s => `<span class="src">${esc(s)}</span>
 
 // Status colours and factor icons shared with the map (PLAN.md §13). The word is always shown next to the colour.
 const STATUS_COLOUR = { Good: '#2e9e5b', Normal: '#7a9a86', Watch: '#e0a100', Concern: '#d64545', 'No new data': '#8a8a8a' };
-const FACTOR_ICON = { water: '💧', temperature: '🌡️', soil_moisture: '🟤', crop_condition: '🌱' };
+
 
 /** Collapsed action cards: icon + factor + problem + bold result; click or Enter expands chart + text. */
 export function renderActions(el, rec, { focus }) {
@@ -30,10 +31,10 @@ export function renderActions(el, rec, { focus }) {
     const chart = c.chart;
     const hasChart = chart && !chart.unavailable && chart.labels?.length;
     const toRot = c.chart_kind === 'rotations' || /^W4_/.test(c.id ?? '');
-    return `<article class="act" style="border-left:4px solid ${col};padding:0">
+    return `<article class="act" style="padding:0">
       <button type="button" class="act-head" id="acth-${i}" aria-expanded="false" aria-controls="actb-${i}"
         style="display:flex;gap:10px;align-items:center;width:100%;background:none;border:0;padding:10px 11px;color:inherit;font:inherit;text-align:left;cursor:pointer">
-        <span aria-hidden="true" style="font-size:22px;line-height:1">${FACTOR_ICON[c.factor] ?? '•'}</span>
+        <span class="act-icon">${factorIcon(c.factor, 'aicon') || '•'}</span>
         <span style="flex:1;min-width:0">
           <span class="meta" style="display:block">${i + 1} · ${esc(factorName(c.factor ?? ''))} · <span style="color:${col};font-weight:700">${esc(word)}</span>${watch ? ' · watch only' : ''}</span>
           <span style="display:block;font-size:13.5px;margin-top:2px">${esc(c.headline ?? c.title)}</span>

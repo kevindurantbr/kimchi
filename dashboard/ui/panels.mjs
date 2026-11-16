@@ -1,15 +1,10 @@
 // Left panel: the four factor cards and the charts for the selected factor (PLAN.md section 5 and the P3 brief, step 3).
 import { FACTORS, esc, finite, num, pct, sevClass, sevText, fmtDate, safeURL, download, cssVar, ramp } from './util.mjs';
 import { badgesOf } from './status.mjs';
+import { factorIcon } from './icons.mjs';
 import { makeChart, bandChart, destroyCharts, theme, hexA } from './charts.mjs';
 
-const ICONS = { // drawn for this app: drop, thermometer, soil layers, leaf
-  water: '<path d="M9 2C9 2 4 8 4 11.2A5 5 0 0 0 14 11.2C14 8 9 2 9 2Z"/>',
-  temperature: '<path d="M7.5 3a1.5 1.5 0 0 1 3 0v7.6a3.5 3.5 0 1 1-3 0Z"/><path d="M9 7v6"/>',
-  soil_moisture: '<path d="M2 6h14M2 10h14M2 14h14"/><path d="M5 6v8M11 10v4"/>',
-  crop_condition: '<path d="M9 16V8"/><path d="M9 9C9 5 12 3 15 3C15 6 13 9 9 9Z"/><path d="M9 11C9 8 6 6 3 6C3 9 5 11 9 11Z"/>',
-};
-const icon = id => `<svg class="ficon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">${ICONS[id]}</svg>`;
+const icon = id => factorIcon(id, 'ficon');
 
 /** Small "this year vs normal" bars, from status.value and normal_median. Empty when either is missing. */
 function miniBar(st) {
@@ -44,7 +39,7 @@ export function renderCards(el, analysis, selected, onSelect) {
       </div>
       <div data-min-level="3">
         <div class="pbar" role="img" aria-label="Percentile ${p == null ? 'unavailable' : Math.round(p)} versus 1991 to 2020; ${esc(sevText(st.severity))}">
-          <span class="b90"></span><span class="b75"></span><span class="med"></span>${p == null ? '' : `<span class="dot" style="left:${p}%;background:${sc === 2 ? 'var(--alert)' : sc === 1 ? 'var(--acc)' : 'var(--sev0)'}"></span>`}
+          <span class="b90"></span><span class="b75"></span><span class="med"></span>${p == null ? '' : `<span class="dot" style="left:${p}%;background:${sc === 2 ? 'var(--alert)' : sc === 1 ? 'var(--watch)' : 'var(--sev0)'}"></span>`}
         </div>
         <div class="pbar-scale"><span>p0</span><span>p25</span><span>p50 normal</span><span>p75</span><span>p100</span></div>
         <div class="rec"><span class="sev sev-${sc}">${esc(sevText(st.severity))}</span> ${esc(pct(st.percentile))} · ${rec?.sentence ? esc(rec.sentence) : rec?.text ? esc(rec.text) : 'recurrence unavailable'}</div>
