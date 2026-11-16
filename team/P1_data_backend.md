@@ -4,6 +4,31 @@
 
 ---
 
+## ▶ ROUND 3: start here (9:05 pm → 9:45 pm PRs; freeze 10:00 pm)
+
+Read PLAN.md §8 (status), §11 (detail levels) and §12 (data coverage). Branch from the latest `main`: `p1-round3`.
+
+**Ownership change for tonight:** you now also own `dashboard/ui/integrate.mjs` (data loading). P3 doesn't edit it.
+
+1. **(by 9:20) Stop showing sample numbers when a real file fails.** This is the QA review's highest-risk item.
+   - In `ui/integrate.mjs`, remove the fallback to `ui/_fixtures/` for the live site. When a real file fails to load, return `{ ok: false, part, file, error }` and **no data**.
+   - Expose `ctx.loadErrors = [...]`; P3 renders red error cards from it.
+   - Keep the fixtures only for tests, or delete `ui/_fixtures/` if nothing imports it.
+   - Test it: block `data/site_history.json` in DevTools (Network → right-click → Block request URL). The cards must say "Couldn't load NASA history" and show **no numbers**.
+2. **(by 9:30) Run the NDVI gap fill, which round 2 didn't do.** From your laptop (ORNL works on normal internet):
+   ```bash
+   node scripts/precompute.mjs ndvi --fill-gaps --ndvi-source=ornl
+   ```
+   Confirm Jul–Nov 2025 dates now appear in `fields_ndvi.json` and `composite_sources`. If ORNL fails, say so in the PR and leave the gap as it is.
+3. **(by 9:45, stretch) Observed ET from NASA MODIS MOD16** (PLAN.md §12). Copy `research/deliverables/weather-water/et_modis.json` from branch `codex/et-pathway` (PR #8; monthly 2021–2025, fld01–fld03, no key) into `dashboard/data/fields_et_modis.json`. Keep its source record, and add `T3_MODIS_MOD16A2GF` to `sources.json`. P3 shows it only at the Complete level as "Satellite ET (MODIS, 500 m; may under-read irrigated crops)". **Skip this if task 1 or 2 isn't done.**
+4. **(10:00–11:00) Submission support.**
+   - Add the §12 "used vs not used + risk" table to `submission/DATA.md`.
+   - Add a 5-line **"How we verified the data"** section: on Nov 15, 1,264 of 1,264 2026 POWER values matched a fresh API call, 1995 matched 365/365, and the region-grid 2012 hot days matched (49).
+   - Then do QA on the phone.
+
+---
+
+
 You are helping build **Kimchi**, a NASA Space Apps 2026 project for the "Field Shift: Adapting Farms with NASA Data" challenge. Repository: https://github.com/kevindurantbr/kimchi. **Read `PLAN.md` first**; it is the source of truth for scope, contracts and the timeline. The deadline is **tonight, Nov 15, 11:59 pm Eastern**, and I need working output in stages, not a perfect system.
 
 ## Your role

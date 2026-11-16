@@ -2,6 +2,8 @@
 
 **Written Nov 15, 2026, 5:45 pm Eastern. Submission deadline: Nov 15, 11:59 pm.** The time zone of the deadline was not confirmed. The checkpoints below assume Eastern time. If your event uses an earlier zone, move every checkpoint earlier by the difference.
 
+> **Status update, 9:05 pm.** See §8 for progress against the timeline, the new round-3 timeline, and the new freeze at **10:00 pm**. §11 adds the **three detail levels** (Simple / Moderate / Complete), and §12 covers **data coverage and the risk from unused resources**. Each person's file in `team/` now starts with their **round 3** tasks. Live site: https://kevindurantbr.github.io/kimchi/
+
 This file replaces the earlier "evidence viewer only" direction. Each teammate's AI prompt is in [`team/`](team/). Give your AI this file **and** your own prompt.
 
 | Person | Prompt | Owns |
@@ -288,6 +290,33 @@ Each `status` = `{ value, unit, normal_median, percentile, direction: "adverse"|
 | **10:45 pm** | Video, write-up and screenshots done. Final QA on desktop and phone. |
 | **11:15 pm** | **Submit.** The 45 minutes after that are buffer for upload problems. |
 
+### Progress against this timeline (checked 9:00 pm)
+
+| Checkpoint | Planned | Actual | Status |
+|---|---|---|---|
+| Branches + prompts read | 6:00 | ~6:00 | ✅ |
+| Fixtures (P1 site history, P2 sample, P4 libraries, P3 skeleton) | 6:45 | 6:01–6:13 | ✅ early |
+| Real data + engine + first merge to `main` | 8:00 | 7:01 (PRs #10–#14) | ✅ early |
+| Deployed to a public URL | 9:00 | ~7:10 (PR #15, Pages) | ✅ |
+| Round 2, P1: 2026 demo season, NDVI gap-fill tool, POWER refresh, DATA.md | 8:15 | 8:36 (PR #18) | ✅, but **the gap fill was not run**: Jul–Nov 2025 NDVI is still missing |
+| Round 2, P3: faster load, live cards, number format | 8:45 | 7:19 (PRs #16, #17) | ✅ |
+| Round 2, P3: remove sample-data fallback, slider, error messages | QA review | not started | ❌ |
+| Round 2, P2: fallback, as-of dates, heat metric, **direction-aware labels** | 8:15 | **no PR** | ❌ the live site still says "Drier than 5% of years" for a wetter-than-normal soil |
+| Round 2, P4: recommendations on real analysis, card text | 8:30 | PR #20 open, **not merged** | ⚠️ |
+| Submission: write-up and video | 9:30–11:15 | draft only | ⏳ |
+| Bug found by the owner: collapsing the left panel makes the map disappear | n/a | open | ❌ (fix in P3 round 3) |
+
+### Round-3 timeline (replaces the 9:30 freeze)
+
+| Time | Checkpoint |
+|---|---|
+| **9:05 pm** | Everyone reads their round-3 block at the top of their `team/` file. P3 merges PR #20 now. |
+| **9:45 pm** | All round-3 code PRs open; P3 merges them as they pass `node --test dashboard/lib/*.test.mjs`. |
+| **10:00 pm** | **Feature freeze.** Only bug fixes and text changes after this. |
+| **10:00–10:45 pm** | P4 records the video from the live site in **Simple** view; P1–P3 do QA on desktop and phone. |
+| **11:00 pm** | Write-up final, with the live URL, DATA.md, ANALYSIS.md and the data-coverage statement (§12). |
+| **11:15 pm** | **Submit.** The time after that is buffer. |
+
 If something is late at 8:00 pm, cut scope in this order: the HLS stretch goal, then drawing new fields (keep the demo fields), then the region grid (keep a single-site chart), then the season report. **Never cut** the four factor cards, the rotation comparison, or the top-3 actions.
 
 ## 9. Guardrails (they keep the claims honest, and judges notice them)
@@ -310,3 +339,54 @@ If something is late at 8:00 pm, cut scope in this order: the HLS stretch goal, 
 - `research/deliverables/weather-water/`: POWER retrieval code and the 2021–2025 weather, with methods to reuse.
 - `interface/` and `prototype/`: the first read-only viewer and comparison layer. **Leave them untouched tonight**; the new app is in `dashboard/`.
 - PR #5's crop-fraction correction does not change the dominant crop per year, which is all the new app uses. Open PRs #6–#8 are superseded by this plan; take ideas from them, but do not merge them tonight.
+
+## 11. Three detail levels: Simple / Moderate / Complete (added 9:05 pm)
+
+A segmented control in the top bar reads **View: [Simple] [Moderate] [Complete]**. It defaults to **Simple** and the choice is remembered in localStorage, wrapped in try/catch. The farmer can see every number at Complete, but never has to.
+
+| Area | **Simple** (default; for any farmer) | **Moderate** (wants the reasons) | **Complete** (agronomist / judge: everything) |
+|---|---|---|---|
+| Top bar | Field picker, view level, My farm records, Season report | + factor tabs, Field/Region view | + data-source strip, UTC clock, theme |
+| Factor tiles | 4 tiles: icon, **status word** (Good / Normal / Watch / Concern / No new data), **one plain sentence**, and "happens about N years in 10". °F and inches next to °C and mm | + value with unit, the normal value, "as of" date | + percentile bar p0–p100, p-value, recurrence detail |
+| Charts | None. The map and tiles tell the story | **One** chart per factor: this season vs the normal band | All charts: bucket, capacity gauge, frost dates, compound calendar, cause check, trend + Mann-Kendall |
+| Map + slider | Field outline coloured by status; slider "Play 1981 → 2026" with a one-line caption per year | + Region view and NDVI pixels | + raw/percentile toggle, legend detail |
+| Top 3 actions | Title + one sentence + "Ask your agronomist" | + Why (values) + benefits / risks / gaps | + score and its 4 parts, evidence chips with source IDs |
+| Rotations | **One comparison table**: current + 2 alternatives × (short on water X of N, heat at pollination X of N, months with low green cover, main benefit, main risk) | + per-rotation cards (why suggested, evidence, gaps) + what-if builder | + every `rotationFit` metric and notes |
+| Your farm | "This season: corn · irrigation 255 of 280 mm used" + yield sparkline + **Add this season** | + records table, trends | + yield vs heat scatter, export/import details |
+| Data limits | One footer line: "Weather is regional (~50 km). Estimates, not meters. Check locally." | + data-quality notes | + Advanced: exact values, sources, CSV |
+
+How to build it: `body` gets the class `level-1`, `level-2` or `level-3`. UI elements carry `data-min-level="2"` or `"3"`, and CSS hides any element whose `data-min-level` is above the current level. Internal codes (F-01, W-1, D-01, Q-00) only appear at `level-3`. Plain sentences come from P2's `status.plain`, and the short recommendation text comes from P4's `card.short`.
+
+**The challenge requires these, so they stay visible at Simple:**
+- the rotation comparison (current + 2 alternatives);
+- one benefit and one risk per rotation;
+- the green-cover / bare months;
+- the farmer's inputs;
+- the expert-check line;
+- the data-limits line.
+
+## 12. Data coverage: what we use vs the Resources tab, and the risk (added 9:05 pm)
+
+| Used tonight | What for |
+|---|---|
+| **NASA POWER** (live + 1981–now history + 25-cell grid) | Temperature, heat, frost, rain, reference ET, model soil wetness |
+| **NASA MODIS MOD13Q1 NDVI** (250 m, 2001–now) | Crop condition, green-cover months, field pixel map |
+| **USDA SSURGO** (live for drawn fields) | Soil water-holding capacity for the water bucket |
+| **USDA CDL** (2021–2025, demo fields) | Current-rotation suggestion, which the farmer confirms |
+| K-State / USDA agronomy sources, FAO-56 | Crop parameters, actions, rotation evidence |
+
+So we are **not only using POWER**: there are 2 NASA products and 2 USDA products. But we use 2 of the roughly 9 NASA datasets the challenge names. What we miss, and how much it matters:
+
+| Not used | What it would add | Risk of missing it | Plan |
+|---|---|---|---|
+| **SMAP** soil moisture (9 km, satellite-observed) | Observed soil moisture instead of POWER's model value. The challenge lists it first | **Medium-high**: judges may ask "where is SMAP?", and our soil-moisture factor is model-only | Write-up: name it as the first next step (needs an Earthdata login). Label POWER soil wetness as "model" everywhere |
+| **Observed ET**: MODIS MOD16 / OpenET / ECOSTRESS | Measured crop water use to check our modelled demand (ET₀ × Kc) | **Medium-high**: our water balance has no observed ET | **MOD16 monthly ET for fld01–03 (2021–2025) already exists on branch `codex/et-pathway` (PR #8, no key, from ORNL).** P1 round 3 adds it as a comparison line at Complete level if done by 9:45; otherwise it's the first item in next steps. OpenET needs only a free account |
+| **GPM IMERG** rain (10 km, hours) | Finer, faster rain and storm extremes (erosion) | Medium | Next step |
+| **Landsat / HLS / Sentinel-2** (10–30 m) | Within-field zones (MODIS gives about 8 pixels per field) | Medium for visuals; low for decisions | Next step |
+| **SRTM** elevation | Slope, runoff and erosion zones | Low-medium (erosion isn't one of our 4 factors) | Next step |
+| **GRACE / GRACE-FO** + **NWIS wells** | Aquifer decline context (the Ogallala story) | Low for decisions, good for the story | Mention in the write-up; next step |
+| **PRISM / NLDAS / GLDAS / ERA5** | Finer or alternative weather | Low (POWER covers the need) | Not needed |
+| **NASS QuickStats / AMS Market News** | County yields and prices for the "income" priority | Medium for the income priority | Next step: the income priority currently has no data, so say so |
+| NAIP, NLCD, LANDFIRE, GEDI, GAEZ, CoCoRaHS, Ag Data Commons | Context or validation | Low | Listed as deferred in DATA.md |
+
+**Bottom line:** the decisions we support (the 4 factors → actions and rotation fit) are covered by real, verified data. The risks are (1) **judging on breadth of NASA data use**, and (2) **soil moisture and ET being modelled, not observed**. Mitigation tonight: honest labels, MOD16 if it lands by 9:45, and a clear "next datasets" section in the write-up. Don't start SMAP tonight, because the Earthdata login plus processing is too risky in under an hour.

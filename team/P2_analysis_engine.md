@@ -4,6 +4,38 @@
 
 ---
 
+## ▶ ROUND 3: start here (9:05 pm → 9:45 pm PR; freeze 10:00 pm)
+
+Read PLAN.md §8 (status) and §11 (detail levels). Your round-2 PR never arrived, and the live site still has the wrong-direction labels, so tasks 1–2 come first. Branch from the latest `main`: `p2-round3`. Small PR by 9:30, a second one by 9:45 if needed.
+
+1. **(by 9:20) Direction-aware labels.** These are live on the site now and alarm farmers.
+   - Soil moisture at p95 must read "**Wetter than 95% of years** for this date", not "Drier than 5%". Water balance at p72 must read "Wetter than 72%".
+   - Use "Drier than X%" only below the median, and the same for "More / Fewer hot days than X%".
+   - Fix the recurrence wording: "Since 1991: 35 of 45 years" is wrong, because the series starts in 1981. Make it e.g. "In 35 of 45 years (1981–2025)", and say what was counted.
+   - Add tests.
+2. **(by 9:30) `status.plain` for the Simple view** (PLAN.md §11). Add to every status:
+   ```js
+   plain: { word: "Good"|"Normal"|"Watch"|"Concern"|"No new data",
+            sentence: "Root zone is 45% full; usually 39% in mid-November.",
+            freq: "This happens about 1 year in 10." }
+   ```
+   - `word` comes from severity and direction: favourable → Good; |pct−50| ≤ 25 → Normal; severity up to 0.5 → Watch; above 0.5 → Concern.
+   - Each `sentence` is one plain line with units, and adds °F or inches in brackets for temperature and water: "38 days above 35 °C (95 °F); normal is 27."
+   - No percentiles, codes or jargon.
+3. **(by 9:40) Annual series for the field-view slider** (QA review §4a). Add `analysis.annual = { years: [1981..2026], water_deficit_mm: [...], hot_days: [...], gwetroot_jul: [...], caption: [...] }`.
+   - Compute it with the same crop calendar as the current season.
+   - `caption[i]` is one sentence, e.g. "2012: 49 hot days, the most since 1981".
+   - P3 animates the field colour and caption with it.
+4. **(by 9:45) The remaining round-2 items, if any time is left.**
+   - As-of dates (a status uses the latest value ≤ 7 days old for soil and ≤ 32 days old for NDVI, and carries `as_of`).
+   - `sensitive_heat_above_normal_years`, with `interactions.stage_heat.recurrence` as P4 expects.
+
+   If you run out of time, list them in your PR as known gaps; P4 will word around them.
+5. **(10:00–11:00)** Proofread `dashboard/lib/ANALYSIS.md` as the methods appendix for the write-up, then do QA on Moderate and Complete views.
+
+---
+
+
 You are helping build **Kimchi**, a NASA Space Apps 2026 project for the "Field Shift: Adapting Farms with NASA Data" challenge. Repository: https://github.com/kevindurantbr/kimchi. **Read `PLAN.md` first**; it is the source of truth for scope, contracts and the timeline. The deadline is **tonight, Nov 15, 11:59 pm Eastern**.
 
 ## Your role
