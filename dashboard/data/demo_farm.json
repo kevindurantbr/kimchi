@@ -1049,6 +1049,18 @@
      "yield": 226,
      "yield_unit": "bu/ac",
      "notes": "synthetic demo value"
+    },
+    {
+     "year": 2026,
+     "period": "season",
+     "crop": "corn",
+     "planting_date": "2026-04-28",
+     "harvest_date": "2026-10-08",
+     "irrigation_mm": 300,
+     "nitrogen_kg_ha": 210,
+     "yield": null,
+     "yield_unit": "bu/ac",
+     "notes": "synthetic demo value; yield not entered"
     }
    ]
   },
@@ -2078,6 +2090,18 @@
      "yield": 74,
      "yield_unit": "bu/ac",
      "notes": "synthetic demo value; harvest year 2025, sown the previous autumn"
+    },
+    {
+     "year": 2026,
+     "period": "season",
+     "crop": "corn",
+     "planting_date": "2026-05-02",
+     "harvest_date": "2026-10-12",
+     "irrigation_mm": 320,
+     "nitrogen_kg_ha": 215,
+     "yield": null,
+     "yield_unit": "bu/ac",
+     "notes": "synthetic demo value; yield not entered"
     }
    ]
   },
@@ -3051,6 +3075,18 @@
      "yield": 71,
      "yield_unit": "bu/ac",
      "notes": "synthetic demo value; harvest year 2025, sown the previous autumn"
+    },
+    {
+     "year": 2026,
+     "period": "season",
+     "crop": "corn",
+     "planting_date": "2026-04-30",
+     "harvest_date": "2026-10-10",
+     "irrigation_mm": 310,
+     "nitrogen_kg_ha": 210,
+     "yield": null,
+     "yield_unit": "bu/ac",
+     "notes": "synthetic demo value; yield not entered"
     }
    ]
   }

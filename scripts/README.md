@@ -28,7 +28,7 @@ Options: `--end=YYYY-MM-DD` (default: today, UTC), `--ndvi-start=YYYY-MM-DD` (de
 | `region_grid.json` | 25 native POWER cells (5 × 5, centres from lat 38.5 to 40.5 and lon −101.875 to −99.375) × 45 years (1981–2025). Five annual indicators: `season_precip_mm`, `season_deficit_mm`, `hot_days_35c`, `gdd_may_sep`, `gwetroot_jul`. 40 KB. | 2026‑11‑15 |
 | `fields_ndvi.json` | MOD13Q1 v061 NDVI per demo field: a 9 × 9 pixel window (231.66 m pixels), 583 composites from 2001‑01‑01 to 2026‑10‑16. Includes `pixel_polygons` (lon/lat), `pixel_centers`, `pixels_in_field`, `field_mean` and `pixels`. Pixels are row-major from the north-west corner. 1.1 MB. | 2026‑11‑15, via Planetary Computer |
 | `sources.json` | `{generated_at, sources: [...], deferred: [...]}`. Holds 7 data sources, the 8 `T2_*` field research records, the KSU and 21 `T1_*` agronomy sources, the 15 `T1_R*` agronomy rules, and 19 deferred resources, each with a reason. Every `source_ids` entry in the other data files resolves here. | n/a |
-| `demo_farm.json` | **Synthetic** farm (`"synthetic": true`, "Demo farm (synthetic)") in schema `kimchi.farm.1`. Contains fld01–fld03 with 2021–2025 records whose crops match `crop_history`. Every value is invented and every record says `"notes": "synthetic demo value"`. | n/a |
+| `demo_farm.json` | **Synthetic** farm (`"synthetic": true`, "Demo farm (synthetic)") in schema `kimchi.farm.1`. Contains fld01–fld03 with 2021–2026 records whose crops match `crop_history`. Every value is invented and every record says `"notes": "synthetic demo value"`. | n/a |
 
 ## Methods
 
