@@ -54,6 +54,22 @@ We use 3 NASA products (POWER, MODIS NDVI, MODIS ET) and 2 USDA products (SSURGO
 
 **Bottom line:** the decisions we support (the 4 factors → actions and rotation fit) rest on real, verified data. The remaining risks are breadth of NASA data use and soil moisture being modelled, not observed.
 
+## How a new field gets its data
+
+When a farmer draws or types a field, the browser calls `pullFieldData(geometry)` in `dashboard/ui/integrate.mjs`:
+- **NASA POWER daily, 1981 to today**, at the field centroid: the same 8 parameters as the demo site, one request of about 1.8 s and 2.2 MB. Trailing days with no values are trimmed; −999 becomes null.
+- **USDA SSURGO soil** for the field polygon, in parallel, area-weighted by the clipped map units.
+- The result has the same shape as `site_history.json`, so the analysis runs on it exactly as for the demo fields. It is cached in the browser (IndexedDB, else localStorage, else memory only) under `kimchi.fielddata.<field_id>` with its retrieval time, and "Refresh data" pulls it again.
+- **Crop greenness (NDVI)** is not pulled for new fields tonight: ORNL accepts browser calls (checked Nov 15), but a 2001-to-now history is about 1,200 requests per field, so it needs a server-side download. The crop-condition card says so.
+- Any part that fails is listed as an error and shown as a red card. Nothing is estimated in its place.
+
+## Automatic daily refresh
+
+`.github/workflows/refresh-data.yml` runs every day at 09:17 UTC (about 4 am Eastern) and on demand:
+- `node scripts/precompute.mjs site` refreshes `site_history.json` from NASA POWER.
+- On Mondays, `node scripts/precompute.mjs ndvi --fill-gaps --ndvi-source=ornl` adds any new 16-day MODIS composites, keeping existing values.
+- If anything changed, it commits "Daily data refresh" to `main` and starts the Pages deploy, so the public site updates itself with no person or AI involved. The analysis itself always runs in the visitor's browser, and this year's POWER data is also fetched live on every page load.
+
 ## Considered but deferred tonight
 
 These are resources from the team's Resources tab that we did not use tonight, with the reason for each:
