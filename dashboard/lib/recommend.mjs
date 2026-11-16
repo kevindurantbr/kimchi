@@ -563,9 +563,15 @@ export function deriveContext({ analysis, farm, field_id, field, crops, actions,
 
   const cap = a.interactions?.capacity ?? a.factors?.water?.capacity ?? null;
   const capacity_ok = typeof cap?.ok === 'boolean' ? cap.ok : null;
-  const peak = cap?.peak_mm_day ?? cap?.peak_demand_mm_day ?? null;
-  const well = cap?.well_mm_day ?? cap?.capacity_mm_day ?? null;
+  // Well delivery in mm/day: from the analysis if given, else from the farm record (gpm over area),
+  // the same conversion P2 uses: gpm × 1440 min × 3.785 L ÷ (ha × 10,000 m²).
+  const gpm = farmField?.well_capacity_gpm;
+  const areaHa = farmField?.area_ha;
+  const wellFromFarm = isNum(gpm) && isNum(areaHa) && areaHa > 0 ? (gpm * 1440 * 3.785) / (areaHa * 10000) : null;
+  const well = cap?.well_mm_day ?? cap?.capacity_mm_day ?? wellFromFarm;
+  let peak = cap?.peak_mm_day ?? cap?.peak_demand_mm_day ?? null;
   const short = isNum(cap?.shortfall_mm_day) ? cap.shortfall_mm_day : isNum(peak) && isNum(well) ? Math.max(0, peak - well) : null;
+  if (!isNum(peak) && isNum(well) && isNum(short) && capacity_ok === false) peak = well + short;
   // 25% of peak demand unmet → severity 1.
   const capacity_severity = isNum(short) && isNum(peak) && peak > 0 ? clamp01((4 * short) / peak) : null;
 
@@ -629,7 +635,9 @@ export function deriveContext({ analysis, farm, field_id, field, crops, actions,
     } : null,
     allocation_mm, allocation_limited, allocation_pressure: round(allocation_pressure),
     sensitive_window_soon,
-    capacity_ok, capacity_peak_mm_day: peak, capacity_well_mm_day: well,
+    capacity_ok,
+    capacity_peak_mm_day: isNum(peak) ? Math.round(peak * 10) / 10 : null,
+    capacity_well_mm_day: isNum(well) ? Math.round(well * 10) / 10 : null,
     capacity_severity: round(capacity_severity ?? (capacity_ok === null ? capFit?.share ?? null : null)),
     capacity_text: capacity_ok === null ? null : cap?.text ?? null,
     capacity_short_share: capFit?.share ?? null,
