@@ -759,6 +759,14 @@ function sourcesFile() {
       latency: 'Mirror of LP DAAC; additional lag of weeks',
       license_or_terms: 'Free; anonymous SAS token from the Planetary Computer API. NASA EOSDIS data policy for the product.',
       notes: 'Same NASA product and band math as MODIS_MOD13Q1_ORNL. Read by scripts/precompute.mjs (Node only) with HTTP range requests; a 9 × 9 pixel window centred on the field-centre pixel.' },
+    { id: 'T3_MODIS_MOD16A2GF', name: 'NASA MODIS MOD16A2GF v061 evapotranspiration (gap-filled 8-day, 500 m), via the ORNL DAAC MODIS Web Service',
+      provider: 'NASA LP DAAC (product, Running et al., doi:10.5067/MODIS/MOD16A2GF.061); ORNL DAAC (subset service)',
+      url: 'https://modis.ornl.gov/rst/api/v1/',
+      resolution: '500 m (463.3 m sinusoidal pixel), 8-day composites summed to calendar months',
+      period: '2021-01 to 2025-12 for fld01-fld03 (data/fields_et_modis.json)',
+      latency: 'Gap-filled product is released after the year ends (2025 composites through 2025-12-27 on 2026-11-15)',
+      license_or_terms: 'Free, no key. NASA EOSDIS data use policy; cite the product DOI and the ORNL DAAC MODIS Web Service.',
+      notes: 'Retrieved 2026-11-15 in research PR #8 (research/deliverables/weather-water/modis_et.py, mod16_raw.json): one pixel at each field centroid, band ET_500m x 0.1 mm per composite, spread evenly over its days and summed per month; a month with any missing day is null. Satellite model estimate of actual ET, not pumping; MOD16 has no irrigation input and may under-read irrigated crops.' },
     { id: 'USDA_SSURGO_SDA', name: 'USDA NRCS SSURGO soil survey via Soil Data Access (SDA)',
       provider: 'USDA Natural Resources Conservation Service',
       url: 'https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest',
@@ -808,7 +816,6 @@ function sourcesFile() {
     license_or_terms: 'Extension publication', notes: 'Copied from dashboard/data/crops.json extra_sources (P4); see that file for the values used.', kind: 'agronomy_source' }));
   const deferred = [
     ['OpenET', 'Field-scale (30 m) actual ET would replace our ET₀ × Kc estimate, but the API needs a free account and key; the adapter exists in research/deliverables/weather-water/. Next step.'],
-    ['NASA MODIS MOD16A2GF ET', '500 m 8-day actual ET for fld01–fld03 (2021–2025) was retrieved from ORNL in research PR #8 but is not wired into the dashboard tonight. Next step.'],
     ['GRACE-FO', 'Groundwater/total water storage at ~300 km and monthly: regional aquifer context only, cannot resolve a field or the SD-6 LEMA.'],
     ['SMAP', 'Satellite soil moisture (9–36 km) needs an Earthdata login for downloads; POWER GWETROOT covers the factor tonight (model-based).'],
     ['GPM IMERG', '~10 km precipitation, finer than POWER, but needs Earthdata login and gridded HDF5/NetCDF processing; POWER PRECTOTCORR is used.'],
