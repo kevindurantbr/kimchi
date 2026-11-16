@@ -1,5 +1,7 @@
 // Right panel: top 3 actions (P4 recommend output), rotation comparison, what-if builder.
 import { esc, finite, num, factorName, fmtVal } from './util.mjs';
+import { makeChart } from './charts.mjs';
+import { rotationTable } from '../lib/recommend.mjs';
 
 const list = (k, items) => items?.length ? `<div class="k">${k}</div><ul>${items.map(i => typeof i === 'string' ? `<li>${esc(fmtVal(i))}</li>`
   : `<li>${esc(fmtVal(i.text ?? JSON.stringify(i)))}${i.source_ids?.length ? ' ' + i.source_ids.map(s => `<span class="src">${esc(s)}</span>`).join(' ') : ''}</li>`).join('')}</ul>` : '';
@@ -8,6 +10,11 @@ const txt = i => (i == null ? '' : typeof i === 'string' ? i : (i.text ?? ''));
 const shortOf = c => c.short || txt(c.why?.[0]) || txt(c.reason) || '';
 const srcChips = ids => (ids ?? []).map(s => `<span class="src">${esc(s)}</span>`).join(' ');
 
+// Status colours and factor icons shared with the map (PLAN.md §13). The word is always shown next to the colour.
+const STATUS_COLOUR = { Good: '#2e9e5b', Normal: '#7a9a86', Watch: '#e0a100', Concern: '#d64545', 'No new data': '#8a8a8a' };
+const FACTOR_ICON = { water: '💧', temperature: '🌡️', soil_moisture: '🟤', crop_condition: '🌱' };
+
+/** Collapsed action cards: icon + factor + problem + bold result; click or Enter expands chart + text. */
 export function renderActions(el, rec, { focus }) {
   if (!rec) { el.innerHTML = '<p class="state">Recommendations unavailable.</p>'; return; }
   const cards = rec.top3 ?? [];
@@ -18,22 +25,77 @@ export function renderActions(el, rec, { focus }) {
   el.innerHTML = cards.map((c, i) => {
     const sp = c.score_parts ?? {};
     const watch = c.status === 'watch';
-    return `<article class="act bracket ${i === 0 ? 'on' : ''}">
-      <div class="act-top"><span class="rank">${i + 1}</span><div><h3>${esc(c.title)}</h3>
-        <div class="meta">${esc(factorName(c.factor ?? ''))} · ${esc((c.category ?? '').replace('_', '-'))}${c.when ? ` · ${esc(c.when)}` : ''}${watch ? ' · watch only' : ''}</div></div></div>
-      <p class="short">${esc(fmtVal(shortOf(c)))}</p>
-      ${watch ? `<p class="watch">${esc(c.reason ?? 'Not triggered; shown because the focus has fewer than 3 active actions.')}</p>` : ''}
-      <div data-min-level="3"><div class="scorebar"><span class="trk" role="img" aria-label="Score ${num(c.score, 2)} of 1"><i style="width:${finite(c.score) ? Math.min(100, c.score * 100) : 0}%"></i></span><span class="num">${num(c.score, 2)}</span></div>
-      <details><summary>Why this score</summary><table class="parts"><tbody>
-        <tr><td>Severity</td><td class="num">${num(sp.severity, 2)}</td></tr><tr><td>× Your priority</td><td class="num">${num(sp.priority, 2)}</td></tr>
-        <tr><td>× Evidence strength</td><td class="num">${num(sp.evidence, 2)}</td></tr><tr><td>× Timing</td><td class="num">${num(sp.timing, 2)}</td></tr>
-        <tr><td><b>= Score</b></td><td class="num"><b>${num(c.score, 2)}</b></td></tr></tbody></table></details></div>
-      <div data-min-level="2">${list('Why', c.why)}
-      <details><summary>Benefits, risks and information gaps</summary>${list('Benefits', c.benefits)}${list('Risks', c.risks)}${list('Information gaps', c.gaps)}</details></div>
-      ${c.evidence?.length ? `<div data-min-level="3"><div class="k">Evidence</div>${c.evidence.map(e => `<div class="ev"><span>${esc(fmtVal(e.text))}</span>${e.value != null ? `<span class="v">${esc(fmtVal(e.value))}</span>` : ''}${e.kind ? `<span class="kind">${esc(e.kind.replace('_', ' '))}</span>` : ''}${srcChips(e.source_ids)}</div>`).join('')}</div>` : ''}
-      <div class="expert">${esc(c.expert_check ?? 'Check with your agronomist / K-State Extension before acting.')}</div>
+    const word = c.status_word ?? (watch ? 'Normal' : 'Watch');
+    const col = STATUS_COLOUR[word] ?? STATUS_COLOUR.Normal;
+    const chart = c.chart;
+    const hasChart = chart && !chart.unavailable && chart.labels?.length;
+    const toRot = c.chart_kind === 'rotations' || /^W4_/.test(c.id ?? '');
+    return `<article class="act" style="border-left:4px solid ${col};padding:0">
+      <button type="button" class="act-head" id="acth-${i}" aria-expanded="false" aria-controls="actb-${i}"
+        style="display:flex;gap:10px;align-items:center;width:100%;background:none;border:0;padding:10px 11px;color:inherit;font:inherit;text-align:left;cursor:pointer">
+        <span aria-hidden="true" style="font-size:22px;line-height:1">${FACTOR_ICON[c.factor] ?? '•'}</span>
+        <span style="flex:1;min-width:0">
+          <span class="meta" style="display:block">${i + 1} · ${esc(factorName(c.factor ?? ''))} · <span style="color:${col};font-weight:700">${esc(word)}</span>${watch ? ' · watch only' : ''}</span>
+          <span style="display:block;font-size:13.5px;margin-top:2px">${esc(c.headline ?? c.title)}</span>
+          ${c.result ? `<b style="display:block;font-size:16px;margin-top:2px">${esc(fmtVal(c.result))}</b>` : ''}
+        </span>
+        <span class="chev" aria-hidden="true" style="font-size:13px;color:var(--muted)">▸</span>
+      </button>
+      <div id="actb-${i}" role="region" aria-labelledby="acth-${i}" hidden style="padding:0 11px 10px">
+        ${hasChart
+          ? `<div style="position:relative;height:160px;margin-top:4px"><canvas id="actc-${i}" role="img" aria-label="${esc(chart.title)}"></canvas></div>
+             <p class="fine" style="margin:2px 0 0">${esc(chart.title)}${chart.note ? ` · ${esc(chart.note)}` : ''}</p>`
+          : `<p class="state">Chart unavailable: ${esc(chart?.reason ?? 'no data')}</p>`}
+        <p class="short">${esc(fmtVal(shortOf(c)))}</p>
+        ${toRot ? `<p><a href="#rotations" class="cmp-link">Compare rotations ↓</a></p>` : ''}
+        ${watch ? `<p class="watch">${esc(Array.isArray(c.reason) ? c.reason.join('; ') : (c.reason ?? 'Not triggered; shown because fewer than 3 actions are active.'))}</p>` : ''}
+        <div data-min-level="2"><div class="k">${esc(c.title)}</div>${list('Why', c.why)}${list('Benefits', c.benefits)}${list('Risks', c.risks)}${list('Information gaps', c.gaps)}</div>
+        <div data-min-level="3">
+          <div class="scorebar"><span class="trk" role="img" aria-label="Score ${num(c.score, 2)} of 1"><i style="width:${finite(c.score) ? Math.min(100, c.score * 100) : 0}%"></i></span><span class="num">${num(c.score, 2)}</span></div>
+          <table class="parts"><tbody>
+            <tr><td>Severity</td><td class="num">${num(sp.severity, 2)}</td></tr><tr><td>× Your priority</td><td class="num">${num(sp.priority, 2)}</td></tr>
+            <tr><td>× Evidence strength${sp.evidence_level ? ` (${esc(sp.evidence_level)})` : ''}</td><td class="num">${num(sp.evidence, 2)}</td></tr><tr><td>× Timing${c.when ? ` · ${esc(c.when)}` : ''}</td><td class="num">${num(sp.timing, 2)}</td></tr>
+            <tr><td><b>= Score</b></td><td class="num"><b>${num(c.score, 2)}</b></td></tr></tbody></table>
+          ${c.evidence?.length ? `<div class="k">Evidence</div>${c.evidence.map(e => `<div class="ev"><span>${esc(fmtVal(e.text))}</span>${e.kind ? `<span class="kind">${esc(e.kind.replace('_', ' '))}</span>` : ''}${srcChips(e.source_ids)}</div>`).join('')}` : ''}
+          ${c.source_ids?.length ? `<div class="k">Sources</div><div>${srcChips(c.source_ids)}</div>` : ''}
+        </div>
+        <div class="expert">${esc(c.expert_check ?? 'Check with your agronomist / K-State Extension before acting.')}</div>
+      </div>
     </article>`;
   }).join('');
+  const drawn = new Set();
+  el.querySelectorAll('.act-head').forEach((btn, i) => btn.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', String(open));
+    btn.querySelector('.chev').textContent = open ? '▾' : '▸';
+    const body = document.getElementById(`actb-${i}`);
+    body.hidden = !open;
+    if (open && !drawn.has(i)) { drawn.add(i); drawCardChart(document.getElementById(`actc-${i}`), cards[i].chart); }
+  }));
+  el.querySelectorAll('.cmp-link').forEach(a => a.addEventListener('click', ev => {
+    ev.preventDefault();
+    const t = document.getElementById('rotations');
+    t?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    t?.querySelector('table, h3, p')?.setAttribute('tabindex', '-1');
+    t?.querySelector('table, h3, p')?.focus({ preventScroll: true });
+  }));
+}
+
+/** Bar chart for an expanded card. Bars above the normal line are amber; the current rotation is highlighted. */
+function drawCardChart(canvas, ch) {
+  if (!canvas || !ch || ch.unavailable) return;
+  const above = STATUS_COLOUR.Watch, base = STATUS_COLOUR.Normal;
+  const palette = ['#2c7fb8', '#7a9a86', '#b07aa1', '#9c755f'];
+  const datasets = (ch.series ?? []).map((s, k) => {
+    const single = ch.series.length === 1;
+    const colour = single
+      ? s.data.map(v => (ch.normal && finite(v) && v > ch.normal.value ? above : base))
+      : (s.current ? '#e0a100' : palette[k % palette.length]);
+    return { type: 'bar', label: s.label, data: s.data, backgroundColor: colour, borderWidth: 0 };
+  });
+  if (ch.normal) datasets.push({ type: 'line', label: ch.normal.label, data: ch.labels.map(() => ch.normal.value), borderColor: '#d64545', borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0 });
+  const chart = makeChart(canvas, { type: 'bar', yTitle: ch.unit, data: { labels: ch.labels, datasets }, options: { scales: { x: { ticks: ch.labels.length > 12 ? { maxTicksLimit: 8 } : { autoSkip: false, maxTicksLimit: 12 } } } } });
+  if (!chart) canvas.parentElement.outerHTML = '<p class="state">Chart unavailable: the chart library did not load.</p>';
 }
 
 const METRICS = [
@@ -46,17 +108,19 @@ const METRICS = [
 /** "x of N" -> x/N for bar length; numbers pass through. */
 const toNum = v => { if (finite(v)) return v; const m = /^(\d+)\s*of\s*(\d+)/.exec(String(v ?? '')); return m ? +m[1] / +m[2] : null; };
 
-/** Simple view: one table, current + alternatives (PLAN.md section 11). */
+/** Simple view: one table, current + alternatives (PLAN.md section 11), from P4's rotationTable(). */
 function comparisonTable(rots) {
-  const cell = v => (v == null ? '–' : finite(v) ? num(v, 1) : String(v).replace(/ years?$/, ''));
-  return `<table class="rotcmp"><thead><tr><th scope="col">Rotation</th><th scope="col">Short on water</th><th scope="col">Hot day at pollination</th><th scope="col">Low green cover</th></tr></thead><tbody>
-    ${rots.map(r => { const cur = r.is_current ?? r.role === 'current', m = r.metrics ?? {};
-      const first = t => t.replace(/^[a-z -]+:\s*/i, '').split(/(?<=\.)\s/)[0];
-      const ben = first(txt(r.benefits?.[0])), risk = first(txt(r.risks?.[0]));
-      return `<tr><th scope="row">${esc(r.name ?? r.rotation_id ?? '')}${cur ? ' <span class="tag cur">Current</span>' : ''}</th>
-        <td class="num">${esc(cell(m.shortfall_years))}</td><td class="num">${esc(cell(m.sensitive_heat_years))}</td><td class="num">${esc(m.low_cover_months_per_year == null ? '–' : `${num(m.low_cover_months_per_year, 1)} mo/yr`)}</td></tr>
-        ${ben || risk ? `<tr><td colspan="4" class="fine">${ben ? `<b>Benefit:</b> ${esc(fmtVal(ben))} ` : ''}${risk ? `<b>Risk:</b> ${esc(fmtVal(risk))}` : ''}</td></tr>` : ''}`; }).join('')}
-  </tbody></table><p class="fine">"Short on water" and "hot day" count past years (X of N). Ask your agronomist or K-State Extension before changing a rotation.</p>`;
+  let t;
+  try { t = rotationTable({ rotations: rots }); } catch (e) { console.error(e); return ''; }
+  const row = k => t.rows.find(r => r.key === k);
+  const water = row('short_on_water'), heat = row('heat_at_pollination'), cover = row('low_green_cover_months');
+  const ben = row('main_benefit'), risk = row('main_risk'), unk = row('unknown');
+  const cell = v => esc(String(v ?? 'not computed').replace(/ seasons$/, '').replace(/^about /, ''));
+  return `<table class="rotcmp"><thead><tr><th scope="col">Rotation</th><th scope="col">Short on water</th><th scope="col">${esc(heat.key && t.heat_definition === 'above_normal' ? 'Above-normal heat at pollination' : 'Hot day at pollination')}</th><th scope="col">Months with no crop</th></tr></thead><tbody>
+    ${t.columns.map((c, j) => `<tr><th scope="row">${esc(c.role === 'current' ? c.name.replace(/ \(now\)$/, '') : c.name)}${c.role === 'current' ? ' <span class="tag cur">Current</span>' : ''}</th>
+        <td class="num">${cell(water.cells[j])}</td><td class="num">${cell(heat.cells[j])}</td><td class="num">${cell(cover.cells[j])}</td></tr>
+        <tr><td colspan="4" class="fine"><b>Benefit:</b> ${esc(ben.cells[j])} <b>Risk:</b> ${esc(risk.cells[j])} <b>We don't know:</b> ${esc(unk.cells[j])}</td></tr>`).join('')}
+  </tbody></table><p class="fine">${t.notes.map(esc).join(' ')}</p>`;
 }
 
 export function renderRotations(el, rots) {

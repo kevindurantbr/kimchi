@@ -9,7 +9,8 @@
     "No action promises a yield, profit or water saving. Corn, sorghum and wheat are all grasses: no family-break credit (T1_R10).",
     "rotation_candidates copy the agronomy package (research/deliverables/agronomy/agronomy.json, reviewed 2026-11-14) so the deployed dashboard is self-contained.",
     "why_template may be a list: recommend.mjs uses the first one whose placeholders all have values.",
-    "short_template / short_fallback: one plain sentence (< 25 words) for the Simple view; a sentence is never shown with a missing value."
+    "short_template / short_fallback: one plain sentence (< 25 words) for the Simple view; a sentence is never shown with a missing value.",
+    "headline (problem, <= 8 words), result_template (the bold result) and chart (water_by_year | capacity_by_year | rotations | hot_days_by_year | soil_by_month | green_by_month) drive the collapsed card and its chart (PLAN.md section 13)."
   ],
   "source_ids": [
     "FAO56",
@@ -115,7 +116,12 @@
       "short_template": [
         "Your crop's root zone was short of water on {stress_days} days this season. Check irrigation timing with a soil probe."
       ],
-      "short_fallback": "Estimated soil water fell below the crop's stress point this season. Check irrigation timing with a soil probe."
+      "short_fallback": "Estimated soil water fell below the crop's stress point this season. Check irrigation timing with a soil probe.",
+      "headline": "Crop root zone past the stress point",
+      "result_template": [
+        "{stress_days} days past the stress point"
+      ],
+      "chart": "water_by_year"
     },
     {
       "id": "W2_prioritise_sensitive_window",
@@ -200,7 +206,12 @@
       "short_template": [
         "Your {alloc} mm ({alloc_in} in) allocation is below the usual need of {need} mm. Save water for the pollination weeks."
       ],
-      "short_fallback": "Your allocation is below the usual need. Save water for the pollination weeks."
+      "short_fallback": "Your allocation is below the usual need. Save water for the pollination weeks.",
+      "headline": "Allocation below usual crop need",
+      "result_template": [
+        "{alloc} mm vs {need} mm usual need"
+      ],
+      "chart": "water_by_year"
     },
     {
       "id": "W3_well_capacity",
@@ -297,7 +308,13 @@
         "This season, peak crop demand was {sf} mm/day more than your well can deliver. Consider fewer irrigated acres.",
         "In {short} past seasons, July demand was more than your well can pump. Consider fewer irrigated acres."
       ],
-      "short_fallback": "July demand can be more than your well can pump. Consider fewer irrigated acres."
+      "short_fallback": "July demand can be more than your well can pump. Consider fewer irrigated acres.",
+      "headline": "Well can't keep up in July",
+      "result_template": [
+        "Peak {peak} vs well {well} mm/day",
+        "{short} seasons the well fell behind"
+      ],
+      "chart": "capacity_by_year"
     },
     {
       "id": "W4_compare_rotations",
@@ -381,7 +398,12 @@
         "{rot_cap} ran short of water in {short} past seasons under your {alloc} mm ({alloc_in} in) allocation. Compare the alternatives below.",
         "Your rotation ran short of water in {short} past seasons under your {alloc} mm ({alloc_in} in) allocation. Compare the alternatives below."
       ],
-      "short_fallback": "Your rotation often runs short of water under your allocation. Compare the alternatives below."
+      "short_fallback": "Your rotation often runs short of water under your allocation. Compare the alternatives below.",
+      "headline": "Your rotation often runs short of water",
+      "result_template": [
+        "{short} seasons short of water"
+      ],
+      "chart": "rotations"
     },
     {
       "id": "T1_move_pollination",
@@ -462,7 +484,13 @@
         "Pollination had above-normal heat in {above} past seasons. A different planting date or hybrid can shift it.",
         "Pollination met at least one day above 35 °C (95 °F) in {any} past seasons. Planting date or hybrid can shift it."
       ],
-      "short_fallback": "Pollination often meets hot days. A different planting date or hybrid can shift it."
+      "short_fallback": "Pollination often meets hot days. A different planting date or hybrid can shift it.",
+      "headline": "Hot days hit corn pollination",
+      "result_template": [
+        "{above} seasons with above-normal heat",
+        "{any} seasons with a hot pollination day"
+      ],
+      "chart": "hot_days_by_year"
     },
     {
       "id": "T2_frost_and_cold_soil",
@@ -536,7 +564,13 @@
       "short_template": [
         "Your planting date ({plant}) is close to the usual last frost ({frost}). Watch the forecast and soil temperature."
       ],
-      "short_fallback": "Your planting date is close to the usual last frost. Watch the forecast and soil temperature."
+      "short_fallback": "Your planting date is close to the usual last frost. Watch the forecast and soil temperature.",
+      "headline": "Planting close to the last frost",
+      "result_template": [
+        "Planting {plant}, usual last frost {frost}"
+      ],
+      "chart": null,
+      "chart_note": "this action is about calendar dates, not a yearly measure"
     },
     {
       "id": "T3_wheat_handoff",
@@ -610,7 +644,13 @@
       "short_template": [
         "Corn harvest can run too late to sow wheat by about {target}. Plan hybrid, drying and drill time now."
       ],
-      "short_fallback": "Corn harvest can run too late for timely wheat sowing. Plan hybrid, drying and drill time now."
+      "short_fallback": "Corn harvest can run too late for timely wheat sowing. Plan hybrid, drying and drill time now.",
+      "headline": "Tight corn-to-wheat handoff",
+      "result_template": [
+        "Wheat target about {target}"
+      ],
+      "chart": null,
+      "chart_note": "this action is about calendar dates, not a yearly measure"
     },
     {
       "id": "S1_preplant_water",
@@ -673,7 +713,12 @@
       "short_template": [
         "Soil is drier than {pct}% of past years for this date. Decide on pre-plant water and keep crop residue."
       ],
-      "short_fallback": "Soil is drier than usual for this date. Decide on pre-plant water and keep crop residue."
+      "short_fallback": "Soil is drier than usual for this date. Decide on pre-plant water and keep crop residue.",
+      "headline": "Soil drier than usual before planting",
+      "result_template": [
+        "Drier than {pct}% of years"
+      ],
+      "chart": "soil_by_month"
     },
     {
       "id": "S2_residue_no_till",
@@ -744,7 +789,12 @@
       "short_template": [
         "This field has little green cover about {months} months a year. Keep crop residue on it to protect the soil."
       ],
-      "short_fallback": "This field has long periods with little green cover. Keep crop residue on it to protect the soil."
+      "short_fallback": "This field has long periods with little green cover. Keep crop residue on it to protect the soil.",
+      "headline": "Long periods with little green cover",
+      "result_template": [
+        "About {months} months a year with little cover"
+      ],
+      "chart": "green_by_month"
     },
     {
       "id": "C1_scout_not_weather",
@@ -809,7 +859,12 @@
       "short_template": [
         "Crop greenness is lower than {pct}% of past years, and weather doesn't explain it. Walk the field for pests, nutrients or hail."
       ],
-      "short_fallback": "Crop greenness is low and weather doesn't explain it. Walk the field for pests, nutrients or hail."
+      "short_fallback": "Crop greenness is low and weather doesn't explain it. Walk the field for pests, nutrients or hail.",
+      "headline": "Low greenness not explained by weather",
+      "result_template": [
+        "Greenness lower than {pct}% of years"
+      ],
+      "chart": "green_by_month"
     },
     {
       "id": "C2_stress_visible",
@@ -885,7 +940,12 @@
       "short_template": [
         "Crop greenness is lower than {pct}% of past years, matching dry or hot weather. The stress shows from space."
       ],
-      "short_fallback": "Low crop greenness matches dry or hot weather. The stress shows from space."
+      "short_fallback": "Low crop greenness matches dry or hot weather. The stress shows from space.",
+      "headline": "Crop stress visible from space",
+      "result_template": [
+        "Greenness lower than {pct}% of years"
+      ],
+      "chart": "green_by_month"
     },
     {
       "id": "C3_low_cover_rotation",
@@ -959,7 +1019,12 @@
       "short_template": [
         "Little green cover about {months} months a year. Wheat in the rotation adds winter cover; check water before any cover crop."
       ],
-      "short_fallback": "Long periods with little green cover. Wheat in the rotation adds winter cover; check water before any cover crop."
+      "short_fallback": "Long periods with little green cover. Wheat in the rotation adds winter cover; check water before any cover crop.",
+      "headline": "Field has little cover much of the year",
+      "result_template": [
+        "About {months} months a year with little cover"
+      ],
+      "chart": "rotations"
     }
   ],
   "rotation_candidates": [

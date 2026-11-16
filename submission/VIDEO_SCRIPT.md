@@ -9,7 +9,24 @@ Rules for the recording:
 - Burn in the subtitles (the lines below), or upload them as an English caption track.
 - **[[28 of 35]]** is what the engine gives for fld01 on Nov 15 (corn, 280 mm). Check it on the live app at 9:30 pm and change it if the app shows something else. **Never read a number the app doesn't show.**
 
-## 30-second cut (primary): record in **View: Simple**
+## Safety take (recorded 10:00 pm, ready to upload)
+
+`kimchi_safety_30s.mp4`: 30 s, 1440 × 900, Simple view of the live site (round 3), burned-in English subtitles, no audio. It was recorded by a scripted browser (Playwright) on the real app; nothing in it is AI-generated imagery. Screenshots `01`–`07` in `screenshots/` come from the same run. Upload this one if the round-4 re-take isn't ready by 11:20.
+
+## Round-4 re-take (only after P3's "go"): collapsible cards and map icons
+
+| Time | Screen | Subtitle |
+|---|---|---|
+| 0–4 s | Map with status icons on the pivots | "Western Kansas: the aquifer is shrinking and summers are hotter." |
+| 4–8 s | Pick North pivot (fld01); colour-coded tiles | "Pick your field. NASA satellite and weather data give four plain checks." |
+| 8–12 s | Press Play, 1981 → 2026 | "See how often each problem came back since 1981." |
+| 12–19 s | Top 3 collapsed cards → open #1 (well vs peak chart) | "Your well can't keep up with July demand: [[9.8 vs 6.5]] mm/day." |
+| 19–24 s | Open the "28 of 35 seasons short of water" card (rotation chart) → "Compare rotations ↓" | "Continuous corn ran short in [[28 of 35]] seasons. Compare it with corn–sorghum and corn–wheat." |
+| 24–27 s | The rotation table, then View → Complete for 2 s | "Benefits, risks, unknowns, and every number and source." |
+| 27–30 s | Back to Simple, the agronomist line | "It supports your judgement. Check with K-State before acting." |
+
+## Safety take script (round 3, Simple view)
+: record in **View: Simple**
 
 Record from the public URL https://kevindurantbr.github.io/kimchi/ at 1440 × 900 after P3's "go" (10:00 pm freeze).
 

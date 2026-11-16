@@ -673,7 +673,7 @@ export function deriveContext({ analysis, farm, field_id, field, crops, actions,
     soil_drier_than_pct: drierThan(a.factors?.soil_moisture?.status),
     ndvi_lower_than_pct: drierThan(a.factors?.crop_condition?.status),
   };
-  return { ...a, derived, _farmField: farmField, _records: records };
+  return { ...a, derived, _farmField: farmField, _records: records, _curFit: curFit };
 }
 
 // ───────────────────────────── cards ─────────────────────────────
@@ -799,6 +799,12 @@ function buildCard(action, ctx, priorities, month, trig) {
     id: action.id,
     title: action.title,
     short: shortText(action, ctx),
+    // Collapsed card (PLAN.md §13): problem in ≤ 8 words + one bold result + status word/colour.
+    headline: action.headline ?? action.title,
+    result: action.result_template ? pickTemplate(action, ctx, 'result_template', true) : null,
+    status_word: !trig.fired ? 'Normal' : (score_parts.severity > 0.5 ? 'Concern' : 'Watch'),
+    chart_kind: action.chart ?? null,
+    chart_note: action.chart_note ?? null,
     factor: action.factor,
     factor_name: FACTOR_NAMES[action.factor] ?? action.factor,
     category: action.category,
@@ -816,6 +822,77 @@ function buildCard(action, ctx, priorities, month, trig) {
     when: whenText(action, score_parts.timing),
     source_ids: action.source_ids ?? [],
   };
+}
+
+// ───────────────────────────── card charts (PLAN.md §13) ─────────────────────────────
+
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const median = (xs) => { const v = xs.filter(isNum).sort((a, b) => a - b); if (!v.length) return null; const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
+const normalOf = (years, values) => median(years.map((y, i) => (y >= 1991 && y <= 2020 ? values[i] : null)));
+const none = (reason) => ({ unavailable: true, reason });
+
+/**
+ * Chart data for a card, ready for a Chart.js bar chart:
+ *   { type: 'bar', title, unit, labels, series: [{ label, data, current? }], normal: { label, value } | null, note, source_ids }
+ * or { unavailable: true, reason } (the UI shows "Chart unavailable: <reason>", never an empty canvas).
+ * Uses P2's analysis.charts[kind] when present; otherwise builds from analysis.annual, factor series,
+ * the green-cover calendar and the rotation cards.
+ */
+export function chartFor(kind, ctx, rotations = []) {
+  if (!kind) return none('no chart for this action');
+  const pre = ctx.charts?.[kind];
+  if (pre && Array.isArray(pre.labels)) return { type: 'bar', ...pre };
+  const an = ctx.annual;
+  const yearly = (key, title, unit, src) => {
+    const ys = an?.years, vs = an?.[key];
+    if (!Array.isArray(ys) || !Array.isArray(vs) || !vs.some(isNum)) return none('the yearly history is not loaded for this field');
+    const nv = normalOf(ys, vs);
+    return { type: 'bar', title, unit, labels: ys.map(String), series: [{ label: title, data: vs.map((v) => (isNum(v) ? Math.round(v) : null)) }],
+      normal: isNum(nv) ? { label: 'Normal (1991–2020 median)', value: Math.round(nv) } : null, note: `${ys[0]}–${ys.at(-1)}; the last bar may be a season in progress.`, source_ids: src };
+  };
+  if (kind === 'water_by_year') return yearly('water_deficit_mm', 'Rain short of crop water use (mm)', 'mm', ['NASA_POWER_DAILY', 'FAO56']);
+  if (kind === 'hot_days_by_year') return yearly('hot_days', 'Days ≥ 35 °C (95 °F)', 'days', ['NASA_POWER_DAILY']);
+  if (kind === 'capacity_by_year') {
+    const seasons = ctx._curFit?.seasons;
+    if (!Array.isArray(seasons) || !seasons.length) return none('the rotation simulation has not run for this field');
+    const by = new Map();
+    for (const s of seasons) if (isNum(s.year) && isNum(s.capacity_shortfall_days)) { const v = by.get(s.year) ?? []; v.push(s.capacity_shortfall_days); by.set(s.year, v); }
+    const ys = [...by.keys()].sort((a, b) => a - b);
+    if (!ys.length) return none('the well capacity is not in your records');
+    const vs = ys.map((y) => Math.round(by.get(y).reduce((t, v) => t + v, 0) / by.get(y).length));
+    const nv = normalOf(ys, vs);
+    return { type: 'bar', title: "Days the well couldn't keep up (simulated)", unit: 'days', labels: ys.map(String), series: [{ label: "Days the well couldn't keep up", data: vs }],
+      normal: isNum(nv) ? { label: 'Normal (1991–2020 median)', value: Math.round(nv) } : null, note: `Your rotation (${ctx.derived?.current_rotation_name_inline ?? 'current'}) simulated on each year's weather.`, source_ids: ['NASA_POWER_DAILY', 'FAO56'] };
+  }
+  if (kind === 'soil_by_month') {
+    const s = ctx.factors?.soil_moisture?.series;
+    if (!Array.isArray(s?.dates) || !Array.isArray(s?.gwetroot)) return none('no root-zone wetness series for this field');
+    const sum = Array.from({ length: 12 }, () => ({ y: [], n: [] }));
+    s.dates.forEach((d, i) => { const m = Number(String(d).slice(5, 7)) - 1; if (m < 0 || m > 11) return; if (isNum(s.gwetroot[i])) sum[m].y.push(s.gwetroot[i]); if (isNum(s.p50?.[i])) sum[m].n.push(s.p50[i]); });
+    const mean = (v) => (v.length ? Math.round((v.reduce((t, x) => t + x, 0) / v.length) * 100) / 100 : null);
+    const thisYear = sum.map((x) => mean(x.y)), normal = sum.map((x) => mean(x.n));
+    if (!thisYear.some(isNum)) return none('no root-zone wetness this season yet');
+    return { type: 'bar', title: 'Root-zone wetness by month (0–1, model-based)', unit: '0–1', labels: MONTH_LABELS,
+      series: [{ label: 'This season', data: thisYear, current: true }, { label: 'Normal (median)', data: normal }], normal: null,
+      note: 'NASA POWER root-zone wetness is a model value (MERRA-2), not a probe.', source_ids: ['NASA_POWER_DAILY'] };
+  }
+  if (kind === 'green_by_month') {
+    const g = ctx.factors?.crop_condition?.green_cover_calendar?.low_cover;
+    if (!Array.isArray(g) || !g.length) return none('no satellite greenness history for this field');
+    const share = MONTH_LABELS.map((_, m) => { const seen = g.map((row) => row?.[m]).filter((v) => v !== null && v !== undefined); return seen.length ? Math.round((seen.filter((v) => v === true || v === 1).length / seen.length) * 100) : null; });
+    return { type: 'bar', title: '% of years with little green cover (NDVI < 0.3)', unit: '%', labels: MONTH_LABELS, series: [{ label: '% of years', data: share }],
+      normal: null, note: '"Little green cover" is not the same as bare soil: crop residue looks similar from space.', source_ids: ['MODIS_MOD13Q1_ORNL'] };
+  }
+  if (kind === 'rotations') {
+    if (!rotations?.length || !rotations.some((r) => r.metrics)) return none('rotation fit has not been computed for this field');
+    const n = (v) => parseXofN(v)?.count ?? null;
+    return { type: 'bar', title: 'Your rotation vs the alternatives (same weather years)', unit: 'seasons / months',
+      labels: ['Short on water', 'Hot pollination day', 'No-crop months'],
+      series: rotations.map((r) => ({ label: r.role === 'current' ? `${r.name} (now)` : r.name, current: r.role === 'current',
+        data: [n(r.metrics?.shortfall_years), n(r.metrics?.sensitive_heat_years), isNum(r.metrics?.low_cover_months_per_year) ? Math.round(r.metrics.low_cover_months_per_year * 10) / 10 : null] })),
+      normal: null, note: 'Counts out of the same past seasons for every rotation. No rotation is ranked.', source_ids: ['NASA_POWER_DAILY', 'FAO56'] };
+  }
+  return none(`unknown chart kind ${kind}`);
 }
 
 /** Pick up to n cards with at most `maxPerFactor` per factor (Infinity disables the rule). */
@@ -870,6 +947,7 @@ export function recommend({ analysis, farm, field_id, field = null, crops, actio
 
   const rotations = buildRotationCards({ ctx, actions, rotationsFit: rotationsFit ?? analysis?.rotation_fit });
   const rotation_table = rotationTable({ rotations });
+  for (const c of cards) c.chart = c.chart_kind ? chartFor(c.chart_kind, ctx, rotations) : { unavailable: true, reason: c.chart_note ?? 'no chart for this action' };
   const all = [...cards].sort((x, y) => (x.status === y.status ? byScore(x, y) : x.status === 'triggered' ? -1 : 1));
   return {
     top3,
