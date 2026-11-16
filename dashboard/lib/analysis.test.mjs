@@ -643,3 +643,68 @@ test("GDD clamps both temperatures and preserves missing observations", () => {
   assert.equal(a.gddDaily(null, 15), null);
   assert.equal(a.gddDaily(20, null), null);
 });
+
+test("labels follow the side of the median: wetter above it, drier below it", () => {
+  const sample = Array.from({ length: 99 }, (_, i) => i + 1);
+  const low = (v) => a.status(v, sample, { adverseWhen: "low", label: "Drier" });
+  const high = (v) =>
+    a.status(v, sample, { adverseWhen: "high", label: "More hot days" });
+  assert.equal(low(72).label, "Wetter than 72% of years for this date");
+  assert.equal(low(95).label, "Wetter than 95% of years for this date");
+  assert.equal(low(10).label, "Drier than 90% of years for this date");
+  assert.equal(high(80).label, "More hot days than 80% of years for this date");
+  assert.equal(high(20).label, "Fewer hot days than 80% of years for this date");
+  assert.equal(low(50).label, "Near the median for this date");
+  assert.equal(low(1000).label, "Wetter than every past year for this date");
+});
+
+test("plain status word: Good, Normal, Watch, Concern, No new data", () => {
+  const sample = Array.from({ length: 99 }, (_, i) => i + 1);
+  const word = (v) =>
+    a.status(v, sample, { adverseWhen: "low", label: "Drier" }).plain.word;
+  assert.equal(word(90), "Good");
+  assert.equal(word(60), "Normal");
+  assert.equal(word(20), "Watch");
+  assert.equal(word(5), "Concern");
+  assert.equal(word(null), "No new data");
+});
+
+test("real data: plain sentences, direction-aware recurrence and the annual series", async () => {
+  const fs = await import("node:fs");
+  const J = (f) =>
+    JSON.parse(fs.readFileSync(new URL(`../data/${f}`, import.meta.url), "utf8"));
+  const site = J("site_history.json").sites[0],
+    farm = J("demo_farm.json"),
+    crops = J("crops.json"),
+    fields = J("demo_fields.geojson");
+  const f = fields.features.find((x) => x.properties.field_id === "fld01");
+  const r = a.analyzeField({
+    daily: site.daily,
+    soil: f.properties.soil,
+    farmField: farm.fields.find((x) => x.field_id === "fld01"),
+    crops,
+    today: "2025-11-01",
+    site,
+  });
+  for (const k of ["water", "temperature", "soil_moisture"]) {
+    const st = r.factors[k].status,
+      rec = r.factors[k].recurrence;
+    assert.ok(["Good", "Normal", "Watch", "Concern", "No new data"].includes(st.plain.word));
+    assert.doesNotMatch(st.plain.sentence, /p\d|percentile|F-0/);
+    if (finite(st.percentile)) {
+      assert.match(
+        st.label,
+        st.percentile > 50 ? /^(Wetter|More hot days|Near)/ : /^(Drier|Fewer hot days|Near)/,
+      );
+      assert.match(rec.text, /^\d+ of \d+ years \(1981–2024\)$/);
+      assert.match(rec.sentence, /^In \d+ of \d+ years \(1981–2024\), /);
+    }
+  }
+  assert.match(r.factors.temperature.status.plain.sentence, /°C \(95 °F\)/);
+  assert.equal(r.annual.years[0], 1981);
+  assert.equal(r.annual.years.at(-1), 2025);
+  for (const k of ["water_deficit_mm", "hot_days", "gwetroot_jul", "caption"])
+    assert.equal(r.annual[k].length, r.annual.years.length);
+  assert.match(r.annual.caption.at(-1), /^2025: /);
+});
+const finite = (v) => typeof v === "number" && Number.isFinite(v);
