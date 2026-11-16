@@ -15,7 +15,9 @@ let ctx, farm, map, slider;
 // fields back and forth, focus chips or the theme does not recompute them.
 let farmVersion = 0, liveVersion = 0, computeToken = 0;
 const cache = { analysis: new Map(), fit: new Map() };
-const nextPaint = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+// Yield so the browser can paint. requestAnimationFrame never fires in a hidden tab (link opened in the
+// background), so a timer resolves it too; otherwise the app would wait until the tab is shown.
+const nextPaint = () => new Promise(r => { let done = false; const go = () => { if (!done) { done = true; setTimeout(r, 0); } }; requestAnimationFrame(go); setTimeout(go, 60); });
 const analysisKey = id => `${id}|${farmVersion}|${liveVersion}`;
 function cachedAnalysis(field, ff) {
   const key = analysisKey(field.properties.field_id);
