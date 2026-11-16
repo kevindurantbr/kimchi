@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   getPath, evalCondition, evalTrigger, timingFactor, priorityFactor, scoreAction, pickDiverse,
-  parseXofN, inferCurrentRotation, rotationsToEvaluate, recommend, fillTemplate, EXPERT_LINE,
+  parseXofN, inferCurrentRotation, rotationsToEvaluate, recommend, fillTemplate, pickTemplate, shortText, rotationTable, EXPERT_LINE,
 } from './recommend.mjs';
 import { buildReport, reportToMarkdown } from './report.mjs';
 
@@ -209,9 +209,17 @@ test('empty analysis: nothing triggers from missing data, and the result is stil
   assert.ok(r.rotations.length >= 3);
 });
 
-test('template filling never leaves braces and marks missing values', () => {
-  assert.equal(fillTemplate('p={a}', { a: 'p' }, { p: 212.44 }), 'p=212.4');
-  assert.equal(fillTemplate('x={a} y={b}', { a: 'p.a', b: 'p.b' }, { p: { a: 1.234 } }), 'x=1.23 y=unavailable');
+test('number formatting: mm/days whole, 1–10 one decimal, below 1 two decimals; no braces left', () => {
+  assert.equal(fillTemplate('p={a}', { a: 'p' }, { p: 108.45232154626308 }), 'p=108');
+  assert.equal(fillTemplate('p={a}', { a: 'p' }, { p: 6.608219178082192 }), 'p=6.6');
+  assert.equal(fillTemplate('p={a}', { a: 'p' }, { p: 0.55 }), 'p=0.55');
+  assert.equal(fillTemplate('x={a} y={b}', { a: 'p.a', b: 'p.b' }, { p: { a: 0.6234 } }), 'x=0.62 y=unavailable');
+});
+
+test('a list of templates uses the first one whose values all exist', () => {
+  const act = { vars: { a: 'x', b: 'y' }, why_template: ['A={a} B={b}', 'only A={a}'] };
+  assert.equal(pickTemplate(act, { x: 1, y: null }), 'only A=1');
+  assert.equal(pickTemplate(act, { x: 1, y: 2 }), 'A=1 B=2');
 });
 
 // ───────── rotations ─────────
@@ -291,4 +299,113 @@ test('season report has the 8 sections, ends with the expert line and prints as 
   assert.match(md, /## Top 3 recommended actions/);
   assert.match(md, /synthetic/i);
   assert.doesNotMatch(md, /undefined|\[object Object\]/);
+});
+
+// ───────── round 2: heat definitions ─────────
+test('T1 says "above-normal" only with the above-normal metric, else "at least one hot day"', () => {
+  const run = (analysis, fits) => recommend({ analysis, farm: farm(), field_id: 'fld01', crops, actions, rotationsFit: fits, today: NOV })
+    .all.find((c) => c.id === 'T1_move_pollination');
+  // P2's above-normal definition
+  const above = run(sampleAnalysis(), rotationsFit);
+  assert.match(above.why[0], /^Above-normal heat during pollination in 13 of 35 years/);
+  // Only the "any hot day in the window" count exists
+  const noRec = sampleAnalysis({ interactions: { stage_heat: { recurrence: null } } });
+  const fits = rotationsFit.map((r) => ({ ...r, metrics: { ...r.metrics, sensitive_heat_years: '33 of 35 years' } }));
+  const any = run(noRec, fits);
+  assert.match(any.why[0], /^At least one ≥ 35 °C day during pollination in 33 of 35 years/);
+  assert.doesNotMatch(any.why.join(' '), /[Aa]bove-normal/);
+  assert.ok(any.score_parts.severity < 0.5, 'any-hot-day counts half');
+});
+
+test('recurrence strings are not doubled ("28 of 35 years seasons")', () => {
+  const fits = rotationsFit.map((r) => ({ ...r, metrics: { ...r.metrics, shortfall_years: '28 of 35 years' } }));
+  const r = recommend({ analysis: sampleAnalysis(), farm: farm(), field_id: 'fld01', crops, actions, rotationsFit: fits, today: NOV });
+  const text = JSON.stringify(r);
+  assert.doesNotMatch(text, /years seasons|seasons years/);
+  assert.match(r.all.find((c) => c.id === 'W4_compare_rotations').why[0], /28 of 35 seasons/);
+});
+
+// ───────── round 2: integration on the real data files ─────────
+const real = (() => {
+  try {
+    const J = (p) => JSON.parse(readFileSync(here(p), 'utf8'));
+    return { site: J('../data/site_history.json').sites[0], fields: J('../data/demo_fields.geojson').features,
+      ndvi: J('../data/fields_ndvi.json'), farm: J('../data/demo_farm.json') };
+  } catch { return null; }
+})();
+const BAD_TEXT = /undefined|NaN|\[object Object\]|\{\w+\}|\d\.\d{3,}|years seasons|Infinity/;
+
+test('real data: analyzeField → rotationFit → recommend gives 3 clean cards for every demo field', { skip: !real && 'data files missing' }, async () => {
+  const A = await import('./analysis.mjs');
+  const { site, fields, ndvi, farm: demo } = real;
+  let last;
+  for (let i = site.daily.date.length - 1; i >= 0; i--) if (site.daily.t2m_max[i] != null && site.daily.prectotcorr[i] != null) { last = site.daily.date[i]; break; }
+  for (const field of fields) {
+    const fid = field.properties.field_id;
+    const farmField = demo.fields.find((f) => f.field_id === fid);
+    const analysis = A.analyzeField({ daily: site.daily, liveDaily: null, ndvi: ndvi.fields.find((f) => f.field_id === fid), soil: field.properties.soil, farmField, crops, today: last, site });
+    const fits = rotationsToEvaluate({ farm: demo, field_id: fid, field, actions })
+      .map((rotation) => A.rotationFit({ rotation, crops, daily: site.daily, soil: field.properties.soil, farmField, farm: demo }));
+    // The app calls recommend with the calendar date; the analysis uses the last date with data.
+    const r = recommend({ analysis, farm: demo, field_id: fid, field, crops, actions, rotationsFit: fits, today: NOV });
+    assert.equal(r.top3.length, 3, fid);
+    assert.ok(r.rotations.length >= 3, fid);
+    // Out of season (November): planning actions lead; in-season-only actions don't fill the top 3.
+    assert.equal(r.top3[0].category, 'planning', `${fid} top card should be planning in November`);
+    for (const c of r.top3) {
+      if (['W1_irrigation_timing', 'W2_prioritise_sensitive_window', 'C1_scout_not_weather', 'C2_stress_visible'].includes(c.id)) {
+        assert.equal(c.status, 'triggered', `${fid}: in-season ${c.id} should only appear if triggered`);
+      }
+    }
+    const shown = JSON.stringify({ top3: r.top3.map((c) => [c.title, c.why, c.evidence.map((e) => e.text), c.when]), rot: r.rotations.map((c) => [c.why_suggested, c.metrics_text, c.comparison_to_current]) });
+    assert.doesNotMatch(shown, BAD_TEXT, `${fid}: ${shown.match(BAD_TEXT)?.[0]}`);
+    const rep = reportToMarkdown(buildReport({ analysis, recs: r, farm: demo, field, period: { year: 2026, period: 'season' } }));
+    assert.doesNotMatch(rep, /undefined|NaN|\[object Object\]|years seasons/, fid);
+  }
+});
+
+// ───────── round 3: Simple view ─────────
+test('card.short: one plain sentence (< 25 words) with a number, never "unavailable"; expert line kept', () => {
+  const r = recommend({ analysis: sampleAnalysis(), farm: farm(), field_id: 'fld01', crops, actions, rotationsFit, today: NOV });
+  for (const c of r.all) {
+    assert.ok(c.short && c.short.split(/\s+/).length < 25, `${c.id}: ${c.short}`);
+    assert.doesNotMatch(c.short, /unavailable|undefined|NaN|\{/, c.id);
+    assert.ok(c.expert_check.includes('K-State Research and Extension'), c.id);
+  }
+  const w4 = r.all.find((c) => c.id === 'W4_compare_rotations');
+  assert.equal(w4.short, 'Continuous corn ran short of water in 14 of 35 past seasons under your 280 mm (11 in) allocation. Compare the alternatives below.');
+  for (const c of r.top3) assert.match(c.short, /\d/, `${c.id} short text should carry a number`);
+});
+
+test('missing values drop the sentence or fall back, never "about unavailable mm/day"', () => {
+  const bare = recommend({ analysis: {}, farm: null, field_id: 'x', crops, actions, today: NOV });
+  for (const c of bare.all) {
+    assert.doesNotMatch(c.short, /unavailable/, c.id);
+    assert.doesNotMatch(c.why[0], /unavailable/, c.id);
+  }
+  const w3 = actions.actions.find((a) => a.id === 'W3_well_capacity');
+  assert.equal(shortText(w3, { derived: {} }), w3.short_fallback);
+});
+
+test('rotationTable: current + alternatives × 6 rows, no winner, heat row follows the available definition', () => {
+  const r = recommend({ analysis: sampleAnalysis(), farm: farm(), field_id: 'fld01', crops, actions, rotationsFit, today: NOV });
+  const t = rotationTable({ rotations: r.rotations });
+  assert.deepEqual(r.rotation_table, t);
+  assert.deepEqual(t.columns.map((c) => c.id), ['corn_corn', 'corn_sorghum', 'corn_wheat']);
+  assert.equal(t.columns[0].role, 'current');
+  assert.deepEqual(t.rows.map((x) => x.key), ['short_on_water', 'heat_at_pollination', 'low_green_cover_months', 'main_benefit', 'main_risk', 'unknown']);
+  for (const row of t.rows) assert.equal(row.cells.length, 3);
+  assert.deepEqual(t.rows[0].cells, ['14 of 35 seasons', '10 of 35 seasons', '6 of 35 seasons']);
+  assert.match(t.rows[1].label, /≥ 1 hot day/);
+  assert.equal(t.rows[2].cells[2], 'about 3.9');
+  assert.doesNotMatch(JSON.stringify(t), /\b(best|optimal|winner)\b|undefined|NaN/i);
+  // With P2's above-normal metric the heat row switches definition
+  const fits = rotationsFit.map((x) => ({ ...x, metrics: { ...x.metrics, sensitive_heat_above_normal_years: '5 of 35 years' } }));
+  const t2 = recommend({ analysis: sampleAnalysis(), farm: farm(), field_id: 'fld01', crops, actions, rotationsFit: fits, today: NOV }).rotation_table;
+  assert.match(t2.rows[1].label, /Above-normal/);
+  assert.equal(t2.rows[1].cells[0], '5 of 35 seasons');
+  // Unknown current rotation: still a table, missing metrics say "not computed"
+  const t3 = rotationTable({ rotations: recommend({ analysis: {}, farm: null, field_id: 'x', crops, actions, today: NOV }).rotations });
+  assert.ok(t3.columns.length >= 3);
+  assert.equal(t3.rows[0].cells[0], 'not computed');
 });

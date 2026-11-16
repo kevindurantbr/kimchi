@@ -4,6 +4,32 @@
 
 ---
 
+## ▶ ROUND 4: start here (9:55 pm → PR by 10:20; freeze 10:45)
+
+Read PLAN.md §13, especially the colour/status rules table. Branch from the latest `main`: `p2-round4`.
+
+1. **(by 10:10) `analysis.badges` for map icons and colours.** Add to the `analyzeField` output:
+   ```js
+   badges: [ { factor: "water", word: "Watch", level: "watch",            // good|normal|watch|concern|nodata
+               icon: "💧", headline: "314 mm short",                        // ≤ 3 words + number, bold on screen
+               detail: "Rain minus crop water use this season" } ,  ... one per factor ]
+   ```
+   - `level` comes from `status.plain.word`, following the PLAN.md §13 table exactly.
+   - `headline` is the number a farmer should focus on, in plain units, with inches or °F where relevant.
+   - Add tests: no `undefined`, and nodata whenever status is null.
+2. **(by 10:15) `analyzeField` on a pulled site.** Check that `analyzeField({ daily: site.daily, site, ndvi: null, soil, farmField: null, ... })` works for P1's `pullFieldData` output at any US location, such as lat 41.5 / lon −93.6 (Iowa). Crop condition should be nodata with its reason, and the crop-independent fallback should apply when there are no records. It must run in under 1.5 s. Fix anything that assumes the demo site.
+3. **(by 10:20) Chart-ready series for expanded action cards.** Add `analysis.charts`:
+   - `water_by_year: { years, deficit_mm, normal_mm }`, the last 35 seasons;
+   - `heat_by_year: { years, hot_days, normal }`;
+   - `soil_by_month: { months, this_year, normal }`;
+   - `green_by_month: { months, this_year, normal }`.
+
+   P4 draws these inside the expanded cards. Keep numbers rounded.
+4. **(10:45–11:20)** QA: switch between all fields, including one drawn field, at all three levels, and look for wrong colours or labels.
+
+---
+
+
 ## ▶ ROUND 3: start here (9:05 pm → 9:45 pm PR; freeze 10:00 pm)
 
 Read PLAN.md §8 (status) and §11 (detail levels). Your round-2 PR never arrived, and the live site still has the wrong-direction labels, so tasks 1–2 come first. Branch from the latest `main`: `p2-round3`. Small PR by 9:30, a second one by 9:45 if needed.

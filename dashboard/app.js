@@ -40,9 +40,11 @@ function showComputing(what) {
 /* ---------- boot ---------- */
 async function boot() {
   tickClock(); setInterval(tickClock, 30000);
+  wireLevel();
+  if (typeof L === 'undefined') { fatal("The map library couldn't load. Check your connection and reload."); return; }
   wireChrome();
   try { ctx = await loadAll(); }
-  catch (e) { console.error(e); fatal(`Could not load the dashboard data: ${e.message}. Reload the page; if this keeps happening, the data files are missing from the deployment.`); return; }
+  catch (e) { console.error(e); fatal(`Couldn't load the dashboard data (${e.message}). Showing nothing rather than estimates.`); return; }
 
   farm = ctx.farmStore.loadFarm() ?? await ctx.farmStore.loadDemoFarm().then(f => (ctx.farmStore.saveFarm(f), f)).catch(() => null);
   mergeUserFields();
@@ -88,9 +90,41 @@ function tickClock() {
 }
 
 function fatal(msg) {
-  $('cards').innerHTML = `<p class="state err">${esc(msg)}</p>`;
-  $('actions').innerHTML = $('rotations').innerHTML = '';
+  const card = `<div class="errcard" role="alert"><b>Error.</b> ${esc(msg)} <button type="button" class="btn" data-retry>Retry</button></div>`;
+  $('cards').innerHTML = card; $('actions').innerHTML = card; $('rotations').innerHTML = '';
+  document.querySelectorAll('[data-retry]').forEach(b => b.addEventListener('click', () => location.reload()));
+  const chip = $('live-chip'); if (/CHECKING|FETCHING/.test(chip.textContent)) { chip.className = 'chip down'; chip.textContent = 'NOT STARTED'; }
 }
+
+/** Data files that failed to load, as red cards in the panel they affect (QA review section 3). */
+function loadErrorCards() {
+  const list = [...(ctx?.loadErrors ?? []).map(e => (typeof e === 'string' ? { what: e } : e))];
+  const st = dataStatus();
+  if (ctx?.libAnalysis?.analyzeField && st.history && !st.history.real) list.push({ what: 'NASA history (site_history.json)' });
+  if (st.actions && !st.actions.real) list.push({ what: 'the action library (actions.json)' });
+  if (!list.length) return '';
+  return list.map(e => `<div class="errcard" role="alert"><b>Couldn't load ${esc(e.what ?? e.file ?? 'a data file')}.</b> ${esc(e.message ? e.message + '. ' : '')}Showing nothing rather than estimates. <button type="button" class="btn" data-retry>Retry</button></div>`).join('');
+}
+
+/* ---------- detail level: Simple / Moderate / Complete (PLAN.md section 11) ---------- */
+function setLevel(n) {
+  document.body.classList.remove('level-1', 'level-2', 'level-3');
+  document.body.classList.add(`level-${n}`);
+  document.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.level === String(n))));
+  try { localStorage.setItem('kimchi.level', String(n)); } catch {}
+  // Simple hides the factor tabs and Region view; go back to field view so the map matches the tiles.
+  if (n === 1 && state.view === 'region') document.querySelector('[data-view="field"]')?.click();
+  setTimeout(() => map?.invalidate(), 50);
+}
+function wireLevel() {
+  const cur = (document.body.className.match(/level-([123])/) ?? [])[1] ?? '1';
+  setLevel(+cur);
+  document.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', () => setLevel(+b.dataset.level)));
+}
+let reported = false;
+const reportError = msg => { if (reported) return; reported = true; showBanner(`Something went wrong: ${msg}. Reload the page; your farm records are kept in this browser.`); $('banner').classList.add('err'); };
+window.addEventListener('error', e => { if (e.message && !/ResizeObserver/.test(e.message)) reportError(e.message); });
+window.addEventListener('unhandledrejection', e => reportError(String(e.reason?.message ?? e.reason ?? 'unknown error')));
 
 /* ---------- fields ---------- */
 const features = () => ctx.fields.features;
@@ -153,6 +187,8 @@ function renderFactor() {
   if (!a) { drawMapLayers(); return; } // still computing
   $('left-meta').textContent = a.sample ? 'SAMPLE · FLD01' : (state.field.toUpperCase());
   renderCards($('cards'), a, state.factor, f => setFactor(f));
+  const errs = loadErrorCards();
+  if (errs) { $('cards').insertAdjacentHTML('afterbegin', errs); $('cards').querySelectorAll('[data-retry]').forEach(b => b.addEventListener('click', () => location.reload())); }
   renderDetail($('detail'), state.factor, a, ctx);
   drawMapLayers();
 }
@@ -212,15 +248,52 @@ function drawMapLayers() {
       $('map-title').textContent = `FIELD VIEW · ${state.field.toUpperCase()} · MODIS NDVI`;
     } else {
       map.setNdvi(null);
-      slider.setDomain([]);
       $('map-title').textContent = `FIELD VIEW · ${state.field.toUpperCase()} · ${factorName(state.factor).toUpperCase()}`;
       $('map-note').textContent = 'Weather data covers about 50 km; this colour is regional, not a field measurement. Dashed outline: approximate boundary.';
+      const ann = annualFor(state.factor);
+      if (ann) {
+        // P2's analysis.annual: one frame per year, same crop calendar as this season.
+        slider.setDomain(ann.years.map(String), ann.years.length - 1);
+        return;
+      }
+      slider.setDomain([]);
       $('legend').innerHTML = `<div class="ttl">Field colour = severity</div><div class="ends" style="margin-top:6px;gap:8px;justify-content:flex-start"><span style="color:var(--sev0)">■ normal</span><span style="color:var(--acc)">■ watch</span><span style="color:var(--alert)">■ high</span></div>`;
+      noHistoryHint();
     }
   }
 }
 
+/* ---------- field-view history (analysis.annual) ---------- */
+const ANNUAL = { water: ['water_deficit_mm', 'drywet', true, 'Shortfall vs crop demand', 'mm'], temperature: ['hot_days', 'heat', false, 'Hot days in season', 'days'], soil_moisture: ['gwetroot_jul', 'drywet', false, 'July root-zone wetness', '0–1'] };
+function annualFor(factor) {
+  const a = state.analysis?.annual, spec = ANNUAL[factor];
+  if (!a?.years?.length || !spec || !Array.isArray(a[spec[0]]) || !a[spec[0]].some(finite)) return null;
+  return { ...a, values: a[spec[0]], spec };
+}
+/** The slider must never look dead without a reason: offer the views that can play history. */
+function noHistoryHint() {
+  const cap = $('sl-caption');
+  cap.innerHTML = `<button type="button" id="hint-region">No year-by-year history for this field yet. Press <b>Region view</b> or <b>Crop condition</b> to play history.</button>`;
+  $('hint-region').addEventListener('click', () => { if (state.factor === 'crop_condition' || !REGION_IND[state.factor]) setFactor('crop_condition'); else document.querySelector('[data-view="region"]').click(); });
+}
+function drawAnnual(i) {
+  const ann = annualFor(state.factor); if (!ann) return;
+  const [key, rampName, highIsDry, title, unit] = ann.spec, v = ann.values[i];
+  const base = ann.years.map((y, k) => (y >= 1991 && y <= 2020 ? ann.values[k] : null)).filter(finite);
+  const p = finite(v) && base.length >= 10 ? (base.filter(x => x <= v).length / (base.length + 1)) : null;
+  const t = p == null ? null : rampName === 'heat' ? p : highIsDry ? 1 - p : p;
+  const col = t == null ? null : ramp(rampName, t);
+  map.setFields(features(), state.field, f => (f.properties.field_id === state.field && col ? { fillColor: col, fillOpacity: 0.55 } : { fillColor: '#000', fillOpacity: 0.05 }));
+  $('sl-caption').innerHTML = `<span>${esc(ann.caption?.[i] ?? `${ann.years[i]}: ${finite(v) ? `${num(v, key === 'gwetroot_jul' ? 2 : 0)} ${unit}` : 'unavailable'}`)}</span>`;
+  $('map-title').textContent = `FIELD VIEW · ${state.field.toUpperCase()} · ${factorName(state.factor).toUpperCase()} · ${ann.years[i]}`;
+  $('legend').innerHTML = `<div class="ttl">${esc(title)}, ${ann.years[i]} vs 1991–2020</div><div class="ramp" style="background:${rampCSS(rampName)}"></div>
+    <div class="ends"><span>${rampName === 'heat' ? 'fewer' : 'drier'}</span><span>${rampName === 'heat' ? 'more hot days →' : '→ wetter'}</span></div>
+    <div class="fine" data-min-level="2" style="margin-top:4px">${finite(v) ? `${num(v, key === 'gwetroot_jul' ? 2 : 0)} ${esc(unit)}${p == null ? '' : ` · p${Math.round(p * 100)}`}` : 'unavailable'}</div>`;
+}
+
 function drawTime(i) {
+  if (!(state.view === 'field' && annualFor(state.factor) && state.factor !== 'crop_condition')) $('sl-caption').innerHTML = '';
+  if (state.view === 'field' && state.factor !== 'crop_condition') { drawAnnual(i); return; }
   if (state.view === 'region') {
     const [key, rampName] = REGION_IND[state.factor] ?? [];
     if (!key) return;
