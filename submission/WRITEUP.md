@@ -22,9 +22,10 @@ Kimchi is a map-based decision-support dashboard for farmers on limited irrigati
 
 ## Project details
 
-> **What we found** (demo field fld01, an irrigated pivot in Sheridan 6; NASA POWER 1991–2025 plus 2026 through Nov 12; synthetic farm settings: 280 mm allocation, 600 gpm well; numbers checked against the engine at 9:20 pm)
+> **What we found** (demo field fld01, an irrigated pivot in Sheridan 6; NASA POWER 1991–2025 plus 2026 through Nov 12; synthetic farm settings: 280 mm allocation, 600 gpm well; numbers checked against the engine on the merged app at 9:25 pm)
 > - **Continuous corn would have run short of water in 28 of 35 seasons** under a 280 mm allocation (median shortfall 108 mm). Corn–sorghum was also short in 28 of 35 (median 67 mm), and corn–wheat in 30 of 35 (median 89 mm). **No rotation removes the shortfall**; they change when and by how much.
-> - **Peak 7-day corn demand exceeded what a 600 gpm well delivers on 50 ha (≈ 6.5 mm/day) in 35 of 35 seasons**; in 2026 the peak was about 3.3 mm/day above it. The July bottleneck is the well, not just the annual allocation.
+> - **Peak 7-day corn demand exceeded what a 600 gpm well delivers on 50 ha (≈ 6.5 mm/day) in 35 of 35 seasons**; in 2026 the peak was about 9.8 mm/day. The July bottleneck is the well, not just the annual allocation.
+> - **Even a wetter-than-usual season is short.** 2026 was wetter than 72% of years, yet rain still fell 314 mm (12.4 in) short of estimated corn water use, against a normal 395 mm. The shortfall is structural, which is why the rotation comparison matters more than any one season.
 > - **2026 had 38 days ≥ 35 °C (normal 26.5): more than 71% of years since 1981**, and 15 of 45 years reached that level. There is no statistically clear upward trend in hot days at this cell (Mann-Kendall p = 0.24), which is why the app reports how often, not a trend claim.
 
 ### The problem
