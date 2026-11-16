@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   getPath, evalCondition, evalTrigger, timingFactor, priorityFactor, scoreAction, pickDiverse,
-  parseXofN, inferCurrentRotation, rotationsToEvaluate, recommend, fillTemplate, pickTemplate, EXPERT_LINE,
+  parseXofN, inferCurrentRotation, rotationsToEvaluate, recommend, fillTemplate, pickTemplate, shortText, rotationTable, EXPERT_LINE,
 } from './recommend.mjs';
 import { buildReport, reportToMarkdown } from './report.mjs';
 
@@ -362,4 +362,50 @@ test('real data: analyzeField → rotationFit → recommend gives 3 clean cards 
     const rep = reportToMarkdown(buildReport({ analysis, recs: r, farm: demo, field, period: { year: 2026, period: 'season' } }));
     assert.doesNotMatch(rep, /undefined|NaN|\[object Object\]|years seasons/, fid);
   }
+});
+
+// ───────── round 3: Simple view ─────────
+test('card.short: one plain sentence (< 25 words) with a number, never "unavailable"; expert line kept', () => {
+  const r = recommend({ analysis: sampleAnalysis(), farm: farm(), field_id: 'fld01', crops, actions, rotationsFit, today: NOV });
+  for (const c of r.all) {
+    assert.ok(c.short && c.short.split(/\s+/).length < 25, `${c.id}: ${c.short}`);
+    assert.doesNotMatch(c.short, /unavailable|undefined|NaN|\{/, c.id);
+    assert.ok(c.expert_check.includes('K-State Research and Extension'), c.id);
+  }
+  const w4 = r.all.find((c) => c.id === 'W4_compare_rotations');
+  assert.equal(w4.short, 'Continuous corn ran short of water in 14 of 35 past seasons under your 280 mm (11 in) allocation. Compare the alternatives below.');
+  for (const c of r.top3) assert.match(c.short, /\d/, `${c.id} short text should carry a number`);
+});
+
+test('missing values drop the sentence or fall back, never "about unavailable mm/day"', () => {
+  const bare = recommend({ analysis: {}, farm: null, field_id: 'x', crops, actions, today: NOV });
+  for (const c of bare.all) {
+    assert.doesNotMatch(c.short, /unavailable/, c.id);
+    assert.doesNotMatch(c.why[0], /unavailable/, c.id);
+  }
+  const w3 = actions.actions.find((a) => a.id === 'W3_well_capacity');
+  assert.equal(shortText(w3, { derived: {} }), w3.short_fallback);
+});
+
+test('rotationTable: current + alternatives × 6 rows, no winner, heat row follows the available definition', () => {
+  const r = recommend({ analysis: sampleAnalysis(), farm: farm(), field_id: 'fld01', crops, actions, rotationsFit, today: NOV });
+  const t = rotationTable({ rotations: r.rotations });
+  assert.deepEqual(r.rotation_table, t);
+  assert.deepEqual(t.columns.map((c) => c.id), ['corn_corn', 'corn_sorghum', 'corn_wheat']);
+  assert.equal(t.columns[0].role, 'current');
+  assert.deepEqual(t.rows.map((x) => x.key), ['short_on_water', 'heat_at_pollination', 'low_green_cover_months', 'main_benefit', 'main_risk', 'unknown']);
+  for (const row of t.rows) assert.equal(row.cells.length, 3);
+  assert.deepEqual(t.rows[0].cells, ['14 of 35 seasons', '10 of 35 seasons', '6 of 35 seasons']);
+  assert.match(t.rows[1].label, /≥ 1 hot day/);
+  assert.equal(t.rows[2].cells[2], 'about 3.9');
+  assert.doesNotMatch(JSON.stringify(t), /\b(best|optimal|winner)\b|undefined|NaN/i);
+  // With P2's above-normal metric the heat row switches definition
+  const fits = rotationsFit.map((x) => ({ ...x, metrics: { ...x.metrics, sensitive_heat_above_normal_years: '5 of 35 years' } }));
+  const t2 = recommend({ analysis: sampleAnalysis(), farm: farm(), field_id: 'fld01', crops, actions, rotationsFit: fits, today: NOV }).rotation_table;
+  assert.match(t2.rows[1].label, /Above-normal/);
+  assert.equal(t2.rows[1].cells[0], '5 of 35 seasons');
+  // Unknown current rotation: still a table, missing metrics say "not computed"
+  const t3 = rotationTable({ rotations: recommend({ analysis: {}, farm: null, field_id: 'x', crops, actions, today: NOV }).rotations });
+  assert.ok(t3.columns.length >= 3);
+  assert.equal(t3.rows[0].cells[0], 'not computed');
 });

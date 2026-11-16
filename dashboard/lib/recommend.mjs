@@ -342,7 +342,7 @@ function metricLines(metrics) {
     .filter(([k]) => k in metrics)
     .map(([k, [label, unit]]) => {
       const x = parseXofN(metrics[k]);
-      const val = x ? x.core : fmt(metrics[k]);
+      const val = x ? x.core : isMissing(metrics[k]) ? 'not computed for this rotation' : fmt(metrics[k]);
       return `${label}: ${val}${unit && !isMissing(metrics[k]) ? ' ' + unit : ''}`;
     });
 }
@@ -427,8 +427,64 @@ function rotationCard({ role, spec, cand, fit, ctx, current }) {
     prerequisites: ag?.market_equipment_prerequisites ?? [],
     residue: agText(ag?.residue_implications),
     treatment_basis: ag?.treatment_basis ?? null,
+    short: cand?.short ?? (role === 'current' ? CUSTOM_SHORT[spec.id] ?? null : null),
     expert_check: EXPERT_LINE,
     source_ids: [...new Set([...(ag?.source_ids ?? []), 'NASA_POWER_DAILY', 'FAO56'])],
+  };
+}
+
+const CUSTOM_SHORT = {
+  current_custom: {
+    benefit: 'Keeps the crops you already grow; no regional trial tested this exact sequence.',
+    risk: 'Not assessed by the trials; ask your agronomist to review it.',
+    unknown: 'Please confirm your past crops in My farm records.',
+    source_ids: ['USDA_CDL'],
+  },
+  current_unknown: {
+    benefit: 'Not known yet.',
+    risk: 'Not known yet.',
+    unknown: 'Your current rotation: add your crops in My farm records.',
+    source_ids: [],
+  },
+};
+
+/**
+ * Rotation comparison table for the Simple view (PLAN.md §11): one row per metric,
+ * one column per rotation (current first, then alternatives, in the cards' fixed order).
+ *   rotationTable({ rotations }) → { columns: [{ id, name, role }], rows: [{ key, label, cells: [text] }], notes }
+ * Missing values read "not computed", never 0. There is no winner row or highlight.
+ */
+export function rotationTable({ rotations }) {
+  const cards = rotations ?? [];
+  const columns = cards.map((c) => ({ id: c.id, name: c.role === 'current' ? `${c.name} (now)` : c.name, role: c.role }));
+  const xofn = (v, noun) => { const p = parseXofN(v); return p ? `${p.core} ${noun}` : 'not computed'; };
+  const aboveNormal = cards.some((c) => parseXofN(c.metrics?.sensitive_heat_above_normal_years));
+  const heatKey = aboveNormal ? 'sensitive_heat_above_normal_years' : 'sensitive_heat_years';
+  const rows = [
+    { key: 'short_on_water', label: 'Short on water (past seasons)', cells: cards.map((c) => xofn(c.metrics?.shortfall_years, 'seasons')) },
+    {
+      key: 'heat_at_pollination',
+      label: aboveNormal ? 'Above-normal heat at pollination / flowering' : '≥ 1 hot day (≥ 35 °C / 95 °F) at pollination / flowering',
+      cells: cards.map((c) => xofn(c.metrics?.[heatKey], 'seasons')),
+    },
+    {
+      key: 'low_green_cover_months',
+      label: 'Months a year with no crop growing (crop calendar; low green cover)',
+      cells: cards.map((c) => (isNum(c.metrics?.low_cover_months_per_year) ? `about ${fmt(c.metrics.low_cover_months_per_year)}` : 'not computed')),
+    },
+    { key: 'main_benefit', label: 'Main benefit', cells: cards.map((c) => c.short?.benefit ?? c.benefits?.[0]?.text ?? 'not assessed') },
+    { key: 'main_risk', label: 'Main risk', cells: cards.map((c) => c.short?.risk ?? c.risks?.[0]?.text ?? 'not assessed') },
+    { key: 'unknown', label: "What we don't know", cells: cards.map((c) => c.short?.unknown ?? c.gaps?.[0]?.text ?? 'not assessed') },
+  ];
+  return {
+    columns,
+    rows,
+    heat_definition: aboveNormal ? 'above_normal' : 'any_hot_day',
+    notes: [
+      'Same weather years (NASA POWER) for every rotation, under your allocation and well. Estimates, not meter readings.',
+      'Rotations are not ranked: weigh these with your agronomist or K-State Research and Extension.',
+    ],
+    source_ids: [...new Set(cards.flatMap((c) => c.short?.source_ids ?? []).concat(['NASA_POWER_DAILY', 'FAO56']))],
   };
 }
 
@@ -452,6 +508,10 @@ export function buildRotationCards({ ctx, actions, rotationsFit }) {
 }
 
 // ───────────────────────────── derived context ─────────────────────────────
+
+const toInches = (mm) => { const v = mm / 25.4; return v >= 10 ? Math.round(v) : Math.round(v * 10) / 10; };
+/** For a low-side status (dry soil, low NDVI) below the median: "lower than N% of years". */
+const drierThan = (st) => (isNum(st?.percentile) && st.percentile < 50 ? Math.round(100 - st.percentile) : null);
 
 /**
  * Build the evaluation context: the analysis output plus a `derived` block of numbers that
@@ -595,6 +655,14 @@ export function deriveContext({ analysis, farm, field_id, field, crops, actions,
     wheat_target: wheat?.season?.plant ? prettyMD(wheat.season.plant) : null,
     corn_harvest_window: corn?.season?.harvest_window ? corn.season.harvest_window.map(prettyMD).join(' – ') : null,
     live_through: a.data_quality?.live_through ?? null,
+    // Plain-language helpers for card.short (inches next to mm; "drier than N% of years").
+    allocation_in: isNum(allocation_mm) ? toInches(allocation_mm) : null,
+    need_mm: isNum(need) ? Math.round(need) : null,
+    need_in: isNum(need) ? toInches(need) : null,
+    stage_heat_above_core: stage_heat_definition === 'above_normal' ? shRec.core : null,
+    stage_heat_any_core: stage_heat_definition === 'any_hot_day' ? shRec.core : null,
+    soil_drier_than_pct: drierThan(a.factors?.soil_moisture?.status),
+    ndvi_lower_than_pct: drierThan(a.factors?.crop_condition?.status),
   };
   return { ...a, derived, _farmField: farmField, _records: records };
 }
@@ -678,13 +746,32 @@ export function fillTemplate(template, vars, ctx) {
 }
 
 /** Use the first template whose placeholders all have values; else the last one, filled. */
-export function pickTemplate(action, ctx) {
-  const list = Array.isArray(action.why_template) ? action.why_template : [action.why_template];
+export function pickTemplate(action, ctx, key = 'why_template', strict = false) {
+  const raw = action[key];
+  if (raw === undefined || raw === null) return null;
+  const list = Array.isArray(raw) ? raw : [raw];
   for (const t of list) {
     const names = [...String(t ?? '').matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
     if (names.every((n) => !isMissing(getPath(ctx, action.vars?.[n] ?? n)))) return fillTemplate(t, action.vars, ctx);
   }
-  return fillTemplate(list.at(-1), action.vars, ctx);
+  if (strict) return null;
+  // No template fully resolves: fill the last one and drop every sentence that would say "unavailable".
+  const kept = splitSentences(fillTemplate(list.at(-1), action.vars, ctx)).filter((x) => !/unavailable/i.test(x));
+  return kept.length ? kept.join(' ') : null;
+}
+
+const splitSentences = (t) => String(t).match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g)?.map((x) => x.trim()).filter(Boolean) ?? [];
+const wordCount = (t) => String(t).trim().split(/\s+/).filter(Boolean).length;
+
+/** One plain sentence for the Simple view (PLAN.md §11): under 25 words, never "unavailable". */
+export function shortText(action, ctx) {
+  // Try each template on its own: it must resolve fully and stay under 25 words.
+  const list = Array.isArray(action.short_template) ? action.short_template : action.short_template ? [action.short_template] : [];
+  for (const one of list) {
+    const t = pickTemplate({ ...action, short_template: one }, ctx, 'short_template', true);
+    if (t && !/unavailable/i.test(t) && wordCount(t) < 25) return t;
+  }
+  return action.short_fallback ?? action.title;
 }
 
 function whenText(action, timing) {
@@ -697,11 +784,12 @@ function whenText(action, timing) {
 function buildCard(action, ctx, priorities, month, trig) {
   const { score, score_parts } = scoreAction(action, ctx, priorities, month);
   const evidence = buildEvidence(action, ctx);
-  const why = [pickTemplate(action, ctx), ...evidence.slice(0, 2).map((e) => e.text)];
+  const why = [pickTemplate(action, ctx) ?? action.title, ...evidence.slice(0, 2).map((e) => e.text)];
   const expert = action.expert_check?.includes('K-State Research and Extension') ? action.expert_check : `${action.expert_check ?? ''} ${EXPERT_LINE}`.trim();
   return {
     id: action.id,
     title: action.title,
+    short: shortText(action, ctx),
     factor: action.factor,
     factor_name: FACTOR_NAMES[action.factor] ?? action.factor,
     category: action.category,
@@ -772,11 +860,13 @@ export function recommend({ analysis, farm, field_id, field = null, crops, actio
   }
 
   const rotations = buildRotationCards({ ctx, actions, rotationsFit: rotationsFit ?? analysis?.rotation_fit });
+  const rotation_table = rotationTable({ rotations });
   const all = [...cards].sort((x, y) => (x.status === y.status ? byScore(x, y) : x.status === 'triggered' ? -1 : 1));
   return {
     top3,
     all,
     rotations,
+    rotation_table,
     focus,
     generated_at: today.toISOString(),
     method: 'score = severity × priority × evidence × timing (rule-based, shown on every card; not a machine-learning model)',
