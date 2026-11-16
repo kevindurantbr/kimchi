@@ -1,0 +1,59 @@
+# Daily data refresh: re-runs the precompute scripts so the dashboard's NASA files stay current without anyone
+# touching the repo. POWER history every day; the MODIS NDVI gap fill (new 16-day composites) on Mondays.
+# A push made with GITHUB_TOKEN does not start other workflows, so this job starts the Pages deploy itself.
+name: Daily data refresh
+
+on:
+  schedule:
+    - cron: '17 9 * * *'   # 09:17 UTC, about 4 am Eastern
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: NASA POWER site history (daily)
+        run: node scripts/precompute.mjs site
+
+      - name: MODIS NDVI gap fill from ORNL (Mondays)
+        continue-on-error: true   # ORNL being down must not block the POWER refresh
+        run: |
+          if [ "$(date -u +%u)" = "1" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            node scripts/precompute.mjs ndvi --fill-gaps --ndvi-source=ornl
+          else
+            echo "Not Monday: skipping NDVI."
+          fi
+
+      - name: Commit and push if anything changed
+        id: commit
+        run: |
+          git config user.name "kimchi-data-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No data changes."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -am "Daily data refresh"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Redeploy the dashboard
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref "${{ github.ref_name }}"
