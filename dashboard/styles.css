@@ -346,3 +346,31 @@ body.level-2 .detail .dsec ~ .dsec, body:not(.level-3) details.adv { display: no
 .banner.err, .state.err, .errcard { border-color: var(--alert); color: var(--ink); }
 .errcard { border: 1px solid var(--alert); border-left-width: 1px; border-radius: var(--r); padding: 10px 12px; margin: 8px 0; background: var(--raised); }
 .errcard b { color: var(--alert); }
+
+/* ---------- round 4: visual-first tiles, map status badges (PLAN.md section 13 colours) ---------- */
+:root { --lv-good: #2e9e5b; --lv-normal: #7a9a86; --lv-watch: #e0a100; --lv-concern: #d64545; --lv-nodata: #8a8f93; }
+.fcard { border-top: 5px solid var(--lv-nodata); }
+.fcard.lv-good { border-top-color: var(--lv-good); } .fcard.lv-normal { border-top-color: var(--lv-normal); }
+.fcard.lv-watch { border-top-color: var(--lv-watch); } .fcard.lv-concern { border-top-color: var(--lv-concern); }
+.fcard.lv-nodata { border-top-style: dashed; }
+.fcard .headrow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
+.fcard .word { margin: 0; font: 700 12.5px var(--font-mono); text-transform: uppercase; letter-spacing: .03em; padding: 2px 7px; border-radius: var(--r); color: #fff; background: var(--lv-nodata); border: 0; }
+.fcard.lv-good .word { background: var(--lv-good); } .fcard.lv-normal .word { background: #5d7a67; }
+.fcard.lv-watch .word { background: var(--lv-watch); color: #1a1300; } .fcard.lv-concern .word { background: var(--lv-concern); }
+.fcard.lv-nodata .word { background: repeating-linear-gradient(135deg, #6b7075 0 5px, #80868b 5px 10px); }
+.fcard .headline { font: 700 26px/1.1 var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.minibar { margin: 6px 0 2px; display: grid; gap: 3px; }
+.mb-row { display: grid; grid-template-columns: 64px 1fr auto; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.mb-trk { height: 8px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.mb-trk i { display: block; height: 100%; }
+.mb-trk i.cur { background: var(--ink); } .mb-trk i.nrm { background: var(--muted); opacity: .6; }
+.mb-row .num { font-family: var(--font-mono); color: var(--ink); white-space: nowrap; }
+.fbadge-wrap { background: none; border: 0; }
+.fbadges { display: flex; gap: 4px; justify-content: center; }
+.fbadge { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 15px; line-height: 1; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.5); cursor: help; }
+.fbadge.lv-watch { background: var(--lv-watch); } .fbadge.lv-concern { background: var(--lv-concern); }
+.fbadge:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.badge-legend { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.field-pick { gap: 6px; }
+#btn-refresh { white-space: nowrap; }
+#pulled-at { font: 11.5px var(--font-mono); color: var(--muted); white-space: nowrap; }

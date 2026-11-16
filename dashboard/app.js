@@ -5,9 +5,13 @@ import { createMap } from './ui/map.mjs';
 import { createSlider } from './ui/slider.mjs';
 import { renderCards, renderDetail } from './ui/panels.mjs';
 import { renderActions, renderRotations, renderWhatIf } from './ui/recs.mjs';
+import * as integ from './ui/integrate.mjs'; // namespace import: P1's pullFieldData may not exist yet
+import { badgesOf, worstLevel, LEVEL_COLOR } from './ui/status.mjs';
 
 const state = { field: 'fld01', factor: 'water', view: 'field', focus: '', gridMode: 'percentile', live: null, liveError: null, analysis: null, rec: null };
 let ctx, farm, map, slider;
+// Fields the farmer adds: pulled NASA POWER history (1981 to now) + soil, per field id. analyses: resolved results, for map badges.
+const fieldData = new Map(), analyses = new Map();
 
 // Speed: the analysis engine takes 0.5-2 s per field and rotationFit 0.2-1.2 s per rotation on 45 years of
 // daily data. It runs in a background worker (ui/engine.worker.mjs) so the map and controls stay responsive,
@@ -20,14 +24,30 @@ const cache = { analysis: new Map(), fit: new Map() };
 const nextPaint = () => new Promise(r => { let done = false; const go = () => { if (!done) { done = true; setTimeout(r, 0); } }; requestAnimationFrame(go); setTimeout(go, 60); });
 const analysisKey = id => `${id}|${farmVersion}|${liveVersion}`;
 function cachedAnalysis(field, ff) {
-  const key = analysisKey(field.properties.field_id);
-  if (!cache.analysis.has(key)) cache.analysis.set(key, runAnalysisAsync(ctx, { field, farmField: ff, liveDaily: state.live?.daily ?? null }));
+  const id = field.properties.field_id, fd = fieldData.get(id);
+  const key = analysisKey(id) + (fd ? `|${fd.retrieved_at}` : '');
+  if (!cache.analysis.has(key)) {
+    const p = fd?.site ? analyzePulled(field, ff, fd) : runAnalysisAsync(ctx, { field, farmField: ff, liveDaily: state.live?.daily ?? null });
+    cache.analysis.set(key, p.then(a => { if (a && !a.sample) { analyses.set(id, a); drawBadges(); } return a; }));
+  }
   return cache.analysis.get(key);
 }
 function cachedFit(rotation, field, ff, f) {
-  const key = `${field.properties.field_id}|${farmVersion}|${liveVersion}|${rotation.id}|${(rotation.sequence ?? []).join('>')}|${f?.constraints?.annual_allocation_mm}`;
-  if (!cache.fit.has(key)) cache.fit.set(key, runRotationFitAsync(ctx, { rotation, field, farmField: ff, farm: f }));
+  const id = field.properties.field_id, fd = fieldData.get(id);
+  const key = `${id}|${farmVersion}|${liveVersion}|${fd?.retrieved_at ?? ''}|${rotation.id}|${(rotation.sequence ?? []).join('>')}|${f?.constraints?.annual_allocation_mm}`;
+  if (!cache.fit.has(key)) cache.fit.set(key, fd?.site ? fitPulled(rotation, ff, f, fd) : runRotationFitAsync(ctx, { rotation, field, farmField: ff, farm: f }));
   return cache.fit.get(key);
+}
+/** P2's engine on a pulled site (a field the farmer added). Runs in the page after a paint, about 0.6 s. */
+async function analyzePulled(field, ff, fd) {
+  await nextPaint();
+  return ctx.libAnalysis.analyzeField({ daily: fd.site.daily, site: fd.site, ndvi: fd.ndvi ?? null, soil: fd.soil ?? field.properties.soil ?? null,
+    farmField: ff, crops: ctx.crops, today: lastDataDate(fd.site.daily) ?? undefined });
+}
+async function fitPulled(rotation, ff, f, fd) {
+  await nextPaint();
+  try { return ctx.libAnalysis.rotationFit({ rotation, crops: ctx.crops, daily: { ...fd.site.daily, lat: fd.site.lat }, soil: fd.soil, farmField: ff, farm: f }); }
+  catch (e) { console.error(e); return null; }
 }
 function showComputing(what) {
   $('cards').innerHTML = `<p class="state" role="status">${esc(what)}</p>`;
@@ -65,7 +85,8 @@ async function boot() {
   loadLive();
   await selectField(state.field, { fit: false });
   updateSampleChip();
-  prewarm();
+  await prewarm();
+  drawBadges();
 }
 
 /** After the first field is ready, compute the other demo fields in the background workers, so switching
@@ -98,9 +119,9 @@ function fatal(msg) {
 
 /** Data files that failed to load, as red cards in the panel they affect (QA review section 3). */
 function loadErrorCards() {
-  const list = [...(ctx?.loadErrors ?? []).map(e => (typeof e === 'string' ? { what: e } : e))];
+  const list = [...(ctx?.loadErrors ?? []).map(e => (typeof e === 'string' ? { what: e } : e)), ...(fieldData.get(state.field)?.errors ?? [])];
   const st = dataStatus();
-  if (ctx?.libAnalysis?.analyzeField && st.history && !st.history.real) list.push({ what: 'NASA history (site_history.json)' });
+  if (!fieldById(state.field)?.properties.user && ctx?.libAnalysis?.analyzeField && st.history && !st.history.real) list.push({ what: 'NASA history (site_history.json)' });
   if (st.actions && !st.actions.real) list.push({ what: 'the action library (actions.json)' });
   if (!list.length) return '';
   return list.map(e => `<div class="errcard" role="alert"><b>Couldn't load ${esc(e.what ?? e.file ?? 'a data file')}.</b> ${esc(e.message ? e.message + '. ' : '')}Showing nothing rather than estimates. <button type="button" class="btn" data-retry>Retry</button></div>`).join('');
@@ -151,10 +172,16 @@ function fillFieldSelect() {
 async function selectField(id, { fit = false } = {}) {
   if (!fieldById(id)) return;
   state.field = id; $('field-select').value = id;
-  const done = recompute();
+  updateRefreshUI();
+  if (/: pulled NASA POWER /.test($('banner').textContent) && !fieldById(id).properties.user) showBanner('');
   if (fit || state.view === 'field') map.fitTo(fieldById(id));
-  if (fieldById(id).properties.user) loadUserFieldData(id);
-  return done;
+  if (fieldById(id).properties.user && !fieldData.has(id)) {
+    showComputing(`Pulling 45 years of NASA weather and USDA soil for ${fieldById(id).properties.label}… (about 2 s)`);
+    await pullField(id);
+    if (state.field !== id) return;
+    if (fit || state.view === 'field') map.fitTo(fieldById(id));
+  }
+  return recompute();
 }
 
 /* ---------- compute + render ---------- */
@@ -162,6 +189,13 @@ async function recompute() {
   const token = ++computeToken, fid = state.field;
   const field = fieldById(fid), ff = farmField(fid);
   if (!cache.analysis.has(analysisKey(fid))) showComputing(`Computing ${fid.toUpperCase()} from 45 years of NASA POWER data…`);
+  if (field.properties.user && !fieldData.get(fid)?.site) {
+    state.analysis = null;
+    $('cards').innerHTML = loadErrorCards() || '<p class="state">No weather history could be pulled for this field, so nothing is shown rather than estimates.</p>';
+    $('cards').querySelectorAll('[data-retry]').forEach(b => b.addEventListener('click', () => refreshField()));
+    $('detail').innerHTML = ''; $('actions').innerHTML = '<p class="state">Actions need the field analysis.</p>'; $('rotations').innerHTML = ''; $('whatif').innerHTML = '';
+    return;
+  }
   const analysis = await cachedAnalysis(field, ff);
   if (token !== computeToken) return; // the user picked another field meanwhile
   state.analysis = analysis;
@@ -219,7 +253,9 @@ const REGION_IND = { water: ['season_deficit_mm', 'drywet', false], temperature:
 
 function drawMapLayers() {
   const a = state.analysis ?? { factors: {} };
-  const fieldColour = f => {
+  const outline = f => { const a2 = analyses.get(f.properties.field_id); if (!a2 || state.view === 'region') return {}; const w = worstLevel(badgesOf(a2)); return w === 'nodata' ? {} : { color: LEVEL_COLOR[w] }; };
+  const fieldColour = f => ({ ...fieldFill(f), ...outline(f) });
+  const fieldFill = f => {
     if (state.view === 'region' || state.factor === 'crop_condition') return { fillOpacity: 0.05, fillColor: '#000' };
     // Weather factors: colour by severity of this field's status. Same regional cell for all demo fields.
     const st = (f.properties.field_id === state.field || a.sample) ? a.factors?.[state.factor]?.status : null;
@@ -227,6 +263,7 @@ function drawMapLayers() {
     return { fillColor: c == null ? '#000' : [cssVar('--sev0'), cssVar('--acc'), cssVar('--alert')][c], fillOpacity: c == null ? 0.05 : 0.38 };
   };
   map.setFields(features(), state.field, fieldColour);
+  drawBadges();
 
   if (state.view === 'region') {
     map.setNdvi(null);
@@ -283,7 +320,8 @@ function drawAnnual(i) {
   const p = finite(v) && base.length >= 10 ? (base.filter(x => x <= v).length / (base.length + 1)) : null;
   const t = p == null ? null : rampName === 'heat' ? p : highIsDry ? 1 - p : p;
   const col = t == null ? null : ramp(rampName, t);
-  map.setFields(features(), state.field, f => (f.properties.field_id === state.field && col ? { fillColor: col, fillOpacity: 0.55 } : { fillColor: '#000', fillOpacity: 0.05 }));
+  map.setFields(features(), state.field, f => { const a2 = analyses.get(f.properties.field_id), w = a2 ? worstLevel(badgesOf(a2)) : 'nodata';
+    return { ...(f.properties.field_id === state.field && col ? { fillColor: col, fillOpacity: 0.55 } : { fillColor: '#000', fillOpacity: 0.05 }), ...(w === 'nodata' ? {} : { color: LEVEL_COLOR[w] }) }; });
   $('sl-caption').innerHTML = `<span>${esc(ann.caption?.[i] ?? `${ann.years[i]}: ${finite(v) ? `${num(v, key === 'gwetroot_jul' ? 2 : 0)} ${unit}` : 'unavailable'}`)}</span>`;
   $('map-title').textContent = `FIELD VIEW · ${state.field.toUpperCase()} · ${factorName(state.factor).toUpperCase()} · ${ann.years[i]}`;
   $('legend').innerHTML = `<div class="ttl">${esc(title)}, ${ann.years[i]} vs 1991–2020</div><div class="ramp" style="background:${rampCSS(rampName)}"></div>
@@ -413,15 +451,51 @@ function openCoordsDialog() {
   };
 }
 
-async function loadUserFieldData(id) {
-  const f = fieldById(id), [lon, lat] = centroid(f.geometry);
-  showBanner('Pulling NASA POWER and USDA soil data for your field…');
-  try {
-    const [live, soil] = await Promise.all([fetchLive(ctx, { lat, lon }), fetchSoil(ctx, f.geometry).catch(() => null)]);
-    f.properties.soil = soil ?? f.properties.soil;
-    const last = lastNonNull(live.daily.date, live.daily.t2m_max);
-    showBanner(`${f.properties.label}: live NASA POWER through ${fmtDate(last)} loaded${soil ? ', USDA soil loaded' : ', soil data not available yet'}.${ctx.libAnalysis?.analyzeField ? '' : ' Factor analysis for drawn fields needs the analysis engine (not connected yet); panels show the sample.'} Crop condition is unavailable for new fields tonight.`);
-  } catch (e) { showBanner(`Could not load live data for this field: ${e.message}`); }
+/* ---------- fields the farmer adds: pull their own data ---------- */
+/** P1's pullFieldData when it exists (with its cache); otherwise the same pull here, kept in memory. */
+async function pullLocal(geometry) {
+  const end = new Date().toISOString().slice(0, 10).replace(/-/g, ''), [lon, lat] = centroid(geometry), errors = [];
+  if (!ctx.libSources?.fetchPowerDaily) return { site: null, soil: null, ndvi: null, retrieved_at: new Date().toISOString(), errors: [{ what: 'NASA POWER history', message: 'the data module is missing' }] };
+  const [p, s] = await Promise.allSettled([ctx.libSources.fetchPowerDaily({ lat, lon, start: '19810101', end }), fetchSoil(ctx, geometry)]);
+  if (p.status === 'rejected') errors.push({ what: 'NASA POWER history for this field', message: p.reason?.message });
+  if (s.status === 'rejected' || !s.value) errors.push({ what: 'USDA soil for this field', message: s.reason?.message ?? 'no soil map unit found' });
+  return { site: p.value ?? null, soil: s.value ?? null, ndvi: null, retrieved_at: new Date().toISOString(), errors };
+}
+async function pullField(id, { force = false } = {}) {
+  const f = fieldById(id);
+  let fd;
+  try { fd = integ.pullFieldData ? await integ.pullFieldData(f.geometry, { field_id: id, force }) : await pullLocal(f.geometry); }
+  catch (e) { fd = { site: null, soil: null, errors: [{ what: 'data for this field', message: e.message }], retrieved_at: new Date().toISOString() }; }
+  fd.errors = (fd.errors ?? []).map(e => (typeof e === 'string' ? { what: e } : e));
+  if (fd.soil) f.properties.soil = fd.soil;
+  fieldData.set(id, fd);
+  updateRefreshUI();
+  const name = f.properties.label;
+  if (fd.site) showBanner(`${name}: pulled NASA POWER ${fmtDate(fd.site.daily.date[0])} to ${fmtDate(lastDataDate(fd.site.daily))}${fd.soil ? ' and USDA soil' : ''}. Crop greenness for new fields needs a server-side download (next step).`);
+  return fd;
+}
+function updateRefreshUI() {
+  const user = !!fieldById(state.field)?.properties.user, fd = fieldData.get(state.field);
+  $('btn-refresh').hidden = !user;
+  $('pulled-at').hidden = !user || !fd;
+  if (fd?.retrieved_at) { const d = new Date(fd.retrieved_at); $('pulled-at').textContent = `Data pulled ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase()}`; }
+}
+
+async function refreshField() {
+  const id = state.field; if (!fieldById(id)?.properties.user) return;
+  $('btn-refresh').disabled = true;
+  showComputing(`Pulling 45 years of NASA weather and USDA soil for ${fieldById(id).properties.label}… (about 2 s)`);
+  try { await pullField(id, { force: true }); } finally { $('btn-refresh').disabled = false; }
+  if (state.field === id) recompute();
+}
+
+/* ---------- map status badges (one icon per factor at watch or concern) ---------- */
+function drawBadges() {
+  if (!map) return;
+  const show = state.view === 'field';
+  const rows = show ? features().map(f => ({ feature: f, items: analyses.has(f.properties.field_id) ? badgesOf(analyses.get(f.properties.field_id)).filter(b => b.level === 'watch' || b.level === 'concern') : [] })) : [];
+  map.setBadges(rows);
+  $('badge-legend').hidden = !rows.some(r => r.items.length);
 }
 
 /* ---------- sample/data status ---------- */
@@ -478,6 +552,7 @@ function wireChrome() {
   $('btn-records').addEventListener('click', async () => { const m = await import('./ui/farmForm.mjs'); m.openRecords({ ctx, getFarm: () => farm, setFarm: f => { farm = f; farmVersion++; ctx.farmStore.saveFarm(farm); mergeUserFields(); fillFieldSelect(); recompute(); }, fieldId: state.field, analysis: state.analysis }); });
   $('btn-report').addEventListener('click', async () => { if (!state.analysis || !state.rec) { showBanner('The season report is ready as soon as the field analysis finishes computing.'); return; } const m = await import('./ui/report.mjs'); m.openReport({ ctx, analysis: state.analysis, rec: state.rec, farm, field: fieldById(state.field), farmField: farmField(state.field) }); });
   $('btn-print').addEventListener('click', () => window.print());
+  $('btn-refresh').addEventListener('click', () => refreshField());
   $('sample-chip').addEventListener('click', () => $('dlg-sample').showModal());
   document.querySelectorAll('.dlg-close').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
   document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
