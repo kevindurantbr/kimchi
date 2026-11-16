@@ -1,0 +1,831 @@
+{
+ "generated_at": "2026-11-16T01:34:50.842Z",
+ "source_ids": [],
+ "notes": "Every source_id used in dashboard/data/*.json should resolve to an entry in \"sources\". \"deferred\" lists resources from the team Resources tab not used tonight.",
+ "sources": [
+  {
+   "id": "NASA_POWER_DAILY",
+   "name": "NASA POWER Daily API, Agroclimatology (AG) community",
+   "provider": "NASA Langley Research Center, Prediction Of Worldwide Energy Resources (POWER)",
+   "url": "https://power.larc.nasa.gov/api/temporal/daily/point",
+   "resolution": "Meteorology ~0.5° lat × 0.625° lon (MERRA-2 / GEOS-IT grid, about 50 km); solar ~1° (CERES / FLASHFlux)",
+   "period": "1981-01-01 to present (daily solar radiation from 1984)",
+   "latency": "~3 days for meteorology, longer for solar radiation (checked 2026-11-15: T2M through 2026-11-12, ALLSKY through 2026-11-10)",
+   "license_or_terms": "Free, no key. NASA data policy; cite \"These data were obtained from the NASA Langley Research Center POWER Project funded through the NASA Earth Science Directorate Applied Science Program.\"",
+   "notes": "Parameters T2M_MAX, T2M_MIN, PRECTOTCORR, RH2M, WS2M, ALLSKY_SFC_SW_DWN, GWETROOT, GWETTOP. Fill -999 → null. Reanalysis-based: regional context, not a field measurement. GWETROOT/GWETTOP are model-based soil wetness. CORS allowed (browser calls work). API v2.10.3 on 2026-11-15."
+  },
+  {
+   "id": "MODIS_MOD13Q1_ORNL",
+   "name": "MODIS Terra MOD13Q1 v061 Vegetation Indices (NDVI), via the ORNL DAAC MODIS Web Service",
+   "provider": "NASA LP DAAC (product, Didan 2021, doi:10.5067/MODIS/MOD13Q1.061); ORNL DAAC (subset service)",
+   "url": "https://modis.ornl.gov/rst/api/v1/",
+   "resolution": "250 m (231.66 m sinusoidal pixels), 16-day composites",
+   "period": "2000-02-18 to present",
+   "latency": "About 2–4 weeks after the composite period",
+   "license_or_terms": "Free, no key. NASA EOSDIS data use policy; cite the product DOI and the ORNL DAAC MODIS Web Service.",
+   "notes": "Band 250m_16_days_NDVI × 0.0001; -3000 fill → null; pixel_reliability 0/1 kept. Could not be reached from the cloud build environment on 2026-11-15 (upstream connection failure); MODIS_MOD13Q1_PC was used instead for fields_ndvi.json."
+  },
+  {
+   "id": "MODIS_MOD13Q1_PC",
+   "name": "MODIS Terra MOD13Q1 v061 NDVI Cloud-Optimized GeoTIFFs on Microsoft Planetary Computer (collection modis-13Q1-061)",
+   "provider": "NASA LP DAAC (product, doi:10.5067/MODIS/MOD13Q1.061); Microsoft Planetary Computer (hosting)",
+   "url": "https://planetarycomputer.microsoft.com/dataset/modis-13Q1-061",
+   "resolution": "250 m (231.66 m sinusoidal pixels), 16-day composites",
+   "period": "2000 to present (catalogue has gaps, e.g. no Terra composites Jul–Nov 2025 on 2026-11-15)",
+   "latency": "Mirror of LP DAAC; additional lag of weeks",
+   "license_or_terms": "Free; anonymous SAS token from the Planetary Computer API. NASA EOSDIS data policy for the product.",
+   "notes": "Same NASA product and band math as MODIS_MOD13Q1_ORNL. Read by scripts/precompute.mjs (Node only) with HTTP range requests; a 9 × 9 pixel window centred on the field-centre pixel."
+  },
+  {
+   "id": "USDA_SSURGO_SDA",
+   "name": "USDA NRCS SSURGO soil survey via Soil Data Access (SDA)",
+   "provider": "USDA Natural Resources Conservation Service",
+   "url": "https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest",
+   "resolution": "Soil map units at 1:12,000–1:24,000 survey scale",
+   "period": "Current live database (queried 2026-11-14 for demo fields; live for drawn fields)",
+   "latency": "Updated annually (October refresh)",
+   "license_or_terms": "Public domain (US Government work), no key; CORS allowed.",
+   "notes": "Spatial intersection of each field polygon with mupolygon; clipped areas computed in EPSG:5070; muaggatt.aws* (component-weighted average) area-weighted across map units. muaggatt.aws0150wta (cm), drclassdcd, hydgrpdcd. Water-holding capacity estimate, not current soil moisture."
+  },
+  {
+   "id": "USDA_CDL",
+   "name": "USDA NASS Cropland Data Layer 2021-2025, Sheridan County KS (FIPS 20179)",
+   "provider": "USDA National Agricultural Statistics Service (CropScape, George Mason University CSISS)",
+   "url": "https://nassgeodata.gmu.edu/axis2/services/CDLService/GetCDLFile?year={year}&fips=20179",
+   "resolution": "30 m",
+   "period": "2021–2025 used (CDL is annual, 2008+ nationwide)",
+   "latency": "Released early in the following year",
+   "license_or_terms": "Public domain (USDA NASS), no key.",
+   "notes": "Pixel-centre-in-polygon counts, no resampling or interpolation. Fractions over valid (non-zero) pixels. Classification error applies per pixel. Kansas producer's accuracy 2023: corn 90.6%, sorghum 81.0%, winter wheat 88.5% (metadata_ks23). 2024 and 2025 Kansas metadata pages were not found on the NASS site. Dominant class per year used as crop_history; the farmer must confirm. Research record: T2_CDL, retrieved 2026-11-14."
+  },
+  {
+   "id": "FAO56",
+   "name": "Allen, Pereira, Raes & Smith (1998). Crop evapotranspiration: guidelines for computing crop water requirements. FAO Irrigation and Drainage Paper 56",
+   "provider": "Food and Agriculture Organization of the United Nations",
+   "url": "https://www.fao.org/4/x0490e/x0490e00.htm",
+   "resolution": "Method reference",
+   "period": null,
+   "latency": null,
+   "license_or_terms": "FAO copyright; method citation",
+   "notes": "Penman-Monteith reference ET (eq. 6), Hargreaves (eq. 52), extraterrestrial radiation (eq. 21), crop coefficients and depletion fraction p."
+  },
+  {
+   "id": "SD6_LEMA_CONTEXT",
+   "name": "Sheridan 6 Local Enhanced Management Area: boundary and order of designation",
+   "provider": "Kansas Biological Survey (boundary); Kansas Department of Agriculture, Division of Water Resources (order)",
+   "url": "https://gmd4.org/New/Sheridan%206%20LEMA%20Order%20of%20Designation.pdf",
+   "resolution": "PLSS sections",
+   "period": "2018–2027 orders",
+   "latency": null,
+   "license_or_terms": "Public documents",
+   "notes": "Research records T2_SD6_BOUNDARY and T2_SD6_ORDER. Allocation in demo_farm.json is illustrative only."
+  },
+  {
+   "id": "T2_SD6_BOUNDARY",
+   "name": "Sheridan 6 LEMA boundary (Kansas Biological Survey, University of Kansas)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://services2.arcgis.com/ZOdjAzAQ2B0f85zi/ArcGIS/rest/services/Sheridan6_LEMA_sections_dissolve/FeatureServer/0",
+   "resolution": null,
+   "period": "ArcGIS item 90041416e6d7427d839d3e0d55229082, modified 2023-01-04",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "FeatureServer query, outSR=4326, f=geojson. Dissolved PLSS sections from Kansas DASC. | Third-party reconstruction, not a DWR file. Cross-checked against the section list in T2_SD6_ORDER. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_SD6_ORDER",
+   "name": "Order of Designation, Sheridan 6 LEMA Management Plan 2018-2022 (KDA DWR, 001-DWR-LEMA-2017), copy hosted by GMD4",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://gmd4.org/New/Sheridan%206%20LEMA%20Order%20of%20Designation.pdf",
+   "resolution": null,
+   "period": "Order dated 2017 for 2018-2022; Section VII lists boundary sections",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Read the scanned PDF, page 8: T7S R30W Sections 19-36; T8S R30W Sections 1-18 (plus other townships). | 2023-2027 Consolidated Order on agriculture.ks.gov could not be downloaded by script (HTTP 403). Boundary assumed unchanged; the KBS 2023 polygon is 99 sections, matching this list. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_PLSS",
+   "name": "BLM National PLSS CadNSDI, PLSS Section layer",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://gis.blm.gov/arcgis/rest/services/Cadastral/BLM_Natl_PLSS_CadNSDI/MapServer/2",
+   "resolution": null,
+   "period": "MapServer 11.5 (as served)",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Envelope query over the SD-6 extent, outSR=4326. Quarter sections split at the section bounding-box midpoints. | Survey grid, not field edges or legal parcels. Quarter split is geometric, not a surveyed aliquot line. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_FIELD_DIGITIZED",
+   "name": "Approximate pivot-circle analysis boundaries (this package)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "scripts/extract_fields.py",
+   "resolution": null,
+   "period": "1.0",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Circle centred on the PLSS quarter-section centroid. Radius fitted from the CDL radial crop pattern (300-400 m). | Approximate. Not a surveyed field, parcel, or confirmed pivot. Center and radius may be off by tens of metres. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_NAIP",
+   "name": "USGS NAIP imagery (ImageServer), visual check of pivot geometry",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer",
+   "resolution": null,
+   "period": "Most recent mosaic served on retrieval date; acquisition year not read",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "exportImage in EPSG:3857 over the three fields; outlines drawn on top (field_check_imagery.jpg). | Visual evidence only. A pivot circle shows equipment geometry, not current irrigation, water rights or ownership. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_CDL",
+   "name": "USDA NASS Cropland Data Layer 2021-2025, Sheridan County KS (FIPS 20179)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://nassgeodata.gmu.edu/axis2/services/CDLService/GetCDLFile?year={year}&fips=20179",
+   "resolution": null,
+   "period": "CDL 2021, 2022, 2023, 2024, 2025 county clips from CropScape cache (30 m, Albers NAD83)",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Pixel-centre-in-polygon counts, no resampling or interpolation. Fractions over valid (non-zero) pixels. | Classification error applies per pixel. Kansas producer's accuracy 2023: corn 90.6%, sorghum 81.0%, winter wheat 88.5% (metadata_ks23). 2024 and 2025 Kansas metadata pages were not found on the NASS site. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_CDL_META",
+   "name": "CDL Kansas metadata 2021-2023 (NASS)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://www.nass.usda.gov/Research_and_Science/Cropland/metadata/metadata_ks23.htm",
+   "resolution": null,
+   "period": "metadata_ks21/22/23 (publication dates 2022-02-14, 2023-01-30, 2024-01-31)",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Read the accuracy tables for codes 1, 4, 24. | State-level accuracy; not field-specific. 2024-2025 not located. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "T2_SSURGO",
+   "name": "USDA NRCS SSURGO via Soil Data Access, survey area KS179 (Sheridan County)",
+   "provider": "See title (copied from research/deliverables/fields-soils/field_observations.json)",
+   "url": "https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest",
+   "resolution": null,
+   "period": "SDA live database as queried (mupolygon, mapunit, muaggatt)",
+   "latency": null,
+   "license_or_terms": null,
+   "notes": "Spatial intersection of each field polygon with mupolygon; clipped areas computed in EPSG:5070; muaggatt.aws* (component-weighted average) area-weighted across map units. | Available water storage is a soil property estimate, not current soil moisture. Map-unit averages hide within-unit variation. | retrieved 2026-11-14",
+   "kind": "field_source"
+  },
+  {
+   "id": "KSU_CORN_GDD_LATEPLANT",
+   "name": "Late planting of corn: how location and hybrid maturity affect probability of success (K-State Agronomy eUpdate)",
+   "url": "https://eupdate.agronomy.ksu.edu/article/late-planting-of-corn-how-location-and-hybrid-maturity-affect-probability-of-success-634-1",
+   "provider": "Kansas State University Research and Extension",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Extension publication",
+   "notes": "Copied from dashboard/data/crops.json extra_sources (P4); see that file for the values used.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "KSU_SORGHUM_GDD",
+   "name": "Sorghum Growth and Development, MF3234 (K-State Research and Extension)",
+   "url": "https://bookstore.ksre.ksu.edu/pubs/MF3234.pdf",
+   "provider": "Kansas State University Research and Extension",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Extension publication",
+   "notes": "Copied from dashboard/data/crops.json extra_sources (P4); see that file for the values used.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "KSU_WHEAT_HEAT",
+   "name": "Effects of High Temperatures on Wheat (K-State Agronomy eUpdate)",
+   "url": "https://eupdate.agronomy.ksu.edu/article/effects-of-high-temperatures-on-wheat-494",
+   "provider": "Kansas State University Research and Extension",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Extension publication",
+   "notes": "Copied from dashboard/data/crops.json extra_sources (P4); see that file for the values used.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_TRIBUNE_SUMMARY",
+   "name": "K-State SWREC Tribune: Irrigation",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://www.wkrec.com/about/locations/swrc-tribune/irrigation.html",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Alternative Cropping Systems with Limited Irrigation; Working with Less Water for Corn Production | Institutional summaries of western Kansas irrigated experiments, including 2020 results; undated webpage. Not Sheridan 6 field validation. Linked New Prairie Press downloads redirect after a platform migration.",
+   "evidence_notes": "The rotation summary reports no corn-yield differences in 2020, but greater corn yield after wheat than corn over eight years. The separate 2018-2020 corn experiment found differing responses at Colby and Tribune; timing, hybrid and seeding treatments matter.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_ROTATION_2016",
+   "name": "Limited Irrigation of Corn-Based No-Till Crop Rotations in West Central Great Plains",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://acsess.onlinelibrary.wiley.com/doi/full/10.2134/agronj2015.0536",
+   "resolution": null,
+   "period": "2016",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Material and Methods, Figure 1, Table 1; Economic Analysis, Table 4; Discussion | Tribune deep Ulysses silt loam; no-till, linear-move sprinkler; analyzed 2003-2010 after establishment. Includes continuous corn and corn-wheat, but NOT two-year corn-sorghum. Rotated corn received more irrigation.",
+   "evidence_notes": "Targets: continuous corn 254 mm/year; corn-wheat 381 mm corn and 127 mm wheat, averaging 254 mm/year across the cycle; weekly maximum 38 mm. Historical mean sow/harvest: corn May 3/September 29; wheat October 1/July 5. Continuous corn had higher whole-rotation returns despite higher corn-phase yield in rotations. These are treatment results, not farm forecasts.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_ROTATION_2021",
+   "name": "Alternative Cropping Systems with Limited Irrigation — Schlegel and Bond, 2021",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://www.academia.edu/68865633/Alternative_Cropping_Systems_with_Limited_Irrigation",
+   "resolution": null,
+   "period": "2021",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Reproduced original report: Experimental Procedures, printed p. 1; Tables 1-4, printed pp. 2-4; DOI 10.4148/2378-5977.8107 | Read the reproduced report text, methods and tables, not an AI summary. Original publisher route https://newprairiepress.org/kaesrr/vol7/iss7/8/ redirected. Tribune trial, not Sheridan 6; eight-year aggregate, no local response function.",
+   "evidence_notes": "All phases present annually, four replicates, no-till sprinkler; approximately 10 inches per crop-year, maximum 1.5 inches/week. Crop-specific fertility differed. Table 2 corn yields: continuous 175 b, after sorghum 187 ab, after wheat 199 a bu/acre; shared letters mean no significant difference. Sorghum rotation effect was nonsignificant. Table 4: corn planting water lower after sorghum; within-crop water use did not differ by rotation. Wheat's 2019 sowing/2020 harvest explicitly crosses calendar years.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_ROTATION_2020_ARS",
+   "name": "Productivity and profitability of four crop rotations under limited irrigation — USDA ARS publication record",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://www.ars.usda.gov/research/publications/publication/?seqNo115=405022",
+   "resolution": null,
+   "period": "2020",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Interpretive Summary and Technical Abstract; DOI 10.13031/aea.13416, Applied Engineering in Agriculture 36(1):1-9 | Original institutional abstract read; full article unavailable through retrieved ASABE routes. ARS dates it 2019; journal volume and K-State bibliography date it 2020. Tribune 2012-2017, 10-inch limit; economic assumptions not fully recovered.",
+   "evidence_notes": "Corn-sorghum ranked highest economically; corn-wheat lowest. Corn and sorghum yields were similar in monoculture and in their two-year rotation. This supports comparison, not a current profit claim.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_ROTATION_2018",
+   "name": "Alternative Cropping Systems with Limited Irrigation — Schlegel, 2018",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://newprairiepress.org/kaesrr/vol4/iss8/8/",
+   "resolution": null,
+   "period": "2018",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Original publisher Abstract; DOI 10.4148/2378-5977.7628 | 2017 annual outcome from the Tribune experiment; abstract accessible, full download redirected. Do not infer disease incidence probabilities or add this as an independent trial.",
+   "evidence_notes": "In 2017 sorghum after sorghum outyielded sorghum after corn; wheat was not harvested after severe wheat streak mosaic. This contrasts with the later nonsignificant multi-year sorghum comparison.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_WATER",
+   "name": "Efficient Crop Water Use in Kansas, MF3066",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://bookstore.ksre.ksu.edu/pubs/efficient-crop-water-use-in-kansas_MF3066.pdf",
+   "resolution": null,
+   "period": "2012",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Printed p. 8 Table 6; pp. 9-11 Irrigation Requirement/Capacity; p. 22 Table 10; p. 21 Figure 29 | General Central Plains ET ranges are not irrigation allocations. Chapters mix irrigated, dryland, western and eastern Kansas evidence; those treatments cannot be pooled.",
+   "evidence_notes": "Table 6 seasonal ET: corn 22-30 inches; wheat and sorghum 16-22. Table 10 gives different ranges (18-25, 15-24, 13-21 respectively): context matters. All three are high-residue grasses. Gross daily delivery = gpm × operating hours/day ÷ (450 × acres); multiply by efficiency for net delivery. Soil storage buffers peak demand.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_CWA",
+   "name": "K-State Crop Water Allocator",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://cwa2.engg.ksu.edu/",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Help: Background; Field and Irrigation Input Tab; Crops, Prices, Yields Tab; Calculating Results | Model documentation, not validation of these chronological sequences. Yield-response graphs and model description were readable; numerical coefficients, executable response implementation and local calibration were not recovered. Documentation contains legacy assumptions.",
+   "evidence_notes": "Ranks crop/land-split/irrigation combinations using yield × price minus production and irrigation costs, excluding fixed land/equipment investment. Rainfall, soil, efficiency, maximum yield, prices, discharge, pumping lift and operating costs are inputs. Allocation optimization does not itself establish calendar or pest compatibility.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_BUDGET_INDEX",
+   "name": "2026 Farm Management Guides for Irrigated Crops",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://agmanager.info/farm-budgets/2025-farm-management-guides-irrigated-crops",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Page title and crop/region download table | Supplied URL contains 2025 but retrieved page serves 2026 budgets dated November 1, 2025. Preserve actual version; not live bids or validated limited-water yields.",
+   "evidence_notes": null,
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_BUDGET_CORN",
+   "name": "2026 Irrigated Corn (center-pivot) Cost-Return Budget — Northwest Kansas",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://agmanager.info/sites/default/files/wysiwyg/Irrigated%20Corn%20(center-pivot)%20Cost-Return%20Budget_Northwest%20Kansas%20_Nov-01-2025.pdf",
+   "resolution": null,
+   "period": "2025",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "PDF p. 1: date, irrigation levels, Tables 1-2; p. 2 middle-yield budget | 2026 planning budget, not a 2025 crop result; center-pivot assumptions. Three yield scenarios also change irrigation, so they are not a controlled response curve.",
+   "evidence_notes": "Low/middle/high irrigation assumptions are 12/14/16 inches. Do not import budget yields into a more restrictive scenario without a defensible response model.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_BUDGET_SORGHUM",
+   "name": "2026 Irrigated Grain Sorghum (center-pivot) Cost-Return Budget — Northwest KS",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://agmanager.info/sites/default/files/wysiwyg/Irrigated%20Grain%20Sorghum%20(center-pivot)%20Cost-Return%20Budget_Northwest%20KS_Nov-01-2025.pdf",
+   "resolution": null,
+   "period": "2025",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "PDF p. 1: date, irrigation levels, Tables 1-2; p. 2 middle-yield budget | 2026 planning assumptions; no verified local buyer, basis or hauling cost. Scenario yield/irrigation pairs are not experimental response points.",
+   "evidence_notes": "Low/middle/high irrigation assumptions are 10.5/12/13.5 inches. Economic feasibility needs local receipts and costs.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_BUDGET_WHEAT",
+   "name": "2026 Irrigated Wheat Cost-Return Budget in Western KS — Limited irrigation",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://agmanager.info/sites/default/files/wysiwyg/Irrigated%20Wheat%20Cost-Return%20Budget%20in%20Western%20KS_Limited%20irrigation_Nov-01-2025.pdf",
+   "resolution": null,
+   "period": "2025",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "PDF p. 1: date, irrigation levels, Tables 1-2; p. 2 middle-yield budget | Western Kansas, not specifically northwest or wheat after corn; 2026 planning budget. Does not price the farm's added equipment or prove rotation profitability.",
+   "evidence_notes": "Low/middle/high irrigation assumptions are 4/6/8 inches. Direct-cost and total-cost returns differ; retain the cost definition in comparisons.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_WATER_CONUNDRUM",
+   "name": "The water conundrum of planting cover crops in the Great Plains",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://www.ars.usda.gov/ARSUserFiles/30100500/Publications%202010-2019/22PDF%20Water%20Conundrum.pdf",
+   "resolution": null,
+   "period": "2015",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Crops & Soils, printed pp. 25-30, especially Scottsbluff/Akron discussion on pp. 29-30 | USDA-hosted authored synthesis, heavily dryland and broader Great Plains. Does not quantify irrigated Sheridan 6 impacts or compare the three requested sequences.",
+   "evidence_notes": "Retained dead residue and a living cover crop have different water costs. Semiarid cover-crop transpiration can leave less water for the next cash crop; do not automatically fill the wheat-to-corn gap or award a soil-health benefit. No additional crop is proposed here.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_NW_CORN_CALENDAR",
+   "name": "Sunflower Extension District: Best Management Practices for Planting Corn",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://www.sunflower.k-state.edu/agronomy/corn/",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Best Management Practices for Planting Corn, item 4: Plant into optimal planting conditions | Cheyenne, Sherman and Wallace district guidance; adjacent western Kansas, not a Sheridan 6 prescription. Page mixes dryland discussion and general corn practice; no irrigated-only date comparison.",
+   "evidence_notes": "Regional planting reference: April 25-May 15, conditional on seedbed and weather.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_NW_WHEAT_CALENDAR",
+   "name": "Use location, production goals to determine winter wheat planting dates",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://extension.k-state.edu/news-and-publications/news/stories/2024/09/agriculture-wheat-planting-considerations.html",
+   "resolution": null,
+   "period": "2024",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "September 19, 2024 article: northwest Kansas September 25 target and following explanation | Regional target, not a field-specific window or irrigation treatment. Article contains an apparent early/late wording error in its penalty paragraph; that numerical penalty is not used.",
+   "evidence_notes": "Northwest target is around September 25. Earlier cold makes delayed establishment consequential; excessively early planting also raises disease and moisture-use concerns.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_NASS_CALENDAR",
+   "name": "Field Crops Usual Planting and Harvesting Dates",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://www.nass.usda.gov/Publications/Todays_Reports/reports/fcdate10.pdf",
+   "resolution": null,
+   "period": "2010",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Printed p. 39, Usual Planting and Harvesting Dates by Crop — Kansas; p. 4 Introduction | Historical statewide observations combine eastern/western and irrigated/nonirrigated acreage. Most-active windows describe roughly 15-85% progress, not biological, insurance or legal cutoffs; local windows remain unvalidated.",
+   "evidence_notes": "Most-active harvest: corn September 10-October 25; grain sorghum September 25-November 10; winter wheat June 20-July 5. Most-active sowing: sorghum May 15-June 20; wheat September 15-October 20.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_CORN_GUIDE",
+   "name": "Corn Production Handbook, C560",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://bookstore.ksre.k-state.edu/pubs/corn-production-handbook_C560.pdf",
+   "resolution": null,
+   "period": "2007",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Insect Management: rootworm discussion; Major Corn Diseases: charcoal rot; Irrigation: Reproductive Stage and Irrigation Management, printed pp. 33-34 | Older Kansas extension guidance; use crop physiology and risk mechanisms, not historic pesticide practices, hybrid performance or current pest susceptibility claims.",
+   "evidence_notes": "Corn is especially sensitive around tasseling/pollination and still needs water for grain filling. Corn-after-corn warrants rootworm review. Charcoal rot is listed for corn as well as sorghum; rotation benefits must be pest-specific.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_SORGHUM_GUIDE",
+   "name": "Grain Sorghum Production Handbook, C687",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://bookstore.ksre.ksu.edu/pubs/grain-sorghum-production-handbook_C687.pdf",
+   "resolution": null,
+   "period": "1998",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Printed pp. 15-16 Irrigation, Table 9; p. 18 Major Sorghum Diseases; pp. 24-27 Harvesting, Drying and Storage; back cover revision date | Historical Kansas handbook. Garden City water-use observations include unlimited soil moisture; limited-irrigation examples largely deep silt loams. No old chemical or economic recommendations are carried forward.",
+   "evidence_notes": "Boot/heading is a high-demand period. Drought tolerance does not remove peak delivery needs; stress can delay maturity and increase frost exposure. Combine setup and grain drying/airflow require sorghum-specific checks. Drought-associated charcoal rot and lodging remain risks.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_ROTATION_GUIDE",
+   "name": "No-Till in Kansas: Rotations and Cultural Practices, MF2908",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://bookstore.ksre.ksu.edu/pubs/rotations-and-cultural-practices_MF2908.pdf",
+   "resolution": null,
+   "period": "2009",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Important Factors When Planning Crop Rotations: markets; herbicide carryover; residue characteristics; equipment needs | General no-till guidance mixes regions and dryland experiments. Manhattan/Hesston yield charts are not transferred to irrigated Sheridan 6. Tribune versus Garden City stubble responses also differed.",
+   "evidence_notes": "Evaluate buyer access, storage, transport and machinery. Residue distribution affects establishment; cover can conserve water but cool spring seedbeds. Herbicide carryover depends on product history and soil/environment. Later sorghum planting can alter weed-management opportunities; species change alone proves no weed benefit.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_WHEAT_AFTER_CORN",
+   "name": "Management Considerations for No-Till Wheat Following a Summer Row Crop",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://www.agronomy.k-state.edu/eupdates/2026/issue-1121-september-17/no-till-wheat-after-summer-row-crop.html",
+   "resolution": null,
+   "period": "2026",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Variety Selection; Planting Date; Harvest Considerations; Seeding Equipment; Nutrient Management; Herbicide History | Explicitly draws on eastern Kansas MF2641 and Belleville results. Mechanisms are screening concerns, not western irrigated yield penalties or fertilizer-rate prescriptions.",
+   "evidence_notes": "Wheat after corn warrants Fusarium head blight review. Heavy or uneven residue can impair seed placement and immobilize nitrogen. Late sowing reduces fall tillering. Review actual prior herbicide labels for wheat compatibility.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_WHEAT_CURL_MITE",
+   "name": "K-State Entomology: Wheat Curl Mite",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://entomology.k-state.edu/extension/crop-protection/wheat/curlmite.html",
+   "resolution": null,
+   "period": "2024",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Life-cycle discussion and Management; content last-updated June 6, 2024 | Kansas biological mechanism, not a diagnosis of the target field. More recent regional wheat-free-window guidance exists.",
+   "evidence_notes": "Corn and volunteer wheat can support the mite between wheat crops; wind dispersal makes surrounding hosts relevant. Thus corn-wheat is not automatically a wheat-virus break.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_WHEAT_FREE_WINDOW",
+   "name": "Wheat Streak Mosaic Management: Pay Attention to Wheat-Free Windows",
+   "provider": "See title (copied from research/deliverables/agronomy/agronomy.json)",
+   "url": "https://www.agronomy.k-state.edu/eupdates/2026/issue-1112-july-16/wheat-streak-wheat-free-windows-2026.html",
+   "resolution": null,
+   "period": "2026",
+   "latency": null,
+   "license_or_terms": "Publication; cite as listed",
+   "notes": "Volunteer Control Will Be Essential in 2026; Figure 2 and Important considerations | Current extension guidance, not a legal restriction. Regional timing needs local verification; no chemical directions reproduced.",
+   "evidence_notes": "Updated guidance describes regional wheat-free windows before optimal planting. Do not silently hard-code the older two-week guidance as the current regional standard.",
+   "kind": "agronomy_source"
+  },
+  {
+   "id": "T1_R01_FIELD_UNKNOWN",
+   "name": "Agronomy rule T1_R01_FIELD_UNKNOWN: Field inputs are missing or differ materially from the experiment.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "flag: Retain suitability as unknown and regional evidence as provisional. No boundary is needed to display candidates; evidence_status is not field approval. Based on T1_ROTATION_2016, T1_ROTATION_GUIDE. Evidence-transfer safeguard; local validation pending.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_ROTATION_2016",
+    "T1_ROTATION_GUIDE"
+   ]
+  },
+  {
+   "id": "T1_R02_ANNUAL_VS_PEAK",
+   "name": "Agronomy rule T1_R02_ANNUAL_VS_PEAK: A plan fits its seasonal volume but crop-stage supply adequacy has not been checked.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "flag: Evaluate peak delivery separately. Stored water and effective rainfall also supply crop demand; a low flow rate is not equivalent to a small annual allocation. Based on T1_WATER, T1_CWA, T1_CORN_GUIDE, T1_SORGHUM_GUIDE. Physical distinction supported; no farm-specific capacity threshold assigned.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_WATER",
+    "T1_CWA",
+    "T1_CORN_GUIDE",
+    "T1_SORGHUM_GUIDE"
+   ]
+  },
+  {
+   "id": "T1_R03_ET_NOT_PUMPING",
+   "name": "Agronomy rule T1_R03_ET_NOT_PUMPING: Crop ET ranges or crop labels are being used to calculate pumping savings.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "explain: Use a consistent water balance and gross/net definitions. ET differences alone do not determine withdrawal changes; no pumping saving is assigned here. Based on T1_WATER, T1_CWA. Supported distinction; numerical estimate unresolved.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_WATER",
+    "T1_CWA"
+   ]
+  },
+  {
+   "id": "T1_R04_MATCH_TREATMENTS",
+   "name": "Agronomy rule T1_R04_MATCH_TREATMENTS: Comparing treatment results or applying a rotation yield uplift.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "explain: Keep the older unequal crop-phase irrigation and later equal-depth trial separate. Neither supplies a universal uplift; annual reports from the same trial are not independent replications. Based on T1_ROTATION_2016, T1_ROTATION_2021, T1_ROTATION_2018. Methods verified; no uplift coefficient endorsed.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_ROTATION_2016",
+    "T1_ROTATION_2021",
+    "T1_ROTATION_2018"
+   ]
+  },
+  {
+   "id": "T1_R05_WHEAT_HANDOFF",
+   "name": "Agronomy rule T1_R05_WHEAT_HANDOFF: Corn harvest and field preparation leave uncertain time or water for wheat establishment.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "flag: Assess the same-autumn transition; statewide harvest ranges are not proof that a local wheat window remains open. Based on T1_NW_WHEAT_CALENDAR, T1_WHEAT_AFTER_CORN, T1_NASS_CALENDAR. Calendar conflict supported; farm dates unresolved.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_NW_WHEAT_CALENDAR",
+    "T1_WHEAT_AFTER_CORN",
+    "T1_NASS_CALENDAR"
+   ]
+  },
+  {
+   "id": "T1_R06_CONFIRMED_CALENDAR_FAILURE",
+   "name": "Agronomy rule T1_R06_CONFIRMED_CALENDAR_FAILURE: The earliest feasible sowing date is later than the locally validated feasible window, with no acceptable operational adjustment.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "exclude: Exclude that scheduled instance, not the crop everywhere. No universal latest date is invented. Based on T1_NW_WHEAT_CALENDAR, T1_SORGHUM_GUIDE. Proposed feasibility gate; requires confirmed farm inputs before activation.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_NW_WHEAT_CALENDAR",
+    "T1_SORGHUM_GUIDE"
+   ]
+  },
+  {
+   "id": "T1_R07_YEAR_AND_AREA_ACCOUNTING",
+   "name": "Agronomy rule T1_R07_YEAR_AND_AREA_ACCOUNTING: A two-year sequence is represented as a single annual crop mixture or wheat is sown in its harvest year.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "explain: Preserve chronology and both phases. A whole field alternating years and concurrent phase-split acreage impose different annual pumping schedules; confirm applicable allocation accounting separately. Based on T1_ROTATION_2016, T1_ROTATION_2021, T1_CWA. Bookkeeping inference from study design; no Sheridan 6 water-right interpretation made.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_ROTATION_2016",
+    "T1_ROTATION_2021",
+    "T1_CWA"
+   ]
+  },
+  {
+   "id": "T1_R08_HERBICIDE_UNKNOWN",
+   "name": "Agronomy rule T1_R08_HERBICIDE_UNKNOWN: A next crop is proposed without verified plant-back compatibility.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "flag: Keep compatibility unresolved until the actual label and field history are checked. No chemical directions, product-specific interval or inferred restriction is supplied. Based on T1_ROTATION_GUIDE, T1_WHEAT_AFTER_CORN. General concern supported; product-specific review pending.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_ROTATION_GUIDE",
+    "T1_WHEAT_AFTER_CORN"
+   ]
+  },
+  {
+   "id": "T1_R09_CONFIRMED_PLANTBACK_CONFLICT",
+   "name": "Agronomy rule T1_R09_CONFIRMED_PLANTBACK_CONFLICT: An actual applicable plant-back requirement is verified to conflict with the proposed crop/date.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "exclude: Exclude the conflicting schedule only after verification; missing history alone triggers a flag. Based on T1_WHEAT_AFTER_CORN, T1_ROTATION_GUIDE. Conditional gate; no such conflict established for this farm.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_WHEAT_AFTER_CORN",
+    "T1_ROTATION_GUIDE"
+   ]
+  },
+  {
+   "id": "T1_R10_NO_FAMILY_OR_N_CREDIT",
+   "name": "Agronomy rule T1_R10_NO_FAMILY_OR_N_CREDIT: Species switching is being treated as a crop-family break, disease reduction or nitrogen benefit.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "explain: All three crops are grasses. Require outcome-specific evidence; shared hosts and residue immobilization prevent automatic credits. Based on T1_WATER, T1_CORN_GUIDE, T1_SORGHUM_GUIDE, T1_WHEAT_AFTER_CORN, T1_WHEAT_CURL_MITE. Supported guardrail; no nitrogen or disease reduction quantified.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_WATER",
+    "T1_CORN_GUIDE",
+    "T1_SORGHUM_GUIDE",
+    "T1_WHEAT_AFTER_CORN",
+    "T1_WHEAT_CURL_MITE"
+   ]
+  },
+  {
+   "id": "T1_R11_WHEAT_HEALTH",
+   "name": "Agronomy rule T1_R11_WHEAT_HEALTH: Corn-wheat is proposed without assessment of green-bridge or residue-associated disease risks.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "flag: Review wheat streak mosaic and Fusarium risks separately. The former has direct western Kansas trial relevance; the latter's cited management evidence includes eastern Kansas. Use current regional guidance, not an invented cutoff. Based on T1_ROTATION_2018, T1_WHEAT_CURL_MITE, T1_WHEAT_FREE_WINDOW, T1_WHEAT_AFTER_CORN. Risk mechanisms supported; local incidence unknown.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_ROTATION_2018",
+    "T1_WHEAT_CURL_MITE",
+    "T1_WHEAT_FREE_WINDOW",
+    "T1_WHEAT_AFTER_CORN"
+   ]
+  },
+  {
+   "id": "T1_R12_RESIDUE_AND_RECHARGE",
+   "name": "Agronomy rule T1_R12_RESIDUE_AND_RECHARGE: A sequence is awarded a soil benefit or its intercrop gap is assumed to restore all soil water.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "explain: Retained residue, live plant water use and rainfall storage are different processes. Assess establishment and recharge; do not add a living cover crop or carbon gain by default. Based on T1_ROTATION_GUIDE, T1_WATER_CONUNDRUM, T1_ROTATION_2021. Qualitative mechanisms supported; dryland cover-crop magnitudes not transferred.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_ROTATION_GUIDE",
+    "T1_WATER_CONUNDRUM",
+    "T1_ROTATION_2021"
+   ]
+  },
+  {
+   "id": "T1_R13_MARKET_AND_EQUIPMENT",
+   "name": "Agronomy rule T1_R13_MARKET_AND_EQUIPMENT: Any required market or operational capability is unverified.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "flag: Adding sorghum or wheat is conditional on executable production and marketing. Include added costs; do not presume corn facilities fit every grain. Based on T1_ROTATION_GUIDE, T1_SORGHUM_GUIDE, T1_WHEAT_AFTER_CORN. Practical prerequisite; farm capability unknown.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_ROTATION_GUIDE",
+    "T1_SORGHUM_GUIDE",
+    "T1_WHEAT_AFTER_CORN"
+   ]
+  },
+  {
+   "id": "T1_R14_NUMERIC_FALLBACK",
+   "name": "Agronomy rule T1_R14_NUMERIC_FALLBACK: Numerical yield, profit or pumping comparisons are requested without these inputs and a validated model implementation.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "flag: Return qualitative comparison and unresolved numerical outputs. Trial averages and budget scenarios are not response functions. Do not fit a monotonic yield curve from observational water-use associations. Based on T1_CWA, T1_ROTATION_2020_ARS, T1_BUDGET_CORN, T1_BUDGET_SORGHUM, T1_BUDGET_WHEAT. Fallback active: no numerical farm estimates produced.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_CWA",
+    "T1_ROTATION_2020_ARS",
+    "T1_BUDGET_CORN",
+    "T1_BUDGET_SORGHUM",
+    "T1_BUDGET_WHEAT"
+   ]
+  },
+  {
+   "id": "T1_R15_WHOLE_SEQUENCE_ECONOMICS",
+   "name": "Agronomy rule T1_R15_WHOLE_SEQUENCE_ECONOMICS: Ranking from corn-phase yield alone, mixing budget versions, or comparing different return definitions.",
+   "provider": "Kimchi research team (agronomy.json)",
+   "url": "research/deliverables/agronomy/agronomy.json",
+   "resolution": null,
+   "period": null,
+   "latency": null,
+   "license_or_terms": "Project rule",
+   "notes": "explain: Compare the complete cycle on the same area-time and cost basis. Label the retrieved 2026 budgets and their 2025 publication date; replace assumptions with farm inputs. Based on T1_ROTATION_2016, T1_ROTATION_2020_ARS, T1_CWA, T1_BUDGET_INDEX, T1_BUDGET_CORN, T1_BUDGET_SORGHUM, T1_BUDGET_WHEAT. Comparison safeguard; current profitability unresolved.",
+   "kind": "agronomy_rule",
+   "based_on": [
+    "T1_ROTATION_2016",
+    "T1_ROTATION_2020_ARS",
+    "T1_CWA",
+    "T1_BUDGET_INDEX",
+    "T1_BUDGET_CORN",
+    "T1_BUDGET_SORGHUM",
+    "T1_BUDGET_WHEAT"
+   ]
+  }
+ ],
+ "deferred": [
+  {
+   "name": "OpenET",
+   "why": "Field-scale (30 m) actual ET would replace our ET₀ × Kc estimate, but the API needs a free account and key; the adapter exists in research/deliverables/weather-water/. Next step."
+  },
+  {
+   "name": "NASA MODIS MOD16A2GF ET",
+   "why": "500 m 8-day actual ET for fld01–fld03 (2021–2025) was retrieved from ORNL in research PR #8 but is not wired into the dashboard tonight. Next step."
+  },
+  {
+   "name": "GRACE-FO",
+   "why": "Groundwater/total water storage at ~300 km and monthly: regional aquifer context only, cannot resolve a field or the SD-6 LEMA."
+  },
+  {
+   "name": "SMAP",
+   "why": "Satellite soil moisture (9–36 km) needs an Earthdata login for downloads; POWER GWETROOT covers the factor tonight (model-based)."
+  },
+  {
+   "name": "GPM IMERG",
+   "why": "~10 km precipitation, finer than POWER, but needs Earthdata login and gridded HDF5/NetCDF processing; POWER PRECTOTCORR is used."
+  },
+  {
+   "name": "ECOSTRESS",
+   "why": "70 m ET and surface temperature, but irregular overpass times and gaps make a field time series unreliable; needs Earthdata login."
+  },
+  {
+   "name": "PRISM",
+   "why": "4 km US climate, better than POWER for rain; no simple CORS JSON point API, so it needs a server-side download; next step."
+  },
+  {
+   "name": "NLDAS",
+   "why": "~12 km hourly forcing and land-surface soil moisture; needs Earthdata login and NetCDF processing."
+  },
+  {
+   "name": "NAIP",
+   "why": "Aerial imagery only used for a one-off visual check of pivot outlines (research/deliverables/fields-soils); a basemap at most."
+  },
+  {
+   "name": "SRTM",
+   "why": "Elevation/slope is nearly flat at the demo fields; not needed for the four factors tonight."
+  },
+  {
+   "name": "USGS NWIS",
+   "why": "Groundwater-level wells exist near SD-6, but linking a well record to a field needs local review; next step for aquifer context."
+  },
+  {
+   "name": "USDA AMS Market News",
+   "why": "Prices would support an income view, but we make no profit predictions tonight (guardrail 8)."
+  },
+  {
+   "name": "USDA NASS QuickStats",
+   "why": "County yields could benchmark farmer records; needs an API key and is not needed for the four factors tonight."
+  },
+  {
+   "name": "FAO GAEZ",
+   "why": "Global ~9 km crop suitability: too coarse and not specific to irrigated western Kansas."
+  },
+  {
+   "name": "CoCoRaHS",
+   "why": "Volunteer rain gauges are point data with gaps; a good later check on POWER rainfall."
+  },
+  {
+   "name": "NLCD",
+   "why": "Land cover every 2–3 years at 30 m; CDL already gives annual crop type."
+  },
+  {
+   "name": "LANDFIRE",
+   "why": "Wildland fuel and vegetation layers; not relevant to irrigated cropland decisions."
+  },
+  {
+   "name": "GEDI",
+   "why": "Lidar canopy structure in sparse footprints; not useful for annual crops at field scale."
+  },
+  {
+   "name": "Sentinel-2",
+   "why": "10 m NDVI would be sharper than MODIS 250 m, but it is not a NASA product, has only 2015+, and needs cloud masking and tiling work; HLS is the stretch goal."
+  },
+  {
+   "name": "ERA5",
+   "why": "ECMWF reanalysis similar to POWER (31 km); not NASA and needs a Copernicus account; POWER covers the same need."
+  }
+ ]
+}
