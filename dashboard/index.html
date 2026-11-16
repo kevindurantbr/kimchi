@@ -15,16 +15,27 @@
     // Apply the saved theme before first paint so the page does not flash.
     try { const t = localStorage.getItem('kimchi.theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
+  <script>
+    // Library or script failures must never leave the page frozen on "CHECKING": say what failed.
+    window.kimchiFail = function (what) {
+      var b = document.getElementById('banner'); if (!b) { window.addEventListener('DOMContentLoaded', function () { window.kimchiFail(what); }); return; }
+      b.hidden = false; b.className = 'banner err';
+      b.textContent = what + ' Check your connection and reload.';
+      var r = document.createElement('button'); r.type = 'button'; r.className = 'btn'; r.textContent = 'Reload'; r.onclick = function () { location.reload(); }; b.append(' ', r);
+      var c = document.getElementById('live-chip'); if (c && /CHECKING/.test(c.textContent)) { c.className = 'chip down'; c.textContent = 'NOT STARTED'; }
+    };
+  </script>
 </head>
-<body>
+<body class="level-1">
+  <script>try { var lv = localStorage.getItem('kimchi.level'); if (/^[123]$/.test(lv)) document.body.className = 'level-' + lv; } catch (e) {}</script>
   <a class="skip" href="#map">Skip to map</a>
 
   <div class="strip" role="status" aria-live="polite">
-    <span class="strip-src">PUBLIC DATA · NASA POWER · MODIS NDVI · USDA SSURGO · USDA CDL</span>
+    <span class="strip-src" data-min-level="3">PUBLIC DATA · NASA POWER · MODIS NDVI · USDA SSURGO · USDA CDL</span>
     <span class="strip-gap"></span>
     <button type="button" id="sample-chip" class="chip chip-warn" hidden aria-haspopup="dialog">SAMPLE DATA</button>
     <span id="live-chip" class="chip">LIVE POWER · CHECKING</span>
-    <span id="utc-clock" class="mono" aria-label="Current time UTC"></span>
+    <span id="utc-clock" data-min-level="3" class="mono" aria-label="Current time UTC"></span>
   </div>
 
   <header class="bar">
@@ -39,26 +50,33 @@
       <select id="field-select" aria-label="Select field"></select>
     </label>
 
-    <div class="tabs" role="tablist" aria-label="Factor">
+    <div class="seg level-seg" role="group" aria-label="Detail level">
+      <span class="lbl">View</span>
+      <button type="button" data-level="1" aria-pressed="true">Simple</button>
+      <button type="button" data-level="2" aria-pressed="false">Moderate</button>
+      <button type="button" data-level="3" aria-pressed="false">Complete</button>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Factor" data-min-level="2">
       <button role="tab" data-factor="water" aria-selected="true">Water balance</button>
       <button role="tab" data-factor="temperature" aria-selected="false">Temperature</button>
       <button role="tab" data-factor="soil_moisture" aria-selected="false">Soil moisture</button>
       <button role="tab" data-factor="crop_condition" aria-selected="false">Crop condition</button>
     </div>
 
-    <div class="seg" role="group" aria-label="Map view">
+    <div class="seg" role="group" aria-label="Map view" data-min-level="2">
       <button type="button" data-view="field" aria-pressed="true">Field view</button>
       <button type="button" data-view="region" aria-pressed="false">Region view</button>
     </div>
 
     <div class="bar-actions">
-      <button type="button" class="btn" id="btn-draw">Draw field</button>
+      <button type="button" class="btn" id="btn-draw" data-min-level="2">Draw field</button>
       <button type="button" class="btn" id="btn-records" aria-haspopup="dialog">My farm records</button>
       <button type="button" class="btn" id="btn-report" aria-haspopup="dialog">Season report</button>
-      <span class="bar-div" aria-hidden="true"></span>
-      <button type="button" class="btn icon" id="btn-left" aria-pressed="true" aria-controls="left" title="Show or hide the factor panel">◧<span class="sr">Factor panel</span></button>
-      <button type="button" class="btn icon" id="btn-right" aria-pressed="true" aria-controls="right" title="Show or hide the decision panel">◨<span class="sr">Decision panel</span></button>
-      <button type="button" class="btn icon" id="btn-theme" title="Switch light or dark">◐<span class="sr">Switch theme</span></button>
+      <span class="bar-div" aria-hidden="true" data-min-level="2"></span>
+      <button type="button" class="btn icon" data-min-level="2" id="btn-left" aria-pressed="true" aria-controls="left" title="Show or hide the factor panel">◧<span class="sr">Factor panel</span></button>
+      <button type="button" class="btn icon" data-min-level="2" id="btn-right" aria-pressed="true" aria-controls="right" title="Show or hide the decision panel">◨<span class="sr">Decision panel</span></button>
+      <button type="button" class="btn icon" data-min-level="3" id="btn-theme" title="Switch light or dark">◐<span class="sr">Switch theme</span></button>
     </div>
   </header>
 
@@ -69,7 +87,7 @@
       <div class="sheet-grip" aria-hidden="true"></div>
       <div class="panel-head"><span class="code">F-00</span><h2>Factor status</h2><span class="panel-meta mono" id="left-meta"></span></div>
       <div id="cards" class="cards"><p class="state">Loading factor status…</p></div>
-      <div id="detail" class="detail"></div>
+      <div id="detail" class="detail" data-min-level="2"></div>
     </aside>
 
     <section class="mapwrap" aria-label="Map">
@@ -78,7 +96,7 @@
         <div id="map-title" class="hud-title"></div>
         <div id="map-note" class="hud-note"></div>
       </div>
-      <div class="hud hud-br mono" id="cursor-readout" aria-hidden="true">LAT --.-----  LON ---.-----</div>
+      <div class="hud hud-br mono" data-min-level="3" id="cursor-readout" aria-hidden="true">LAT --.-----  LON ---.-----</div>
       <div id="legend" class="legend" aria-live="polite"></div>
       <div class="slider" id="slider">
         <button type="button" class="btn icon" id="sl-prev" aria-label="Previous step">◀</button>
@@ -87,12 +105,13 @@
         <input type="range" id="sl-range" min="0" max="0" value="0" aria-label="Time">
         <output id="sl-label" class="mono" for="sl-range"></output>
       </div>
+      <div class="sl-caption" id="sl-caption" aria-live="polite"></div>
     </section>
 
     <aside id="right" class="panel right" aria-label="Decisions">
       <div class="sheet-grip" aria-hidden="true"></div>
       <div class="panel-head"><span class="code">D-01</span><h2>Top 3 actions</h2></div>
-      <div class="chips" role="group" aria-label="Focus actions on">
+      <div class="chips" role="group" aria-label="Focus actions on" data-min-level="2">
         <button type="button" data-focus="" aria-pressed="true">All</button>
         <button type="button" data-focus="water" aria-pressed="false">Water</button>
         <button type="button" data-focus="temperature" aria-pressed="false">Temperature</button>
@@ -102,11 +121,14 @@
       <div id="actions"><p class="state">Loading actions…</p></div>
 
       <div class="panel-head"><span class="code">D-02</span><h2>Rotation options</h2></div>
-      <p class="fine">Fit indicators over the same historical years. No option is ranked best.</p>
+      <p class="fine">How each rotation would have fared over the same past years. No option is ranked best.</p>
       <div id="rotations"><p class="state">Loading rotations…</p></div>
 
-      <div class="panel-head"><span class="code">D-03</span><h2>What-if rotation</h2></div>
-      <div id="whatif"></div>
+      <div data-min-level="2">
+        <div class="panel-head"><span class="code">D-03</span><h2>What-if rotation</h2></div>
+        <div id="whatif"></div>
+      </div>
+      <p class="fine limits">Weather is regional (~50 km). Estimates, not meters. Check locally.</p>
     </aside>
 
     <nav class="sheet-tabs" aria-label="Panels">
@@ -151,9 +173,9 @@
     </form>
   </dialog>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script type="module" src="app.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="kimchiFail('The map library (Leaflet) could not load.')"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" onerror="kimchiFail('The field-drawing tool could not load.')"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" onerror="kimchiFail('The chart library could not load, so charts are hidden.')"></script>
+  <script type="module" src="app.js" onerror="kimchiFail('The dashboard code could not load.')"></script>
 </body>
 </html>

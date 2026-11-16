@@ -310,3 +310,39 @@ a { color: var(--acc); }
   #dlg-report .btn { display: none; }
   .rep-sec { border-color: #999; break-inside: avoid; }
 }
+
+/* ---------- round 3: panel collapse, detail levels, slider caption, error cards ---------- */
+/* Pin each panel to its column, so hiding the left panel no longer shifts the map into a 0 px column. */
+@media (min-width: 800px) {
+  .console > .left { grid-column: 1; grid-row: 1; }
+  .console > .mapwrap { grid-column: 2; grid-row: 1; }
+  .console > .right { grid-column: 3; grid-row: 1; }
+}
+/* Detail level: Simple (1) / Moderate (2) / Complete (3), PLAN.md section 11. */
+body.level-1 [data-min-level="2"], body.level-1 [data-min-level="3"], body.level-2 [data-min-level="3"],
+body.level-2 [data-max-level="1"], body.level-3 [data-max-level="1"], body.level-3 [data-max-level="2"] { display: none !important; }
+body:not(.level-3) .code { display: none; }
+body.level-2 .detail .dsec ~ .dsec, body:not(.level-3) details.adv { display: none; }
+.level-seg { align-items: center; }
+.level-seg .lbl { padding: 0 8px; font: 11px var(--font-mono); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.fcard .word { display: inline-block; font: 600 13px var(--font-mono); padding: 2px 8px; border-radius: var(--r); margin: 8px 0 4px; border: 1px solid var(--line-strong); }
+.fcard .word.w-good { color: var(--sev0); border-color: var(--sev0); }
+.fcard .word.w-watch { color: var(--acc); border-color: var(--acc); }
+.fcard .word.w-concern { color: var(--alert); border-color: var(--alert); }
+.fcard .plain { font-size: 14px; line-height: 1.4; color: var(--ink); }
+.fcard .freq { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.fcard .asof { font: 11.5px var(--font-mono); color: var(--muted); margin-top: 3px; }
+.act .short { font-size: 14px; line-height: 1.4; margin: 6px 0; }
+.rotcmp { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 12px; }
+.rotcmp th, .rotcmp td { border-bottom: 1px solid var(--line); padding: 6px 4px; text-align: left; vertical-align: top; }
+.rotcmp th { font-weight: 600; color: var(--muted); font-size: 12px; }
+.rotcmp td.num { font-family: var(--font-mono); white-space: nowrap; }
+.limits { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 8px; }
+.sl-caption { position: absolute; left: 300px; right: 12px; bottom: 100px; text-align: right; z-index: 600; pointer-events: none; }
+@media (max-width: 799px) { .sl-caption { left: 8px; right: 8px; bottom: 186px; text-align: center; } .sl-caption > * { font-size: 13px; } }
+.sl-caption > * { pointer-events: auto; display: inline-block; background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--r); padding: 5px 10px; font-size: 14px; color: var(--ink); max-width: 100%; }
+.sl-caption:empty { display: none; }
+.sl-caption button { cursor: pointer; font: inherit; }
+.banner.err, .state.err, .errcard { border-color: var(--alert); color: var(--ink); }
+.errcard { border: 1px solid var(--alert); border-left-width: 1px; border-radius: var(--r); padding: 10px 12px; margin: 8px 0; background: var(--raised); }
+.errcard b { color: var(--alert); }
