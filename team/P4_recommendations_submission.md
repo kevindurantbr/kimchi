@@ -4,6 +4,36 @@
 
 ---
 
+## ▶ ROUND 4: start here (9:55 pm → submit by 11:35)
+
+Read PLAN.md §13. **You now own `dashboard/ui/recs.mjs`** (the cards) for tonight. Branch from the latest `main`: `p4-round4`.
+
+1. **(9:55–10:10) Record a SAFETY video now** from the live site as it is (Simple view, following `submission/VIDEO_SCRIPT.md`), plus 6 screenshots. If round 4 breaks anything, this is what we submit.
+2. **(by 10:30) Collapsible action cards at all three levels** (`ui/recs.mjs`). Each top-3 card is **collapsed by default** and shows on one line:
+   - the factor icon and colour (PLAN.md §13 table);
+   - the **problem** in ≤ 8 words;
+   - the **result in bold**, e.g. "**28 of 35** seasons short of water".
+
+   A click or Enter **expands** it (`aria-expanded`, keyboard accessible). The expansion contains:
+   - **a chart first**: a Chart.js bar chart from P2's `analysis.charts`. W-actions get water shortfall by year with the normal line; T-actions get hot days by year; S-actions get soil by month; C-actions get greenness by month. **W4 and rotation actions** get a grouped bar comparing the current rotation and alternatives (from `rotationTable()`: short-on-water years, heat years, low-cover months);
+   - then `card.short`, the benefits, risks and gaps;
+   - then the "Ask your agronomist" line.
+
+   Simple shows the chart + `card.short` + agronomist line. Moderate adds why, evidence and benefits/risks/gaps. Complete adds the score parts and source IDs.
+
+   For **W4**, add a "Compare rotations ↓" link that scrolls to the rotation table, so the farmer no longer scrolls blindly. If a chart's data is missing, show "Chart unavailable: <reason>", never an empty canvas.
+3. **(by 10:40) Write-up additions** in `submission/WRITEUP.md`. Add a short "How it works" section:
+   - the analysis is code running in the browser on every visit, with no AI at runtime;
+   - NASA POWER is pulled live, and a daily GitHub Action refreshes the history;
+   - new fields pull 45 years of NASA data in ~2 s.
+
+   Also add "Next steps: farmer accounts so each farmer's fields and records sync across their devices (hosted database); SMAP; observed ET (MOD16/OpenET); IMERG; HLS 30 m".
+4. **(10:50–11:20)** If P3 says "go", re-record using the new collapsible cards and map icons. Otherwise use the safety take.
+5. **(by 11:35) Submit**, and post the confirmation screenshot.
+
+---
+
+
 ## ▶ ROUND 3: start here (9:05 pm → submit 11:15 pm)
 
 Read PLAN.md §8 (status), §11 (detail levels) and §12 (data coverage). Your PR #20 is being merged by P3 at 9:05; if it needs a rebase, do that first. Branch: `p4-round3`.
