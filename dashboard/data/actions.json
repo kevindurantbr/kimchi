@@ -7,7 +7,9 @@
     "Triggers are evaluated by recommend.mjs against the analysis output plus a 'derived' block (see recommend.mjs deriveContext). A missing value never triggers an action.",
     "evidence_level: A = regional field trial / extension research; B = general extension guidance; C = rule of thumb.",
     "No action promises a yield, profit or water saving. Corn, sorghum and wheat are all grasses: no family-break credit (T1_R10).",
-    "rotation_candidates copy the agronomy package (research/deliverables/agronomy/agronomy.json, reviewed 2026-11-14) so the deployed dashboard is self-contained."
+    "rotation_candidates copy the agronomy package (research/deliverables/agronomy/agronomy.json, reviewed 2026-11-14) so the deployed dashboard is self-contained.",
+    "why_template may be a list: recommend.mjs uses the first one whose placeholders all have values.",
+    "short_template / short_fallback: one plain sentence (< 25 words) for the Simple view; a sentence is never shown with a missing value."
   ],
   "source_ids": [
     "FAO56",
@@ -109,7 +111,11 @@
         "T1_CORN_GUIDE",
         "NASA_POWER_DAILY",
         "USDA_SSURGO_SDA"
-      ]
+      ],
+      "short_template": [
+        "Your crop's root zone was short of water on {stress_days} days this season. Check irrigation timing with a soil probe."
+      ],
+      "short_fallback": "Estimated soil water fell below the crop's stress point this season. Check irrigation timing with a soil probe."
     },
     {
       "id": "W2_prioritise_sensitive_window",
@@ -144,7 +150,8 @@
       "vars": {
         "window": "derived.crop.sensitive_window_name",
         "alloc": "derived.allocation_mm",
-        "need": "derived.current_rotation.median_irrigation_need_mm"
+        "need": "derived.need_mm",
+        "alloc_in": "derived.allocation_in"
       },
       "why_template": "Your allocation ({alloc} mm) is below the estimated typical irrigation need ({need} mm), and the {window} window is coming up. K-State research shows reproductive stages are where limited water pays back most.",
       "evidence_specs": [
@@ -189,7 +196,11 @@
         "T1_CORN_GUIDE",
         "T1_CWA",
         "KSU_CORN_GDD_LATEPLANT"
-      ]
+      ],
+      "short_template": [
+        "Your {alloc} mm ({alloc_in} in) allocation is below the usual need of {need} mm. Save water for the pollination weeks."
+      ],
+      "short_fallback": "Your allocation is below the usual need. Save water for the pollination weeks."
     },
     {
       "id": "W3_well_capacity",
@@ -197,11 +208,16 @@
       "category": "planning",
       "title": "Your well may not keep up with peak demand: consider fewer irrigated acres or a lower-peak crop on part of the pivot",
       "trigger": {
-        "all": [
+        "any": [
           {
             "path": "derived.capacity_ok",
             "op": "==",
             "value": false
+          },
+          {
+            "path": "derived.capacity_short_share",
+            "op": ">=",
+            "value": 0.333
           }
         ]
       },
@@ -221,9 +237,16 @@
       "evidence_level": "B",
       "vars": {
         "peak": "derived.capacity_peak_mm_day",
-        "well": "derived.capacity_well_mm_day"
+        "well": "derived.capacity_well_mm_day",
+        "short": "derived.capacity_short_text",
+        "rot": "derived.current_rotation_name_inline",
+        "sf": "derived.capacity_shortfall_mm_day"
       },
-      "why_template": "Peak 7-day crop demand (about {peak} mm/day) is higher than what the well can deliver on this field (about {well} mm/day). A season total can look fine while July cannot be met.",
+      "why_template": [
+        "Peak 7-day crop demand (about {peak} mm/day) is higher than what the well can deliver on this field (about {well} mm/day). A season total can look fine while July cannot be met.",
+        "This season, peak 7-day crop demand was about {sf} mm/day more than the well can deliver on this field. A season total can look fine while July cannot be met.",
+        "In {short} seasons of the weather record, the simulated peak 7-day demand of {rot} was higher than this well can deliver. A season total can look fine while July cannot be met."
+      ],
       "evidence_specs": [
         {
           "path": "derived.capacity_text",
@@ -235,8 +258,8 @@
           ]
         },
         {
-          "path": "derived.current_rotation.peak_capacity_short_years",
-          "text": "Years when peak demand exceeded the well: {value}",
+          "path": "derived.capacity_short_text",
+          "text": "Seasons when simulated peak demand exceeded the well: {value}",
           "kind": "historical",
           "source_ids": [
             "FAO56",
@@ -268,7 +291,13 @@
         "T1_CORN_GUIDE",
         "T1_SORGHUM_GUIDE",
         "FAO56"
-      ]
+      ],
+      "short_template": [
+        "This season, peak demand ({peak} mm/day) beat what your well delivers ({well} mm/day). Consider fewer irrigated acres.",
+        "This season, peak crop demand was {sf} mm/day more than your well can deliver. Consider fewer irrigated acres.",
+        "In {short} past seasons, July demand was more than your well can pump. Consider fewer irrigated acres."
+      ],
+      "short_fallback": "July demand can be more than your well can pump. Consider fewer irrigated acres."
     },
     {
       "id": "W4_compare_rotations",
@@ -297,14 +326,16 @@
       ],
       "evidence_level": "A",
       "vars": {
-        "short": "derived.current_rotation.shortfall_years",
+        "short": "derived.current_rotation_shortfall_text",
         "alloc": "derived.allocation_mm",
-        "rot": "derived.current_rotation_name"
+        "rot": "derived.current_rotation_name_inline",
+        "rot_cap": "derived.current_rotation_name",
+        "alloc_in": "derived.allocation_in"
       },
       "why_template": "Under a {alloc} mm allocation, {rot} would have run short of water in {short} seasons of the weather record.",
       "evidence_specs": [
         {
-          "path": "derived.current_rotation.shortfall_years",
+          "path": "derived.current_rotation_shortfall_text",
           "text": "Seasons with a shortfall under your allocation: {value}",
           "kind": "historical",
           "source_ids": [
@@ -345,7 +376,12 @@
         "T1_ROTATION_2020_ARS",
         "T1_WATER",
         "FAO56"
-      ]
+      ],
+      "short_template": [
+        "{rot_cap} ran short of water in {short} past seasons under your {alloc} mm ({alloc_in} in) allocation. Compare the alternatives below.",
+        "Your rotation ran short of water in {short} past seasons under your {alloc} mm ({alloc_in} in) allocation. Compare the alternatives below."
+      ],
+      "short_fallback": "Your rotation often runs short of water under your allocation. Compare the alternatives below."
     },
     {
       "id": "T1_move_pollination",
@@ -361,7 +397,7 @@
           }
         ]
       },
-      "severity_path": "derived.stage_heat_share",
+      "severity_path": "derived.stage_heat_severity",
       "priority_tags": [
         "income"
       ],
@@ -375,15 +411,15 @@
       ],
       "evidence_level": "B",
       "vars": {
-        "years": "derived.stage_heat_text",
-        "thr": "derived.crop.heat_threshold_c",
-        "window": "derived.crop.sensitive_window_name"
+        "sentence": "derived.stage_heat_sentence",
+        "above": "derived.stage_heat_above_core",
+        "any": "derived.stage_heat_any_core"
       },
-      "why_template": "Days at or above {thr} °C fell inside the {window} window more often than normal in {years}.",
+      "why_template": "{sentence}. Moving silking by a week or two (planting date or hybrid maturity) changes which days it meets.",
       "evidence_specs": [
         {
-          "path": "derived.stage_heat_text",
-          "text": "Above-normal heat in the sensitive window: {value}",
+          "path": "derived.stage_heat_sentence",
+          "text": "{value}",
           "kind": "historical",
           "source_ids": [
             "NASA_POWER_DAILY",
@@ -421,7 +457,12 @@
         "T1_CORN_GUIDE",
         "T1_NW_CORN_CALENDAR",
         "NASA_POWER_DAILY"
-      ]
+      ],
+      "short_template": [
+        "Pollination had above-normal heat in {above} past seasons. A different planting date or hybrid can shift it.",
+        "Pollination met at least one day above 35 °C (95 °F) in {any} past seasons. Planting date or hybrid can shift it."
+      ],
+      "short_fallback": "Pollination often meets hot days. A different planting date or hybrid can shift it."
     },
     {
       "id": "T2_frost_and_cold_soil",
@@ -437,7 +478,7 @@
           }
         ]
       },
-      "severity_path": "factors.temperature.status.severity",
+      "severity_path": null,
       "priority_tags": [
         "income"
       ],
@@ -491,7 +532,11 @@
         "T1_NW_CORN_CALENDAR",
         "T1_CORN_GUIDE",
         "NASA_POWER_DAILY"
-      ]
+      ],
+      "short_template": [
+        "Your planting date ({plant}) is close to the usual last frost ({frost}). Watch the forecast and soil temperature."
+      ],
+      "short_fallback": "Your planting date is close to the usual last frost. Watch the forecast and soil temperature."
     },
     {
       "id": "T3_wheat_handoff",
@@ -561,7 +606,11 @@
         "T1_ROTATION_2016",
         "T1_NASS_CALENDAR",
         "T1_WHEAT_CURL_MITE"
-      ]
+      ],
+      "short_template": [
+        "Corn harvest can run too late to sow wheat by about {target}. Plan hybrid, drying and drill time now."
+      ],
+      "short_fallback": "Corn harvest can run too late for timely wheat sowing. Plan hybrid, drying and drill time now."
     },
     {
       "id": "S1_preplant_water",
@@ -592,7 +641,7 @@
       ],
       "evidence_level": "B",
       "vars": {
-        "pct": "factors.soil_moisture.status.percentile"
+        "pct": "derived.soil_drier_than_pct"
       },
       "why_template": "Root-zone wetness is at the {pct}th percentile for this date: drier than most years going into the next season.",
       "evidence_specs": [
@@ -620,7 +669,11 @@
         "T1_WATER",
         "T1_ROTATION_GUIDE",
         "NASA_POWER_DAILY"
-      ]
+      ],
+      "short_template": [
+        "Soil is drier than {pct}% of past years for this date. Decide on pre-plant water and keep crop residue."
+      ],
+      "short_fallback": "Soil is drier than usual for this date. Decide on pre-plant water and keep crop residue."
     },
     {
       "id": "S2_residue_no_till",
@@ -666,7 +719,8 @@
         },
         {
           "status": "factors.soil_moisture.status",
-          "kind": "live"
+          "kind": "live",
+          "only_if_adverse": true
         }
       ],
       "benefits": [
@@ -686,7 +740,11 @@
         "T1_ROTATION_GUIDE",
         "T1_ROTATION_2016",
         "MODIS_MOD13Q1_ORNL"
-      ]
+      ],
+      "short_template": [
+        "This field has little green cover about {months} months a year. Keep crop residue on it to protect the soil."
+      ],
+      "short_fallback": "This field has long periods with little green cover. Keep crop residue on it to protect the soil."
     },
     {
       "id": "C1_scout_not_weather",
@@ -714,7 +772,8 @@
       ],
       "evidence_level": "B",
       "vars": {
-        "label": "factors.crop_condition.status.label"
+        "label": "factors.crop_condition.status.label",
+        "pct": "derived.ndvi_lower_than_pct"
       },
       "why_template": "{label}, while water, soil moisture and heat are near normal. Check for pests, nutrients, hail or irrigation uniformity.",
       "evidence_specs": [
@@ -746,7 +805,11 @@
       "source_ids": [
         "MODIS_MOD13Q1_ORNL",
         "T1_CORN_GUIDE"
-      ]
+      ],
+      "short_template": [
+        "Crop greenness is lower than {pct}% of past years, and weather doesn't explain it. Walk the field for pests, nutrients or hail."
+      ],
+      "short_fallback": "Crop greenness is low and weather doesn't explain it. Walk the field for pests, nutrients or hail."
     },
     {
       "id": "C2_stress_visible",
@@ -779,7 +842,8 @@
       "evidence_level": "B",
       "vars": {
         "label": "factors.crop_condition.status.label",
-        "cause": "interactions.cause_check.code"
+        "cause": "interactions.cause_check.code",
+        "pct": "derived.ndvi_lower_than_pct"
       },
       "why_template": "{label}, at the same time as adverse {cause} conditions. See the water and heat actions for what to check.",
       "evidence_specs": [
@@ -798,7 +862,8 @@
         },
         {
           "status": "factors.water.status",
-          "kind": "live"
+          "kind": "live",
+          "only_if_adverse": true
         }
       ],
       "benefits": [
@@ -816,7 +881,11 @@
         "MODIS_MOD13Q1_ORNL",
         "NASA_POWER_DAILY",
         "T1_WATER"
-      ]
+      ],
+      "short_template": [
+        "Crop greenness is lower than {pct}% of past years, matching dry or hot weather. The stress shows from space."
+      ],
+      "short_fallback": "Low crop greenness matches dry or hot weather. The stress shows from space."
     },
     {
       "id": "C3_low_cover_rotation",
@@ -886,7 +955,11 @@
         "T1_ROTATION_GUIDE",
         "T1_ROTATION_2021",
         "MODIS_MOD13Q1_ORNL"
-      ]
+      ],
+      "short_template": [
+        "Little green cover about {months} months a year. Wheat in the rotation adds winter cover; check water before any cover crop."
+      ],
+      "short_fallback": "Long periods with little green cover. Wheat in the rotation adds winter cover; check water before any cover crop."
     }
   ],
   "rotation_candidates": [
@@ -982,7 +1055,18 @@
           "T1_BUDGET_CORN"
         ]
       },
-      "why_suggested_base": "Comparison baseline: the most-tested limited-irrigation sequence in the western Kansas trials."
+      "why_suggested_base": "Comparison baseline: the most-tested limited-irrigation sequence in the western Kansas trials.",
+      "short": {
+        "benefit": "The most-tested limited-irrigation baseline in Kansas trials; uses the corn equipment and buyer you have.",
+        "risk": "All water demand falls in July–August, when wells struggle most.",
+        "unknown": "Your real well output, and rootworm or disease history.",
+        "source_ids": [
+          "T1_ROTATION_2016",
+          "T1_ROTATION_2021",
+          "T1_CORN_GUIDE",
+          "T1_WATER"
+        ]
+      }
     },
     {
       "id": "corn_sorghum",
@@ -1090,7 +1174,17 @@
           "T1_BUDGET_SORGHUM"
         ]
       },
-      "why_suggested_base": "Sorghum is planted later (mid-May to June) and was the top economic ranking in the 2012–2017 study under its assumptions."
+      "why_suggested_base": "Sorghum is planted later (mid-May to June) and was the top economic ranking in the 2012–2017 study under its assumptions.",
+      "short": {
+        "benefit": "Sorghum is planted later; it had the highest returns in a 2012–2017 Kansas trial.",
+        "risk": "Leaves less soil water for the next corn crop; both crops need summer water.",
+        "unknown": "Whether a local buyer and drying space exist for sorghum.",
+        "source_ids": [
+          "T1_ROTATION_2020_ARS",
+          "T1_ROTATION_2021",
+          "T1_SORGHUM_GUIDE"
+        ]
+      }
     },
     {
       "id": "corn_wheat",
@@ -1207,7 +1301,18 @@
           "T1_BUDGET_WHEAT"
         ]
       },
-      "why_suggested_base": "Wheat uses water in spring and frees the summer; corn after wheat outyielded continuous corn in the later trial."
+      "why_suggested_base": "Wheat uses water in spring and frees the summer; corn after wheat outyielded continuous corn in the later trial.",
+      "short": {
+        "benefit": "Wheat uses water in spring; corn after wheat yielded more in a Kansas trial.",
+        "risk": "Corn harvest can be too late to sow wheat on time; wheat disease risk.",
+        "unknown": "Whether your corn harvest leaves time to sow wheat by late September.",
+        "source_ids": [
+          "T1_ROTATION_2021",
+          "T1_ROTATION_2016",
+          "T1_NW_WHEAT_CALENDAR",
+          "T1_WHEAT_CURL_MITE"
+        ]
+      }
     }
   ],
   "agronomy_rules": [
