@@ -1,3 +1,5 @@
+<p align="center"><img src="dashboard/brand/kimchi-logo-192.png" width="120" alt="Kimchi team logo: a hand-drawn napa cabbage with red chili streaks"></p>
+
 # Kimchi
 
 NASA Space Apps 2026: **Field Shift: Adapting Farms with NASA Data.**

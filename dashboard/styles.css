@@ -75,8 +75,9 @@ a:hover { text-decoration-thickness: 2px; }
 /* ---------- command bar: a rounded deck of keys ---------- */
 .bar { flex: none; min-height: var(--bar-h); display: flex; align-items: center; gap: 10px 12px; margin: 0 8px 8px; padding: 8px 10px 8px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 10px; margin-right: 4px; }
-.brand-mark { width: 22px; height: 22px; border-radius: 7px; background: var(--acc-fill); position: relative; flex: none; box-shadow: inset 0 -2px 0 rgba(0,0,0,.22), 0 0 18px var(--acc-soft); }
-.brand-mark::after { content: ""; position: absolute; left: 6px; top: 6px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--acc-ink); border-right-color: transparent; transform: rotate(-45deg); }
+.brand-logo { width: 34px; height: 34px; flex: none; display: block; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); transition: transform var(--t) var(--ease); }
+.brand:hover .brand-logo { transform: rotate(-6deg) scale(1.06); }
+.dlg-logo { width: 30px; height: 30px; flex: none; display: block; }
 .brand-name { font: 650 17px/1 var(--font-ui); letter-spacing: -.03em; }
 .brand-sub { font-size: 13px; color: var(--muted); }
 .field-pick { display: flex; align-items: center; gap: 8px; }
@@ -348,6 +349,7 @@ details.adv td, details.adv th { border-bottom: 1px solid var(--line); padding: 
   .bar { gap: 6px; margin: 0 6px 6px; padding: 8px; border-radius: 14px; }
   .brand { margin-right: 0; }
   .brand-name { font-size: 16px; }
+  .brand-logo { width: 30px; height: 30px; }
   .field-pick { flex: 1; min-width: 0; }
   .field-pick select { width: 100%; }
   .tabs { order: 5; width: 100%; overflow-x: auto; scrollbar-width: none; }
@@ -376,10 +378,16 @@ details.adv td, details.adv th { border-bottom: 1px solid var(--line); padding: 
 
 /* ---------- print: only the season report ---------- */
 @media print {
-  body { overflow: visible; display: block; background: #fff; color: #000; }
+  html, body { height: auto; overflow: visible; background: #fff !important; }
+  body { display: block; background: #fff; color: #000; }
   body > *:not(#dlg-report) { display: none !important; }
-  #dlg-report { position: static; display: block; border: 0; box-shadow: none; width: auto; max-height: none; background: #fff; color: #000; animation: none; }
+  /* a modal dialog is pinned to the middle of the viewport; in print that pushed a long report off the top of page 1 */
+  #dlg-report { position: absolute; inset: 0 auto auto 0; margin: 0; transform: none; overflow: visible; display: block; border: 0; border-radius: 0; box-shadow: none; width: 100%; max-width: none; max-height: none; background: #fff; color: #000; animation: none; }
+  #dlg-report::backdrop { display: none; }
+  #dlg-report .dlg-head { position: static; background: #fff; padding: 0 0 12px; border-color: #999; }
+  #dlg-report > div:not(.dlg-head) { padding: 0; }
   #dlg-report .btn { display: none; }
+  #dlg-report .dlg-logo { width: 40px; height: 40px; }
   .rep-sec { border-color: #999; break-inside: avoid; }
 }
 
