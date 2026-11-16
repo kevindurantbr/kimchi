@@ -1,0 +1,1859 @@
+{
+  "generated_at": "2026-11-15T21:50:06.457Z",
+  "source_ids": [
+    "T3_MODIS_MOD16A2GF"
+  ],
+  "note": "Copied unchanged (sources and rows) from research/deliverables/weather-water/et_modis.json on branch codex/et-pathway (PR #8). Monthly actual ET in mm for fld01-fld03, 2021-01 to 2025-12, from NASA MODIS MOD16A2GF v061 via the ORNL DAAC web service (no key): one 500 m pixel at each field centroid, so not a field-boundary average; null = missing, never 0. MOD16 has no irrigation input and may under-read irrigated crops. Show only at the Complete level as \"Satellite ET (MODIS, 500 m; may under-read irrigated crops)\". generated_at is the ORNL retrieval time.",
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "source_id": "T3_MODIS_MOD16A2GF",
+      "title": "NASA MODIS MOD16A2GF v061 evapotranspiration (ORNL DAAC subset)",
+      "url": "https://modis.ornl.gov/rst/api/v1/",
+      "request_without_secrets": "No key. GET https://modis.ornl.gov/rst/api/v1/MOD16A2GF/subset?latitude={lat}&longitude={lon}&band=ET_500m&startDate=A{yyyy}{ddd}&endDate=A{yyyy}{ddd}&kmAboveBelow=0&kmLeftRight=0 per composite date and field; points in requested_points.",
+      "raw_file_sha256": "b9cbfb5b171e18a9c602610686f6a5588480906bb685d863fff382d39ec2b649",
+      "product": "MOD16A2GF",
+      "collection": "061",
+      "band": "ET_500m",
+      "pixel_size_m": "~463 (sinusoidal grid cell 463.3 m)",
+      "requested_points": {
+        "fld01": {
+          "latitude": 39.39758,
+          "longitude": -100.67829,
+          "xllcorner": "-8651438.38",
+          "yllcorner": "4380621.70",
+          "cellsize": 463.312716528
+        },
+        "fld02": {
+          "latitude": 39.39029,
+          "longitude": -100.66931,
+          "xllcorner": "-8651438.33",
+          "yllcorner": "4379695.11",
+          "cellsize": 463.312716528
+        },
+        "fld03": {
+          "latitude": 39.41925,
+          "longitude": -100.69729,
+          "xllcorner": "-8650048.39",
+          "yllcorner": "4382938.34",
+          "cellsize": 463.312716528
+        }
+      },
+      "product_version": "MOD16A2GF collection 061, gap-filled 8-day composites, retrieved 2026-11-15T21:50:06.457Z",
+      "retrieved_date": "2026-11-15",
+      "monthly_output": {
+        "date_range": [
+          "2021-01-01",
+          "2025-12-31"
+        ],
+        "interval": "monthly",
+        "variable": "et",
+        "units": "mm"
+      },
+      "spatial_support": "One 500 m MODIS pixel containing the field centroid; not a field-boundary average.",
+      "limitations": "Satellite model estimate of actual ET (crop water use: evaporation plus transpiration from rain, irrigation and soil water). Not pumping and not irrigation applied. Coarser than OpenET (30 m field-boundary means): the pixel can include land outside the field. Values x 0.1 = mm per composite; 8-day composites (last of each year 5 or 6 days) are spread evenly over their days and summed per calendar month, rounded to 0.1 mm. A month is null (missing) if any day lacks a valid composite; missing is never zero. MOD16 has no irrigation input, so it may underestimate irrigated crop water use. Gap-filled annual reprocessing; not a forecast."
+    }
+  ],
+  "rows": [
+    {
+      "field_id": "fld01",
+      "month": "2021-01",
+      "et_mm": 20.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-02",
+      "et_mm": 17.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-03",
+      "et_mm": 22.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-04",
+      "et_mm": 23.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-05",
+      "et_mm": 40.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-06",
+      "et_mm": 37.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-07",
+      "et_mm": 92.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-08",
+      "et_mm": 86.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-09",
+      "et_mm": 36.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-10",
+      "et_mm": 14.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-11",
+      "et_mm": 15.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2021-12",
+      "et_mm": 19.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-01",
+      "et_mm": 25.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-02",
+      "et_mm": 19.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-03",
+      "et_mm": 20.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-04",
+      "et_mm": 10.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-05",
+      "et_mm": 18.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-06",
+      "et_mm": 25.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-07",
+      "et_mm": 61.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-08",
+      "et_mm": 88.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-09",
+      "et_mm": 37.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-10",
+      "et_mm": 13.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-11",
+      "et_mm": 20.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2022-12",
+      "et_mm": 22.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-01",
+      "et_mm": 22.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-02",
+      "et_mm": 21.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-03",
+      "et_mm": 28.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-04",
+      "et_mm": 14.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-05",
+      "et_mm": 34.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-06",
+      "et_mm": 51.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-07",
+      "et_mm": 62.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-08",
+      "et_mm": 71.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-09",
+      "et_mm": 35.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-10",
+      "et_mm": 15.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-11",
+      "et_mm": 19.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2023-12",
+      "et_mm": 24.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-01",
+      "et_mm": 22.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-02",
+      "et_mm": 20.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-03",
+      "et_mm": 22.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-04",
+      "et_mm": 17.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-05",
+      "et_mm": 22.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-06",
+      "et_mm": 36.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-07",
+      "et_mm": 87.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-08",
+      "et_mm": 76.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-09",
+      "et_mm": 32.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-10",
+      "et_mm": 12.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-11",
+      "et_mm": 22.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2024-12",
+      "et_mm": 23.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-01",
+      "et_mm": 25.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-02",
+      "et_mm": 20.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-03",
+      "et_mm": 17.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-04",
+      "et_mm": 23.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-05",
+      "et_mm": 30.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-06",
+      "et_mm": 45.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-07",
+      "et_mm": 86.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-08",
+      "et_mm": 78.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-09",
+      "et_mm": 45.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-10",
+      "et_mm": 21.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-11",
+      "et_mm": 16.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld01",
+      "month": "2025-12",
+      "et_mm": 19.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-01",
+      "et_mm": 20.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-02",
+      "et_mm": 18.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-03",
+      "et_mm": 22.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-04",
+      "et_mm": 23.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-05",
+      "et_mm": 41.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-06",
+      "et_mm": 37.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-07",
+      "et_mm": 91.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-08",
+      "et_mm": 112.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-09",
+      "et_mm": 55.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-10",
+      "et_mm": 16.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-11",
+      "et_mm": 15.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2021-12",
+      "et_mm": 19.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-01",
+      "et_mm": 25.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-02",
+      "et_mm": 20.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-03",
+      "et_mm": 20.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-04",
+      "et_mm": 10.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-05",
+      "et_mm": 18.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-06",
+      "et_mm": 22.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-07",
+      "et_mm": 70.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-08",
+      "et_mm": 91.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-09",
+      "et_mm": 42.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-10",
+      "et_mm": 13.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-11",
+      "et_mm": 19.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2022-12",
+      "et_mm": 22.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-01",
+      "et_mm": 23.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-02",
+      "et_mm": 21.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-03",
+      "et_mm": 28.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-04",
+      "et_mm": 15.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-05",
+      "et_mm": 35.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-06",
+      "et_mm": 43.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-07",
+      "et_mm": 55.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-08",
+      "et_mm": 100.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-09",
+      "et_mm": 46.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-10",
+      "et_mm": 17.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-11",
+      "et_mm": 19.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2023-12",
+      "et_mm": 23.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-01",
+      "et_mm": 23.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-02",
+      "et_mm": 20.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-03",
+      "et_mm": 21.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-04",
+      "et_mm": 18.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-05",
+      "et_mm": 23.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-06",
+      "et_mm": 35.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-07",
+      "et_mm": 90.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-08",
+      "et_mm": 83.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-09",
+      "et_mm": 28.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-10",
+      "et_mm": 14.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-11",
+      "et_mm": 19.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2024-12",
+      "et_mm": 19.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-01",
+      "et_mm": 21.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-02",
+      "et_mm": 18.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-03",
+      "et_mm": 17.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-04",
+      "et_mm": 31.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-05",
+      "et_mm": 60.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-06",
+      "et_mm": 37.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-07",
+      "et_mm": 43.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-08",
+      "et_mm": 50.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-09",
+      "et_mm": 27.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-10",
+      "et_mm": 18.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-11",
+      "et_mm": 17.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld02",
+      "month": "2025-12",
+      "et_mm": 23.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-01",
+      "et_mm": 20.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-02",
+      "et_mm": 17.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-03",
+      "et_mm": 22.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-04",
+      "et_mm": 23.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-05",
+      "et_mm": 40.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-06",
+      "et_mm": 36.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-07",
+      "et_mm": 88.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-08",
+      "et_mm": 74.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-09",
+      "et_mm": 30.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-10",
+      "et_mm": 14.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-11",
+      "et_mm": 15.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2021-12",
+      "et_mm": 17.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-01",
+      "et_mm": 21.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-02",
+      "et_mm": 20.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-03",
+      "et_mm": 20.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-04",
+      "et_mm": 15.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-05",
+      "et_mm": 38.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-06",
+      "et_mm": 20.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-07",
+      "et_mm": 37.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-08",
+      "et_mm": 68.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-09",
+      "et_mm": 39.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-10",
+      "et_mm": 13.5,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-11",
+      "et_mm": 19.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2022-12",
+      "et_mm": 22.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-01",
+      "et_mm": 23.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-02",
+      "et_mm": 22.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-03",
+      "et_mm": 28.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-04",
+      "et_mm": 16.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-05",
+      "et_mm": 48.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-06",
+      "et_mm": 77.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-07",
+      "et_mm": 47.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-08",
+      "et_mm": 27.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-09",
+      "et_mm": 14.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-10",
+      "et_mm": 15.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-11",
+      "et_mm": 19.4,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2023-12",
+      "et_mm": 23.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-01",
+      "et_mm": 20.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-02",
+      "et_mm": 18.0,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-03",
+      "et_mm": 21.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-04",
+      "et_mm": 19.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-05",
+      "et_mm": 24.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-06",
+      "et_mm": 40.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-07",
+      "et_mm": 66.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-08",
+      "et_mm": 35.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-09",
+      "et_mm": 17.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-10",
+      "et_mm": 11.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-11",
+      "et_mm": 22.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2024-12",
+      "et_mm": 23.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-01",
+      "et_mm": 24.2,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-02",
+      "et_mm": 19.7,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-03",
+      "et_mm": 17.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-04",
+      "et_mm": 31.1,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-05",
+      "et_mm": 52.8,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-06",
+      "et_mm": 35.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-07",
+      "et_mm": 40.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-08",
+      "et_mm": 48.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-09",
+      "et_mm": 27.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-10",
+      "et_mm": 17.9,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-11",
+      "et_mm": 20.6,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    },
+    {
+      "field_id": "fld03",
+      "month": "2025-12",
+      "et_mm": 24.3,
+      "source_ids": [
+        "T3_MODIS_MOD16A2GF"
+      ],
+      "quality": "reported",
+      "geometry_status": "approximate"
+    }
+  ]
+}
