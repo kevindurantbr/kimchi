@@ -10,6 +10,16 @@ const ICONS = { // drawn for this app: drop, thermometer, soil layers, leaf
 };
 const icon = id => `<svg class="ficon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">${ICONS[id]}</svg>`;
 
+const WORD_CLASS = { Good: 'w-good', Normal: '', Watch: 'w-watch', Concern: 'w-concern' };
+/** Status word for the Simple view: P2's status.plain.word, else derived from severity. */
+function wordOf(st) {
+  if (st?.plain?.word) return st.plain.word;
+  if (!st || !finite(st.value) || !finite(st.percentile)) return 'No new data';
+  if (st.direction === 'favourable') return 'Good';
+  return ['Normal', 'Watch', 'Concern'][sevClass(st.severity)] ?? 'Normal';
+}
+
+/** Factor tiles. All three detail levels are rendered once; CSS shows what the level allows (data-min-level). */
 export function renderCards(el, analysis, selected, onSelect) {
   el.innerHTML = FACTORS.map(f => {
     const st = analysis?.factors?.[f.id]?.status;
@@ -17,16 +27,26 @@ export function renderCards(el, analysis, selected, onSelect) {
     const has = st && finite(st.value);
     const sc = sevClass(st?.severity);
     const p = finite(st?.percentile) ? Math.max(0, Math.min(100, st.percentile)) : null;
+    const word = wordOf(st);
+    const sentence = has ? (st.plain?.sentence ?? st.label ?? '') : (st?.plain?.sentence && !/^No new reading/.test(st.plain.sentence) ? st.plain.sentence : unavailableReason(f.id, st, analysis));
+    const unit = st?.unit === '0–1' ? '' : (st?.unit ?? '');
     return `<button type="button" class="fcard bracket ${selected === f.id ? 'on' : ''}" data-factor="${f.id}" aria-pressed="${selected === f.id}">
       <div class="fcard-top">${icon(f.id)}<h3>${esc(f.name)}</h3><span class="code">${f.code}</span></div>
-      ${has ? `<div class="val">${esc(num(st.value, Math.abs(st.value) < 10 && st.unit !== 'days' ? 2 : 0))}<small>${esc(st.unit ?? '')}</small></div>
-        <div class="label">${esc(st.label ?? '')}</div>
+      <span class="word ${WORD_CLASS[word] ?? ''}">${esc(word)}</span>
+      <div class="plain">${esc(sentence)}</div>
+      ${has && st.plain?.freq ? `<div class="freq">${esc(st.plain.freq)}</div>` : ''}
+      ${has ? `<div data-min-level="2">
+        <div class="val">${esc(num(st.value, Math.abs(st.value) < 10 && st.unit !== 'days' ? 2 : 0))}<small>${esc(unit)}</small></div>
+        <div class="label">${esc(st.label ?? '')}${finite(st.normal_median) ? ` · normal ${esc(num(st.normal_median, Math.abs(st.normal_median) < 10 && st.unit !== 'days' ? 2 : 0))}` : ''}</div>
+        ${st.as_of ? `<div class="asof">as of ${esc(fmtDate(st.as_of))}</div>` : ''}
+      </div>
+      <div data-min-level="3">
         <div class="pbar" role="img" aria-label="Percentile ${p == null ? 'unavailable' : Math.round(p)} versus 1991 to 2020; ${esc(sevText(st.severity))}">
           <span class="b90"></span><span class="b75"></span><span class="med"></span>${p == null ? '' : `<span class="dot" style="left:${p}%;background:${sc === 2 ? 'var(--alert)' : sc === 1 ? 'var(--acc)' : 'var(--sev0)'}"></span>`}
         </div>
         <div class="pbar-scale"><span>p0</span><span>p25</span><span>p50 normal</span><span>p75</span><span>p100</span></div>
-        <div class="rec"><span class="sev sev-${sc}">${esc(sevText(st.severity))}</span> ${esc(pct(st.percentile))} · ${rec?.sentence ? esc(rec.sentence) : rec?.text ? esc(rec.text) : 'recurrence unavailable'}</div>`
-      : `<div class="unavail">${esc(unavailableReason(f.id, st, analysis))}</div>`}
+        <div class="rec"><span class="sev sev-${sc}">${esc(sevText(st.severity))}</span> ${esc(pct(st.percentile))} · ${rec?.sentence ? esc(rec.sentence) : rec?.text ? esc(rec.text) : 'recurrence unavailable'}</div>
+      </div>` : ''}
     </button>`;
   }).join('');
   el.querySelectorAll('.fcard').forEach(b => b.addEventListener('click', () => onSelect(b.dataset.factor)));
