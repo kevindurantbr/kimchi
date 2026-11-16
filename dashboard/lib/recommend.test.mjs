@@ -409,3 +409,14 @@ test('rotationTable: current + alternatives × 6 rows, no winner, heat row follo
   assert.ok(t3.columns.length >= 3);
   assert.equal(t3.rows[0].cells[0], 'not computed');
 });
+
+test('well delivery comes from the farm record when the analysis gives only the shortfall', () => {
+  const a = sampleAnalysis({ interactions: { capacity: { shortfall_mm_day: 3.27, ok: false, text: 'Peak demand exceeds well capacity by 3.27 mm/day' } } });
+  a.interactions.capacity = { shortfall_mm_day: 3.27, ok: false, text: 'Peak demand exceeds well capacity by 3.27 mm/day' };
+  const r = recommend({ analysis: a, farm: farm(), field_id: 'fld01', crops, actions, rotationsFit, today: NOV });
+  assert.equal(r.context.derived.capacity_well_mm_day, 6.5); // 600 gpm on 50.2 ha
+  assert.equal(r.context.derived.capacity_peak_mm_day, 9.8);
+  const w3 = r.all.find((c) => c.id === 'W3_well_capacity');
+  assert.equal(w3.short, 'This season, peak demand (9.8 mm/day) beat what your well delivers (6.5 mm/day). Consider fewer irrigated acres.');
+  assert.ok(w3.score_parts.severity > 0.5);
+});

@@ -80,8 +80,14 @@ export function buildReport({ analysis, recs, farm, field, period }) {
     return {
       factor: k,
       severity: isNum(s?.severity) ? s.severity : null,
-      text: `${FACTOR_NAMES[k]}: ${s?.label ?? 'unavailable'}`,
-      detail: s ? `Severity ${fmtNum(s.severity)} (${sevWord(s.severity)})${isNum(s.percentile) ? `, percentile ${Math.round(s.percentile)}` : ''}` : 'No data for this period',
+      // P2's plain sentence (Simple view) when present, else the percentile label.
+      text: s?.plain?.word ? `${FACTOR_NAMES[k]}: ${s.plain.word}. ${s.plain.sentence ?? s.label ?? ''}`.trim() : `${FACTOR_NAMES[k]}: ${s?.label ?? 'unavailable'}`,
+      detail: s ? [
+        s.plain?.word ? s.label : null,
+        `Severity ${fmtNum(s.severity)} (${sevWord(s.severity)})${isNum(s.percentile) ? `, percentile ${Math.round(s.percentile)}` : ''}`,
+        s.plain?.freq ?? null,
+        s.as_of ? `as of ${s.as_of}` : null,
+      ].filter(Boolean).join(' · ') : 'No data for this period',
       source_ids: s?.source_ids ?? [],
     };
   });

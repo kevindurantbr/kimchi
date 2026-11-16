@@ -1,5 +1,6 @@
 // Left panel: the four factor cards and the charts for the selected factor (PLAN.md section 5 and the P3 brief, step 3).
 import { FACTORS, esc, finite, num, pct, sevClass, sevText, fmtDate, safeURL, download, cssVar, ramp } from './util.mjs';
+import { badgesOf } from './status.mjs';
 import { makeChart, bandChart, destroyCharts, theme, hexA } from './charts.mjs';
 
 const ICONS = { // drawn for this app: drop, thermometer, soil layers, leaf
@@ -10,34 +11,35 @@ const ICONS = { // drawn for this app: drop, thermometer, soil layers, leaf
 };
 const icon = id => `<svg class="ficon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">${ICONS[id]}</svg>`;
 
-const WORD_CLASS = { Good: 'w-good', Normal: '', Watch: 'w-watch', Concern: 'w-concern' };
-/** Status word for the Simple view: P2's status.plain.word, else derived from severity. */
-function wordOf(st) {
-  if (st?.plain?.word) return st.plain.word;
-  if (!st || !finite(st.value) || !finite(st.percentile)) return 'No new data';
-  if (st.direction === 'favourable') return 'Good';
-  return ['Normal', 'Watch', 'Concern'][sevClass(st.severity)] ?? 'Normal';
+/** Small "this year vs normal" bars, from status.value and normal_median. Empty when either is missing. */
+function miniBar(st) {
+  const v = st?.value, n = st?.normal_median;
+  if (!finite(v) || !finite(n)) return '';
+  const m = Math.max(Math.abs(v), Math.abs(n), 1e-9), d = Math.abs(v) < 10 && st.unit !== 'days' ? 2 : 0;
+  const unit = st.unit === '0–1' ? '' : ` ${st.unit ?? ''}`;
+  const row = (lab, x, cls) => `<div class="mb-row"><span>${lab}</span><span class="mb-trk"><i class="${cls}" style="width:${(Math.abs(x) / m) * 100}%"></i></span><span class="num">${esc(num(x, d))}${esc(unit)}</span></div>`;
+  return `<div class="minibar" role="img" aria-label="This year ${esc(num(v, d))}${esc(unit)}, normal ${esc(num(n, d))}${esc(unit)}">${row('This year', v, 'cur')}${row('Normal', n, 'nrm')}</div>`;
 }
 
-/** Factor tiles. All three detail levels are rendered once; CSS shows what the level allows (data-min-level). */
+/** Factor tiles: colour band, icon, status word and a large headline at every level; more detail as the level rises. */
 export function renderCards(el, analysis, selected, onSelect) {
+  const badges = badgesOf(analysis);
   el.innerHTML = FACTORS.map(f => {
     const st = analysis?.factors?.[f.id]?.status;
     const rec = analysis?.factors?.[f.id]?.recurrence;
+    const b = badges.find(x => x.factor === f.id);
     const has = st && finite(st.value);
     const sc = sevClass(st?.severity);
     const p = finite(st?.percentile) ? Math.max(0, Math.min(100, st.percentile)) : null;
-    const word = wordOf(st);
     const sentence = has ? (st.plain?.sentence ?? st.label ?? '') : (st?.plain?.sentence && !/^No new reading/.test(st.plain.sentence) ? st.plain.sentence : unavailableReason(f.id, st, analysis));
-    const unit = st?.unit === '0–1' ? '' : (st?.unit ?? '');
-    return `<button type="button" class="fcard bracket ${selected === f.id ? 'on' : ''}" data-factor="${f.id}" aria-pressed="${selected === f.id}">
+    return `<button type="button" class="fcard bracket lv-${b.level} ${selected === f.id ? 'on' : ''}" data-factor="${f.id}" aria-pressed="${selected === f.id}">
       <div class="fcard-top">${icon(f.id)}<h3>${esc(f.name)}</h3><span class="code">${f.code}</span></div>
-      <span class="word ${WORD_CLASS[word] ?? ''}">${esc(word)}</span>
+      <div class="headrow"><span class="word">${esc(b.word)}</span>${has ? `<span class="headline">${esc(b.headline)}</span>` : ''}</div>
       <div class="plain">${esc(sentence)}</div>
+      ${has ? miniBar(st) : ''}
       ${has && st.plain?.freq ? `<div class="freq">${esc(st.plain.freq)}</div>` : ''}
       ${has ? `<div data-min-level="2">
-        <div class="val">${esc(num(st.value, Math.abs(st.value) < 10 && st.unit !== 'days' ? 2 : 0))}<small>${esc(unit)}</small></div>
-        <div class="label">${esc(st.label ?? '')}${finite(st.normal_median) ? ` · normal ${esc(num(st.normal_median, Math.abs(st.normal_median) < 10 && st.unit !== 'days' ? 2 : 0))}` : ''}</div>
+        <div class="label">${esc(st.label ?? '')}</div>
         ${st.as_of ? `<div class="asof">as of ${esc(fmtDate(st.as_of))}</div>` : ''}
       </div>
       <div data-min-level="3">
