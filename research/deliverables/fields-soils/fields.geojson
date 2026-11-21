@@ -967,7 +967,7 @@
     "label": "T7S R30W Sec 33 SW quarter (approx. pivot circle)",
     "boundary_status": "approximate",
     "irrigation_status": "likely",
-    "lema_membership": "historical_boundary_verified_current_unverified",
+    "lema_membership": "verified_2023_2027_order",
     "source_ids": [
      "T2_FIELD_DIGITIZED",
      "T2_PLSS",
@@ -1947,7 +1947,7 @@
     "label": "T8S R30W Sec 4 NE quarter (approx. pivot circle)",
     "boundary_status": "approximate",
     "irrigation_status": "likely",
-    "lema_membership": "historical_boundary_verified_current_unverified",
+    "lema_membership": "verified_2023_2027_order",
     "source_ids": [
      "T2_FIELD_DIGITIZED",
      "T2_PLSS",
@@ -2871,7 +2871,7 @@
     "label": "T7S R30W Sec 29 NW quarter (approx. pivot circle)",
     "boundary_status": "approximate",
     "irrigation_status": "likely",
-    "lema_membership": "historical_boundary_verified_current_unverified",
+    "lema_membership": "verified_2023_2027_order",
     "source_ids": [
      "T2_FIELD_DIGITIZED",
      "T2_PLSS",

@@ -1,5 +1,6 @@
 """Score PLSS quarter sections inside the SD-6 boundary for a pivot-like CDL pattern."""
-import json, sys, tifffile, numpy as np
+import json, sys, numpy as np
+from cdl_grid import read_cdl
 from pyproj import Transformer
 from shapely.geometry import shape, Point, box
 from shapely.ops import transform, unary_union
@@ -9,17 +10,13 @@ CULT={1,4,5,6,21,23,24,26,27,28,36,61,205,225,226,236,238,240,254}
 to5070=Transformer.from_crs(4326,5070,always_xy=True).transform
 lema=transform(to5070, unary_union([shape(f['geometry']) for f in json.load(open('src/sd6_lema_boundary.geojson'))['features']]))
 secs=json.load(open('src/plss_sections.geojson'))['features']
-X0,Y0=-404205.0,1848555.0
-rasters={y:tifffile.imread(f'raw/cdl_{y}_20179.tif') for y in YEARS}
-H,W=rasters[2021].shape
-def pix_in(geom):
+rasters={y:read_cdl(f'raw/cdl_{y}_20179.tif') for y in YEARS}  # year -> (array, x0, y0); grids differ by year
+def vals_in(geom,y):
+    a,X0,Y0=rasters[y]; H,W=a.shape
     minx,miny,maxx,maxy=geom.bounds
     c0,c1=int((minx-X0)//30),int((maxx-X0)//30)+1; r0,r1=int((Y0-maxy)//30),int((Y0-miny)//30)+1
-    out=[]
-    for r in range(max(r0,0),min(r1,H)):
-        for c in range(max(c0,0),min(c1,W)):
-            if geom.contains(Point(X0+30*c+15, Y0-30*r-15)): out.append((r,c))
-    return out
+    return np.array([a[r,c] for r in range(max(r0,0),min(r1,H)) for c in range(max(c0,0),min(c1,W))
+                     if geom.contains(Point(X0+30*c+15, Y0-30*r-15))])
 R=396  # m, typical full-circle pivot on a quarter section (approximate)
 cands=[]
 for f in secs:
@@ -29,11 +26,11 @@ for f in secs:
     for q,(qx0,qy0,qx1,qy1) in {'NW':(minx,my,mx,maxy),'NE':(mx,my,maxx,maxy),'SW':(minx,miny,mx,my),'SE':(mx,miny,maxx,my)}.items():
         qb=box(qx0,qy0,qx1,qy1).intersection(s); cx,cy=qb.centroid.x,qb.centroid.y
         circ=Point(cx,cy).buffer(R,64); corners=qb.difference(circ)
-        pc=pix_in(circ); pk=pix_in(corners)
-        if not pc: continue
         dom=[];cult_circ=[];cult_corn=[]
         for y in YEARS:
-            a=rasters[y]; vc=np.array([a[r,c] for r,c in pc]); vk=np.array([a[r,c] for r,c in pk]) if pk else np.array([0])
+            vc=vals_in(circ,y); vk=vals_in(corners,y) if not corners.is_empty else np.array([])
+            if not len(vc): dom=None; break
+            if not len(vk): vk=np.array([0])
             if (vc==0).any(): dom=None; break
             v,n=np.unique(vc,return_counts=True); i=n.argmax(); dom.append((int(v[i]),n[i]/len(vc)))
             cult_circ.append(np.isin(vc,list(CULT)).mean()); cult_corn.append(np.isin(vk,list(CULT)).mean())

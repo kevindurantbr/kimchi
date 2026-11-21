@@ -8,16 +8,25 @@
    "retrieved_date": "2026-11-14",
    "product_version": "ArcGIS item 90041416e6d7427d839d3e0d55229082, modified 2023-01-04",
    "method": "FeatureServer query, outSR=4326, f=geojson. Dissolved PLSS sections from Kansas DASC.",
-   "limitations": "Third-party reconstruction, not a DWR file. Cross-checked against the section list in T2_SD6_ORDER."
+   "limitations": "Third-party reconstruction, not a DWR file. Its 99 sections match the T2_SD6_ORDER legal description exactly (section-by-section check against T2_PLSS)."
   },
   {
    "source_id": "T2_SD6_ORDER",
+   "title": "Consolidated Order of Decision and Designation Renewing Sheridan 6 LEMA for 2023-2027 (KDA DWR)",
+   "url": "https://www.agriculture.ks.gov/home/showpublisheddocument/4946/638466570231300000",
+   "retrieved_date": "2026-11-15",
+   "product_version": "Signed by the Chief Engineer 2022-10-14; in effect 2023-01-01 to 2027-12-31",
+   "method": "Read in a browser from the official Sheridan 6 LEMA page. Section VII (pages 7-8) designates T7S R28W 19-21, 28-33; T7S R29W 4-9, 16-36; T7S R30W 19-36; T8S R29W 1-18; T8S R30W 1-18; Thomas County T8S R31W 22-27, 34-36 (99 sections). Findings of fact item 1 (page 6) lists the same sections.",
+   "limitations": "Section membership of an approximate field only. Does not show water-right enrolment, allocation or compliance. A 2026 renewal proceeding (001-DWR-LEMA-2026) proposes adding area to the LEMA; the boundary after 2027-12-31 is not verified."
+  },
+  {
+   "source_id": "T2_SD6_ORDER_2018",
    "title": "Order of Designation, Sheridan 6 LEMA Management Plan 2018-2022 (KDA DWR, 001-DWR-LEMA-2017), copy hosted by GMD4",
    "url": "https://gmd4.org/New/Sheridan%206%20LEMA%20Order%20of%20Designation.pdf",
    "retrieved_date": "2026-11-14",
    "product_version": "Order dated 2017 for 2018-2022; Section VII lists boundary sections",
    "method": "Read the scanned PDF, page 8: T7S R30W Sections 19-36; T8S R30W Sections 1-18 (plus other townships).",
-   "limitations": "2023-2027 Consolidated Order on agriculture.ks.gov could not be downloaded by script (HTTP 403). Boundary assumed unchanged; the KBS 2023 polygon is 99 sections, matching this list."
+   "limitations": "Historical. Superseded by T2_SD6_ORDER; kept to show the boundary is unchanged since 2018."
   },
   {
    "source_id": "T2_PLSS",
@@ -33,7 +42,7 @@
    "title": "Approximate pivot-circle analysis boundaries (this package)",
    "url": "scripts/extract_fields.py",
    "retrieved_date": "2026-11-14",
-   "product_version": "1.0",
+   "product_version": "1.1",
    "method": "Circle centred on the PLSS quarter-section centroid. Radius fitted from the CDL radial crop pattern (300-400 m).",
    "limitations": "Approximate. Not a surveyed field, parcel, or confirmed pivot. Center and radius may be off by tens of metres."
   },
@@ -52,8 +61,8 @@
    "url": "https://nassgeodata.gmu.edu/axis2/services/CDLService/GetCDLFile?year={year}&fips=20179",
    "retrieved_date": "2026-11-14",
    "product_version": "CDL 2021, 2022, 2023, 2024, 2025 county clips from CropScape cache (30 m, Albers NAD83)",
-   "method": "Pixel-centre-in-polygon counts, no resampling or interpolation. Fractions over valid (non-zero) pixels.",
-   "limitations": "Classification error applies per pixel. Kansas producer's accuracy 2023: corn 90.6%, sorghum 81.0%, winter wheat 88.5% (metadata_ks23). 2024 and 2025 Kansas metadata pages were not found on the NASS site."
+   "method": "Pixel-centre-in-polygon counts, no resampling or interpolation. Fractions over valid (non-zero) pixels. Grid origin and CRS GeoKeys read and checked per file: 2022 and 2023 tiepoint (-404175, 1848585), 2021/2024/2025 tiepoint (-404205, 1848555).",
+   "limitations": "Classification error applies per pixel. Kansas producer's accuracy 2023: corn 90.6%, sorghum 81.0%, winter wheat 88.5% (metadata_ks23). 2024 and 2025 Kansas metadata pages were not found on the NASS site. From 2024 NASS produces the CDL at 10 m; the 2024 and 2025 county clips used here are 30 m files, so edge pixels can differ from the 10 m product."
   },
   {
    "source_id": "T2_CDL_META",
@@ -68,7 +77,7 @@
    "source_id": "T2_SSURGO",
    "title": "USDA NRCS SSURGO via Soil Data Access, survey area KS179 (Sheridan County)",
    "url": "https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest",
-   "retrieved_date": "2026-11-14",
+   "retrieved_date": "2026-11-15",
    "product_version": "SDA live database as queried (mupolygon, mapunit, muaggatt)",
    "method": "Spatial intersection of each field polygon with mupolygon; clipped areas computed in EPSG:5070; muaggatt.aws* (component-weighted average) area-weighted across map units.",
    "limitations": "Available water storage is a soil property estimate, not current soil moisture. Map-unit averages hide within-unit variation."
@@ -115,7 +124,19 @@
    "field_id": "fld01",
    "year": 2022,
    "crop": "Corn",
-   "crop_fraction": 0.982,
+   "crop_fraction": 0.973,
+   "valid_coverage_fraction": 1.0,
+   "confirmation_needed": false,
+   "source_ids": [
+    "T2_CDL",
+    "T2_CDL_META"
+   ]
+  },
+  {
+   "field_id": "fld01",
+   "year": 2022,
+   "crop": "Grassland/Pasture",
+   "crop_fraction": 0.013,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -127,7 +148,7 @@
    "field_id": "fld01",
    "year": 2022,
    "crop": "Other (classes <1% each)",
-   "crop_fraction": 0.018,
+   "crop_fraction": 0.014,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -139,7 +160,7 @@
    "field_id": "fld01",
    "year": 2023,
    "crop": "Corn",
-   "crop_fraction": 0.959,
+   "crop_fraction": 0.97,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -150,8 +171,8 @@
   {
    "field_id": "fld01",
    "year": 2023,
-   "crop": "Fallow/Idle Cropland",
-   "crop_fraction": 0.021,
+   "crop": "Grassland/Pasture",
+   "crop_fraction": 0.013,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -163,7 +184,7 @@
    "field_id": "fld01",
    "year": 2023,
    "crop": "Other (classes <1% each)",
-   "crop_fraction": 0.02,
+   "crop_fraction": 0.018,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -271,31 +292,7 @@
    "field_id": "fld02",
    "year": 2022,
    "crop": "Corn",
-   "crop_fraction": 0.946,
-   "valid_coverage_fraction": 1.0,
-   "confirmation_needed": false,
-   "source_ids": [
-    "T2_CDL",
-    "T2_CDL_META"
-   ]
-  },
-  {
-   "field_id": "fld02",
-   "year": 2022,
-   "crop": "Developed/Open Space",
-   "crop_fraction": 0.032,
-   "valid_coverage_fraction": 1.0,
-   "confirmation_needed": false,
-   "source_ids": [
-    "T2_CDL",
-    "T2_CDL_META"
-   ]
-  },
-  {
-   "field_id": "fld02",
-   "year": 2022,
-   "crop": "Fallow/Idle Cropland",
-   "crop_fraction": 0.013,
+   "crop_fraction": 0.998,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -307,7 +304,7 @@
    "field_id": "fld02",
    "year": 2022,
    "crop": "Other (classes <1% each)",
-   "crop_fraction": 0.009,
+   "crop_fraction": 0.002,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -319,31 +316,7 @@
    "field_id": "fld02",
    "year": 2023,
    "crop": "Sorghum",
-   "crop_fraction": 0.919,
-   "valid_coverage_fraction": 1.0,
-   "confirmation_needed": true,
-   "source_ids": [
-    "T2_CDL",
-    "T2_CDL_META"
-   ]
-  },
-  {
-   "field_id": "fld02",
-   "year": 2023,
-   "crop": "Developed/Open Space",
-   "crop_fraction": 0.032,
-   "valid_coverage_fraction": 1.0,
-   "confirmation_needed": true,
-   "source_ids": [
-    "T2_CDL",
-    "T2_CDL_META"
-   ]
-  },
-  {
-   "field_id": "fld02",
-   "year": 2023,
-   "crop": "Winter Wheat",
-   "crop_fraction": 0.025,
+   "crop_fraction": 0.977,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": true,
    "source_ids": [
@@ -355,7 +328,7 @@
    "field_id": "fld02",
    "year": 2023,
    "crop": "Corn",
-   "crop_fraction": 0.014,
+   "crop_fraction": 0.013,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": true,
    "source_ids": [
@@ -366,8 +339,8 @@
   {
    "field_id": "fld02",
    "year": 2023,
-   "crop": "Other (classes <1% each)",
-   "crop_fraction": 0.009,
+   "crop": "Winter Wheat",
+   "crop_fraction": 0.011,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": true,
    "source_ids": [
@@ -487,7 +460,7 @@
    "field_id": "fld03",
    "year": 2022,
    "crop": "Winter Wheat",
-   "crop_fraction": 0.93,
+   "crop_fraction": 0.94,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -499,19 +472,7 @@
    "field_id": "fld03",
    "year": 2022,
    "crop": "Corn",
-   "crop_fraction": 0.052,
-   "valid_coverage_fraction": 1.0,
-   "confirmation_needed": false,
-   "source_ids": [
-    "T2_CDL",
-    "T2_CDL_META"
-   ]
-  },
-  {
-   "field_id": "fld03",
-   "year": 2022,
-   "crop": "Developed/Open Space",
-   "crop_fraction": 0.013,
+   "crop_fraction": 0.049,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -523,7 +484,7 @@
    "field_id": "fld03",
    "year": 2022,
    "crop": "Other (classes <1% each)",
-   "crop_fraction": 0.005,
+   "crop_fraction": 0.011,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -535,19 +496,7 @@
    "field_id": "fld03",
    "year": 2023,
    "crop": "Winter Wheat",
-   "crop_fraction": 0.984,
-   "valid_coverage_fraction": 1.0,
-   "confirmation_needed": false,
-   "source_ids": [
-    "T2_CDL",
-    "T2_CDL_META"
-   ]
-  },
-  {
-   "field_id": "fld03",
-   "year": 2023,
-   "crop": "Developed/Open Space",
-   "crop_fraction": 0.013,
+   "crop_fraction": 0.991,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
@@ -559,7 +508,7 @@
    "field_id": "fld03",
    "year": 2023,
    "crop": "Other (classes <1% each)",
-   "crop_fraction": 0.004,
+   "crop_fraction": 0.009,
    "valid_coverage_fraction": 1.0,
    "confirmation_needed": false,
    "source_ids": [
