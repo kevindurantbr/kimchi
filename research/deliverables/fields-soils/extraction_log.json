@@ -33,15 +33,15 @@
     "top": [
      [
       "Corn",
-      0.982
+      0.973
      ],
      [
       "Grassland/Pasture",
-      0.009
+      0.013
      ],
      [
-      "Sorghum",
-      0.007
+      "Developed/Open Space",
+      0.009
      ]
     ],
     "confirm": false
@@ -52,14 +52,14 @@
     "top": [
      [
       "Corn",
-      0.959
-     ],
-     [
-      "Fallow/Idle Cropland",
-      0.021
+      0.97
      ],
      [
       "Grassland/Pasture",
+      0.013
+     ],
+     [
+      "Developed/Open Space",
       0.009
      ]
     ],
@@ -187,15 +187,11 @@
     "top": [
      [
       "Corn",
-      0.946
-     ],
-     [
-      "Developed/Open Space",
-      0.032
+      0.998
      ],
      [
       "Fallow/Idle Cropland",
-      0.013
+      0.002
      ]
     ],
     "confirm": false
@@ -206,15 +202,15 @@
     "top": [
      [
       "Sorghum",
-      0.919
+      0.977
      ],
      [
-      "Developed/Open Space",
-      0.032
+      "Corn",
+      0.013
      ],
      [
       "Winter Wheat",
-      0.025
+      0.011
      ]
     ],
     "confirm": true
@@ -307,15 +303,15 @@
     "top": [
      [
       "Winter Wheat",
-      0.93
+      0.94
      ],
      [
       "Corn",
-      0.052
+      0.049
      ],
      [
       "Developed/Open Space",
-      0.013
+      0.007
      ]
     ],
     "confirm": false
@@ -326,15 +322,15 @@
     "top": [
      [
       "Winter Wheat",
-      0.984
+      0.991
      ],
      [
       "Developed/Open Space",
-      0.013
+      0.007
      ],
      [
       "Fallow/Idle Cropland",
-      0.004
+      0.002
      ]
     ],
     "confirm": false
@@ -410,5 +406,37 @@
     "drainage": "Well drained"
    }
   ]
+ },
+ "cdl_grids": {
+  "2021": {
+   "x0": -404205.0,
+   "y0": 1848555.0,
+   "rows": 1702,
+   "cols": 1668
+  },
+  "2022": {
+   "x0": -404175.0,
+   "y0": 1848585.0,
+   "rows": 1703,
+   "cols": 1667
+  },
+  "2023": {
+   "x0": -404175.0,
+   "y0": 1848585.0,
+   "rows": 1703,
+   "cols": 1667
+  },
+  "2024": {
+   "x0": -404205.0,
+   "y0": 1848555.0,
+   "rows": 1702,
+   "cols": 1668
+  },
+  "2025": {
+   "x0": -404205.0,
+   "y0": 1848555.0,
+   "rows": 1702,
+   "cols": 1668
+  }
  }
 }
